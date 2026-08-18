@@ -1,0 +1,1321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PLATFORM_ADMIN
+  BUSINESS_OWNER
+  STAFF
+  CUSTOMER
+}
+
+enum PlatformAppearance {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum ExternalAuthProvider {
+  GOOGLE
+}
+
+enum AccountTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+  ARCHIVED
+}
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BusinessMemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum BusinessMembershipStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum StaffInvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum FeedbackPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum FeedbackActivityType {
+  STATUS_CHANGED
+  NOTE_ADDED
+  ASSIGNMENT_CHANGED
+  CATEGORY_CHANGED
+  PRIORITY_CHANGED
+  AI_RETRY_REQUESTED
+  AI_CATEGORY_APPLIED
+  AI_CATEGORY_DISMISSED
+}
+
+enum FeedbackActivityActorType {
+  HUMAN
+  SYSTEM
+}
+
+enum FeedbackFieldStateField {
+  STATUS
+  PRIORITY
+  CATEGORY
+  ASSIGNMENT
+}
+
+enum FeedbackFieldStateSource {
+  DEFAULT
+  HUMAN
+  AI
+  AUTOMATION
+  SYSTEM
+}
+
+enum AutomationRuleStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AutomationRuleBranchScope {
+  ALL_BRANCHES
+  SELECTED_BRANCHES
+}
+
+enum AutomationRuleTrigger {
+  FEEDBACK_CREATED
+  AI_ANALYSIS_COMPLETED
+}
+
+enum AutomationRuleMatchMode {
+  ALL
+  ANY
+}
+
+enum AutomationConditionType {
+  BRANCH
+  CHANNEL
+  RATING
+  STATUS
+  PRIORITY
+  CATEGORY
+  ASSIGNMENT_STATE
+  CUSTOMER_LINK_STATE
+  AI_STATUS
+  SENTIMENT
+  SENTIMENT_CONFIDENCE
+  AI_SUGGESTED_CATEGORY
+  AI_CATEGORY_CONFIDENCE
+  AI_SUGGESTION_STATE
+}
+
+enum AutomationConditionOperator {
+  EQUALS
+  NOT_EQUALS
+  IN
+  GREATER_THAN_OR_EQUAL
+  LESS_THAN_OR_EQUAL
+  IS_EMPTY
+  IS_NOT_EMPTY
+}
+
+enum AutomationActionType {
+  SET_PRIORITY
+  SET_CATEGORY
+  ASSIGN_TO_MEMBERSHIP
+  UNASSIGN
+  SET_STATUS
+}
+
+enum AutomationEventStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AutomationExecutionStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  SKIPPED
+  NOT_MATCHED
+}
+
+enum AutomationActionExecutionStatus {
+  SUCCESS
+  SKIPPED
+  FAILED
+  CONFLICTED
+}
+
+enum CustomerStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CustomerActivityType {
+  CREATED
+  UPDATED
+  ARCHIVED
+  REACTIVATED
+  FEEDBACK_LINKED
+  FEEDBACK_UNLINKED
+}
+
+enum FeedbackChannel {
+  MANUAL
+  PUBLIC_FORM
+  QR_CODE
+  WHATSAPP
+  INSTAGRAM
+  X
+  GOOGLE_REVIEW
+  EMAIL
+  FACEBOOK
+  OTHER
+}
+
+enum FeedbackIngestionStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FeedbackAIAnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum FeedbackAISentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  MIXED
+}
+
+enum IntegrationProvider {
+  GOOGLE_REVIEWS
+  WHATSAPP
+  EMAIL
+  X
+  FACEBOOK
+  INSTAGRAM
+}
+
+enum IntegrationMode {
+  DEMO
+  LIVE
+}
+
+enum IntegrationConnectionStatus {
+  CONNECTED
+  PAUSED
+  DISCONNECTED
+  ERROR
+}
+
+enum IntegrationDemoScenario {
+  STANDARD_MIXED
+  PARTIAL_FAILURE
+}
+
+enum EmailProviderType {
+  GMAIL
+  MICROSOFT
+  IMAP
+}
+
+enum IntegrationCredentialType {
+  OAUTH2
+  IMAP_PASSWORD
+  META_WHATSAPP
+}
+
+enum IntegrationOAuthAction {
+  CONNECT
+  REAUTHORIZE
+}
+
+enum SynchronizationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+  CANCELLED
+}
+
+enum SynchronizationTriggerType {
+  MANUAL
+  WEBHOOK
+}
+
+enum SynchronizationItemStatus {
+  IMPORTED
+  DUPLICATE
+  SKIPPED
+  FAILED
+}
+
+enum IntegrationWebhookDeliveryStatus {
+  RECEIVED
+  IMPORTED
+  DUPLICATE
+  SKIPPED
+  FAILED
+}
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique @db.VarChar(255)
+  passwordHash    String?       @map("password_hash") @db.VarChar(255)
+  firstName       String        @map("first_name") @db.VarChar(100)
+  lastName        String        @map("last_name") @db.VarChar(100)
+  role            UserRole
+  status          AccountStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?     @map("email_verified_at")
+  lastLoginAt     DateTime?     @map("last_login_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  sessions                 Session[]
+  externalAccounts         ExternalAccount[]
+  accountTokens            AccountToken[]
+  createdBusinesses        Business[]              @relation("BusinessCreatedBy")
+  businessMemberships      BusinessMembership[]    @relation("BusinessMembershipUser")
+  invitedMemberships       BusinessMembership[]    @relation("BusinessMembershipInvitedBy")
+  sentStaffInvitations     StaffInvitation[]       @relation("StaffInvitationInvitedBy")
+  acceptedStaffInvitations StaffInvitation[]       @relation("StaffInvitationAcceptedBy")
+  integrationOAuthStates   IntegrationOAuthState[]
+  platformAdminActivities  PlatformAdminActivity[] @relation("PlatformAdminActivityActor")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Business {
+  id                           String         @id @default(cuid())
+  name                         String         @db.VarChar(160)
+  industry                     String         @db.VarChar(120)
+  description                  String?        @db.Text
+  email                        String         @db.VarChar(255)
+  phone                        String         @db.VarChar(40)
+  website                      String?        @db.VarChar(1024)
+  logoUrl                      String?        @map("logo_url") @db.VarChar(1024)
+  country                      String         @db.VarChar(100)
+  city                         String         @db.VarChar(100)
+  district                     String?        @db.VarChar(100)
+  addressLine                  String         @map("address_line") @db.VarChar(255)
+  timezone                     String         @db.VarChar(80)
+  status                       BusinessStatus @default(PENDING)
+  createdByUserId              String         @map("created_by_user_id")
+  publicFeedbackEnabled        Boolean        @default(false) @map("public_feedback_enabled")
+  publicFeedbackToken          String?        @unique @map("public_feedback_token") @db.VarChar(96)
+  publicFeedbackWelcomeMessage String?        @map("public_feedback_welcome_message") @db.VarChar(500)
+  createdAt                    DateTime       @default(now()) @map("created_at")
+  updatedAt                    DateTime       @updatedAt @map("updated_at")
+
+  createdBy              User                         @relation("BusinessCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  branches               Branch[]
+  memberships            BusinessMembership[]
+  invitations            StaffInvitation[]
+  feedbackIngestions     FeedbackIngestion[]
+  feedbacks              Feedback[]
+  publicFeedbackQrCodes  PublicFeedbackQrCode[]
+  feedbackActivities     FeedbackActivity[]
+  feedbackCategories     FeedbackCategory[]
+  feedbackAIAnalyses     FeedbackAIAnalysis[]
+  customers              Customer[]
+  customerActivities     CustomerActivity[]
+  automationRules        AutomationRule[]
+  automationEvents       AutomationEvent[]
+  automationExecutions   AutomationExecution[]
+  feedbackFieldStates    FeedbackFieldState[]
+  integrationConnections IntegrationConnection[]
+  integrationOAuthStates IntegrationOAuthState[]
+  synchronizationRuns    SynchronizationRun[]
+  webhookDeliveries      IntegrationWebhookDelivery[]
+
+  @@index([status])
+  @@index([publicFeedbackEnabled])
+  @@index([createdByUserId])
+  @@map("businesses")
+}
+
+model Branch {
+  id          String       @id @default(cuid())
+  businessId  String       @map("business_id")
+  name        String       @db.VarChar(140)
+  code        String       @db.VarChar(32)
+  addressLine String       @map("address_line") @db.VarChar(255)
+  city        String       @db.VarChar(100)
+  district    String?      @db.VarChar(100)
+  country     String       @db.VarChar(100)
+  phone       String?      @db.VarChar(40)
+  email       String?      @db.VarChar(255)
+  isPrimary   Boolean      @default(false) @map("is_primary")
+  status      BranchStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  business               Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  membershipAccess       MembershipBranchAccess[]
+  invitationBranches     StaffInvitationBranch[]
+  feedbackIngestions     FeedbackIngestion[]
+  feedbacks              Feedback[]
+  publicFeedbackQrCodes  PublicFeedbackQrCode[]
+  automationRuleBranches AutomationRuleBranch[]
+  automationConditions   AutomationCondition[]
+  integrationConnections IntegrationConnection[]
+  integrationOAuthStates IntegrationOAuthState[]
+
+  @@unique([businessId, code])
+  @@index([businessId, status])
+  @@index([status])
+  @@map("branches")
+}
+
+model BusinessMembership {
+  id                String                   @id @default(cuid())
+  businessId        String                   @map("business_id")
+  userId            String                   @map("user_id")
+  role              BusinessMemberRole
+  status            BusinessMembershipStatus @default(ACTIVE)
+  allBranchesAccess Boolean                  @default(false) @map("all_branches_access")
+  invitedByUserId   String?                  @map("invited_by_user_id")
+  joinedAt          DateTime?                @map("joined_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  business                      Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user                          User                     @relation("BusinessMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy                     User?                    @relation("BusinessMembershipInvitedBy", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  branchAccess                  MembershipBranchAccess[]
+  createdPublicFeedbackQrCodes  PublicFeedbackQrCode[]
+  feedbackActivities            FeedbackActivity[]
+  assignedFeedbacks             Feedback[]               @relation("FeedbackAssignedTo")
+  createdCustomers              Customer[]               @relation("CustomerCreatedByMembership")
+  updatedCustomers              Customer[]               @relation("CustomerUpdatedByMembership")
+  customerActivities            CustomerActivity[]
+  createdAutomationRules        AutomationRule[]         @relation("AutomationRuleCreatedByMembership")
+  updatedAutomationRules        AutomationRule[]         @relation("AutomationRuleUpdatedByMembership")
+  automationActionTargets       AutomationAction[]
+  feedbackFieldStatesUpdated    FeedbackFieldState[]
+  createdIntegrationConnections IntegrationConnection[]  @relation("IntegrationConnectionCreatedByMembership")
+  updatedIntegrationConnections IntegrationConnection[]  @relation("IntegrationConnectionUpdatedByMembership")
+  integrationOAuthStates        IntegrationOAuthState[]
+  startedSynchronizationRuns    SynchronizationRun[]     @relation("SynchronizationRunStartedByMembership")
+
+  @@unique([businessId, userId])
+  @@index([businessId, status])
+  @@index([userId, status])
+  @@index([status])
+  @@map("business_memberships")
+}
+
+model MembershipBranchAccess {
+  membershipId String   @map("membership_id")
+  branchId     String   @map("branch_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  membership BusinessMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  branch     Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, branchId])
+  @@index([branchId])
+  @@map("membership_branch_access")
+}
+
+model PublicFeedbackQrCode {
+  id                     String   @id @default(cuid())
+  businessId             String   @map("business_id")
+  branchId               String?  @map("branch_id")
+  name                   String   @db.VarChar(120)
+  publicToken            String   @unique @map("public_token") @db.VarChar(96)
+  portalTokenFingerprint String   @map("portal_token_fingerprint") @db.VarChar(64)
+  isActive               Boolean  @default(true) @map("is_active")
+  createdByMembershipId  String?  @map("created_by_membership_id")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  business            Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch              Branch?             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdByMembership BusinessMembership? @relation(fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, isActive])
+  @@index([businessId, branchId])
+  @@index([branchId])
+  @@index([createdByMembershipId])
+  @@map("public_feedback_qr_codes")
+}
+
+model StaffInvitation {
+  id                String                @id @default(cuid())
+  businessId        String                @map("business_id")
+  invitedEmail      String                @map("invited_email") @db.VarChar(255)
+  role              BusinessMemberRole
+  status            StaffInvitationStatus @default(PENDING)
+  allBranchesAccess Boolean               @default(false) @map("all_branches_access")
+  tokenHash         String                @unique @map("token_hash") @db.VarChar(64)
+  expiresAt         DateTime              @map("expires_at")
+  invitedByUserId   String                @map("invited_by_user_id")
+  acceptedByUserId  String?               @map("accepted_by_user_id")
+  acceptedAt        DateTime?             @map("accepted_at")
+  cancelledAt       DateTime?             @map("cancelled_at")
+  lastSentAt        DateTime?             @map("last_sent_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  business     Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invitedBy    User                    @relation("StaffInvitationInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  acceptedBy   User?                   @relation("StaffInvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  branchAccess StaffInvitationBranch[]
+
+  @@index([businessId, status])
+  @@index([invitedEmail])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("staff_invitations")
+}
+
+model StaffInvitationBranch {
+  invitationId String @map("invitation_id")
+  branchId     String @map("branch_id")
+
+  invitation StaffInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  branch     Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([invitationId, branchId])
+  @@index([branchId])
+  @@map("staff_invitation_branches")
+}
+
+model FeedbackIngestion {
+  id                String                  @id @default(cuid())
+  businessId        String                  @map("business_id")
+  branchId          String                  @map("branch_id")
+  channel           FeedbackChannel
+  externalId        String?                 @map("external_id") @db.VarChar(255)
+  idempotencyKey    String                  @map("idempotency_key") @db.VarChar(255)
+  payloadHash       String                  @map("payload_hash") @db.VarChar(64)
+  status            FeedbackIngestionStatus @default(PROCESSING)
+  processingVersion String                  @default("phase4-v1") @map("processing_version") @db.VarChar(40)
+  errorCode         String?                 @map("error_code") @db.VarChar(80)
+  errorMessage      String?                 @map("error_message") @db.VarChar(500)
+  startedAt         DateTime                @default(now()) @map("started_at")
+  completedAt       DateTime?               @map("completed_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch               Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  feedback             Feedback?
+  synchronizationItems SynchronizationItem[]
+
+  @@unique([businessId, channel, idempotencyKey])
+  @@unique([businessId, channel, externalId])
+  @@index([status])
+  @@index([businessId, createdAt])
+  @@index([status, createdAt])
+  @@map("feedback_ingestions")
+}
+
+model Feedback {
+  id                     String           @id @default(cuid())
+  businessId             String           @map("business_id")
+  branchId               String           @map("branch_id")
+  ingestionId            String           @unique @map("ingestion_id")
+  channel                FeedbackChannel
+  externalId             String?          @map("external_id") @db.VarChar(255)
+  title                  String?          @db.VarChar(250)
+  message                String           @db.Text
+  rating                 Int?
+  status                 FeedbackStatus   @default(NEW)
+  priority               FeedbackPriority @default(NORMAL)
+  assignedToMembershipId String?          @map("assigned_to_membership_id")
+  categoryId             String?          @map("category_id")
+  customerId             String?          @map("customer_id")
+  customerName           String?          @map("customer_name") @db.VarChar(160)
+  customerEmail          String?          @map("customer_email") @db.VarChar(255)
+  customerPhone          String?          @map("customer_phone") @db.VarChar(40)
+  sourceUrl              String?          @map("source_url") @db.VarChar(1024)
+  languageCode           String?          @map("language_code") @db.VarChar(20)
+  occurredAt             DateTime?        @map("occurred_at")
+  receivedAt             DateTime         @default(now()) @map("received_at")
+  sourceMetadata         Json?            @map("source_metadata")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
+
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branch               Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  ingestion            FeedbackIngestion     @relation(fields: [ingestionId], references: [id], onDelete: Restrict)
+  attachments          FeedbackAttachment[]
+  activities           FeedbackActivity[]
+  aiAnalysis           FeedbackAIAnalysis?
+  assignedTo           BusinessMembership?   @relation("FeedbackAssignedTo", fields: [assignedToMembershipId], references: [id], onDelete: SetNull)
+  category             FeedbackCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerActivities   CustomerActivity[]
+  automationEvents     AutomationEvent[]
+  automationExecutions AutomationExecution[]
+  fieldStates          FeedbackFieldState[]
+  synchronizationItems SynchronizationItem[]
+
+  @@unique([businessId, channel, externalId])
+  @@index([businessId, receivedAt])
+  @@index([branchId, receivedAt])
+  @@index([channel])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToMembershipId])
+  @@index([categoryId])
+  @@index([customerId, receivedAt])
+  @@map("feedback")
+}
+
+model FeedbackActivity {
+  id                 String                    @id @default(cuid())
+  businessId         String                    @map("business_id")
+  feedbackId         String                    @map("feedback_id")
+  actorMembershipId  String?                   @map("actor_membership_id")
+  actorType          FeedbackActivityActorType @default(HUMAN) @map("actor_type")
+  automationRuleId   String?                   @map("automation_rule_id")
+  automationRuleName String?                   @map("automation_rule_name") @db.VarChar(120)
+  type               FeedbackActivityType
+  fromStatus         FeedbackStatus?
+  toStatus           FeedbackStatus?
+  fromValue          String?                   @map("from_value") @db.VarChar(255)
+  toValue            String?                   @map("to_value") @db.VarChar(255)
+  note               String?                   @db.Text
+  createdAt          DateTime                  @default(now()) @map("created_at")
+
+  feedback       Feedback            @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actor          BusinessMembership? @relation(fields: [actorMembershipId], references: [id], onDelete: SetNull)
+  automationRule AutomationRule?     @relation(fields: [automationRuleId], references: [id], onDelete: SetNull)
+
+  @@index([feedbackId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([automationRuleId])
+  @@map("feedback_activities")
+}
+
+model FeedbackFieldState {
+  id                    String                   @id @default(cuid())
+  businessId            String                   @map("business_id")
+  feedbackId            String                   @map("feedback_id")
+  field                 FeedbackFieldStateField
+  source                FeedbackFieldStateSource @default(SYSTEM)
+  sourceRuleId          String?                  @map("source_rule_id")
+  updatedByMembershipId String?                  @map("updated_by_membership_id")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+
+  business            Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  feedback            Feedback            @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  sourceRule          AutomationRule?     @relation(fields: [sourceRuleId], references: [id], onDelete: SetNull)
+  updatedByMembership BusinessMembership? @relation(fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@unique([feedbackId, field])
+  @@index([businessId, field])
+  @@index([sourceRuleId])
+  @@index([updatedByMembershipId])
+  @@map("feedback_field_states")
+}
+
+model AutomationRule {
+  id                       String                    @id @default(cuid())
+  businessId               String                    @map("business_id")
+  name                     String                    @db.VarChar(120)
+  description              String?                   @db.VarChar(500)
+  status                   AutomationRuleStatus      @default(DRAFT)
+  branchScope              AutomationRuleBranchScope @default(ALL_BRANCHES) @map("branch_scope")
+  trigger                  AutomationRuleTrigger
+  matchMode                AutomationRuleMatchMode   @default(ALL) @map("match_mode")
+  stopProcessingAfterMatch Boolean                   @default(false) @map("stop_processing_after_match")
+  position                 Int
+  version                  Int                       @default(1)
+  createdByMembershipId    String?                   @map("created_by_membership_id")
+  updatedByMembershipId    String?                   @map("updated_by_membership_id")
+  archivedAt               DateTime?                 @map("archived_at")
+  lastTriggeredAt          DateTime?                 @map("last_triggered_at")
+  executionCount           Int                       @default(0) @map("execution_count")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+
+  business            Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdByMembership BusinessMembership?    @relation("AutomationRuleCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  updatedByMembership BusinessMembership?    @relation("AutomationRuleUpdatedByMembership", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+  branches            AutomationRuleBranch[]
+  conditions          AutomationCondition[]
+  actions             AutomationAction[]
+  executions          AutomationExecution[]
+  activities          FeedbackActivity[]
+  fieldStates         FeedbackFieldState[]
+
+  @@index([businessId, status, trigger, position])
+  @@index([businessId, status])
+  @@index([createdByMembershipId])
+  @@index([updatedByMembershipId])
+  @@map("automation_rules")
+}
+
+model AutomationRuleBranch {
+  ruleId   String @map("rule_id")
+  branchId String @map("branch_id")
+
+  rule   AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  branch Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@id([ruleId, branchId])
+  @@index([branchId])
+  @@map("automation_rule_branches")
+}
+
+model AutomationCondition {
+  id          String                      @id @default(cuid())
+  ruleId      String                      @map("rule_id")
+  type        AutomationConditionType
+  operator    AutomationConditionOperator
+  position    Int
+  valueString String?                     @map("value_string") @db.VarChar(255)
+  valueNumber Float?                      @map("value_number")
+  valueJson   Json?                       @map("value_json")
+  branchId    String?                     @map("branch_id")
+  categoryId  String?                     @map("category_id")
+
+  rule     AutomationRule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  branch   Branch?           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  category FeedbackCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([ruleId, position])
+  @@index([branchId])
+  @@index([categoryId])
+  @@map("automation_conditions")
+}
+
+model AutomationAction {
+  id                 String               @id @default(cuid())
+  ruleId             String               @map("rule_id")
+  type               AutomationActionType
+  position           Int
+  valueString        String?              @map("value_string") @db.VarChar(255)
+  categoryId         String?              @map("category_id")
+  targetMembershipId String?              @map("target_membership_id")
+
+  rule             AutomationRule              @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  category         FeedbackCategory?           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  targetMembership BusinessMembership?         @relation(fields: [targetMembershipId], references: [id], onDelete: Restrict)
+  executions       AutomationActionExecution[]
+
+  @@index([ruleId, position])
+  @@index([categoryId])
+  @@index([targetMembershipId])
+  @@map("automation_actions")
+}
+
+model AutomationEvent {
+  id               String                @id @default(cuid())
+  businessId       String                @map("business_id")
+  feedbackId       String                @map("feedback_id")
+  trigger          AutomationRuleTrigger
+  status           AutomationEventStatus @default(QUEUED)
+  eventKey         String                @unique @map("event_key") @db.VarChar(96)
+  inputFingerprint String                @map("input_fingerprint") @db.VarChar(64)
+  eventChainId     String                @map("event_chain_id") @db.VarChar(64)
+  eventDepth       Int                   @default(0) @map("event_depth")
+  lockToken        String?               @map("lock_token") @db.VarChar(64)
+  lockedAt         DateTime?             @map("locked_at")
+  retryCount       Int                   @default(0) @map("retry_count")
+  maxRetries       Int                   @default(3) @map("max_retries")
+  errorCode        String?               @map("error_code") @db.VarChar(80)
+  errorMessage     String?               @map("error_message") @db.VarChar(500)
+  queuedAt         DateTime              @default(now()) @map("queued_at")
+  startedAt        DateTime?             @map("started_at")
+  completedAt      DateTime?             @map("completed_at")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  business   Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  feedback   Feedback              @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  executions AutomationExecution[]
+
+  @@index([status, lockedAt, queuedAt])
+  @@index([businessId, trigger, status])
+  @@index([feedbackId, queuedAt])
+  @@map("automation_events")
+}
+
+model AutomationExecution {
+  id               String                    @id @default(cuid())
+  businessId       String                    @map("business_id")
+  eventId          String?                   @map("event_id")
+  ruleId           String?                   @map("rule_id")
+  feedbackId       String                    @map("feedback_id")
+  trigger          AutomationRuleTrigger
+  status           AutomationExecutionStatus
+  matched          Boolean                   @default(false)
+  ruleVersion      Int?                      @map("rule_version")
+  ruleSnapshot     Json?                     @map("rule_snapshot")
+  conditionResults Json?                     @map("condition_results")
+  inputFingerprint String                    @map("input_fingerprint") @db.VarChar(64)
+  executionKey     String                    @unique @map("execution_key") @db.VarChar(128)
+  safeErrorCode    String?                   @map("safe_error_code") @db.VarChar(80)
+  safeErrorMessage String?                   @map("safe_error_message") @db.VarChar(500)
+  actionsSucceeded Int                       @default(0) @map("actions_succeeded")
+  actionsSkipped   Int                       @default(0) @map("actions_skipped")
+  actionsFailed    Int                       @default(0) @map("actions_failed")
+  startedAt        DateTime?                 @map("started_at")
+  completedAt      DateTime?                 @map("completed_at")
+  durationMs       Int?                      @map("duration_ms")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+
+  business         Business                    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  event            AutomationEvent?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  rule             AutomationRule?             @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  feedback         Feedback                    @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  actionExecutions AutomationActionExecution[]
+
+  @@index([businessId, createdAt])
+  @@index([ruleId, createdAt])
+  @@index([feedbackId, createdAt])
+  @@index([eventId])
+  @@map("automation_executions")
+}
+
+model AutomationActionExecution {
+  id               String                          @id @default(cuid())
+  executionId      String                          @map("execution_id")
+  actionId         String?                         @map("action_id")
+  actionType       AutomationActionType            @map("action_type")
+  actionPosition   Int                             @map("action_position")
+  status           AutomationActionExecutionStatus
+  fieldName        String?                         @map("field_name") @db.VarChar(40)
+  previousValue    String?                         @map("previous_value") @db.VarChar(255)
+  newValue         String?                         @map("new_value") @db.VarChar(255)
+  safeErrorCode    String?                         @map("safe_error_code") @db.VarChar(80)
+  safeErrorMessage String?                         @map("safe_error_message") @db.VarChar(500)
+  createdAt        DateTime                        @default(now()) @map("created_at")
+
+  execution AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  action    AutomationAction?   @relation(fields: [actionId], references: [id], onDelete: SetNull)
+
+  @@index([executionId, actionPosition])
+  @@index([actionId])
+  @@map("automation_action_executions")
+}
+
+model IntegrationConnection {
+  id                         String                      @id @default(cuid())
+  businessId                 String                      @map("business_id")
+  provider                   IntegrationProvider
+  mode                       IntegrationMode             @default(DEMO)
+  status                     IntegrationConnectionStatus @default(CONNECTED)
+  displayName                String                      @map("display_name") @db.VarChar(120)
+  defaultBranchId            String                      @map("default_branch_id")
+  demoScenario               IntegrationDemoScenario?    @default(STANDARD_MIXED) @map("demo_scenario")
+  liveProviderType           EmailProviderType?          @map("live_provider_type")
+  providerAccountId          String?                     @map("provider_account_id") @db.VarChar(255)
+  providerAccountLabel       String?                     @map("provider_account_label") @db.VarChar(255)
+  providerTenantId           String?                     @map("provider_tenant_id") @db.VarChar(255)
+  synchronizationFolder      String                      @default("INBOX") @map("synchronization_folder") @db.VarChar(120)
+  lastProviderCursor         String?                     @map("last_provider_cursor") @db.Text
+  lastProviderCursorAt       DateTime?                   @map("last_provider_cursor_at")
+  requiresReauthorization    Boolean                     @default(false) @map("requires_reauthorization")
+  lastConnectionTestAt       DateTime?                   @map("last_connection_test_at")
+  lastConnectionTestStatus   String?                     @map("last_connection_test_status") @db.VarChar(40)
+  whatsappPhoneNumberId      String?                     @map("whatsapp_phone_number_id") @db.VarChar(80)
+  whatsappBusinessAccountId  String?                     @map("whatsapp_business_account_id") @db.VarChar(80)
+  whatsappDisplayPhoneNumber String?                     @map("whatsapp_display_phone_number") @db.VarChar(40)
+  webhookVerifyTokenHash     String?                     @map("webhook_verify_token_hash") @db.VarChar(64)
+  webhookStatus              String?                     @map("webhook_status") @db.VarChar(40)
+  lastWebhookReceivedAt      DateTime?                   @map("last_webhook_received_at")
+  lastWebhookVerifiedAt      DateTime?                   @map("last_webhook_verified_at")
+  lastInboundMessageAt       DateTime?                   @map("last_inbound_message_at")
+  createdByMembershipId      String?                     @map("created_by_membership_id")
+  updatedByMembershipId      String?                     @map("updated_by_membership_id")
+  connectedAt                DateTime?                   @map("connected_at")
+  pausedAt                   DateTime?                   @map("paused_at")
+  disconnectedAt             DateTime?                   @map("disconnected_at")
+  lastAttemptedSyncAt        DateTime?                   @map("last_attempted_sync_at")
+  lastSuccessfulSyncAt       DateTime?                   @map("last_successful_sync_at")
+  lastErrorCode              String?                     @map("last_error_code") @db.VarChar(80)
+  totalImported              Int                         @default(0) @map("total_imported")
+  createdAt                  DateTime                    @default(now()) @map("created_at")
+  updatedAt                  DateTime                    @updatedAt @map("updated_at")
+
+  business             Business                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  defaultBranch        Branch                       @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
+  createdByMembership  BusinessMembership?          @relation("IntegrationConnectionCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  updatedByMembership  BusinessMembership?          @relation("IntegrationConnectionUpdatedByMembership", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+  credentials          IntegrationCredential[]
+  oauthStates          IntegrationOAuthState[]
+  synchronizationRuns  SynchronizationRun[]
+  synchronizationItems SynchronizationItem[]
+  webhookDeliveries    IntegrationWebhookDelivery[]
+
+  @@unique([businessId, provider, mode, liveProviderType], map: "conn_live_email_provider_key")
+  @@unique([provider, mode, whatsappPhoneNumberId], map: "conn_whatsapp_phone_mode_key")
+  @@index([businessId, provider])
+  @@index([businessId, liveProviderType])
+  @@index([businessId, status])
+  @@index([whatsappPhoneNumberId], map: "conn_whatsapp_phone_idx")
+  @@index([webhookStatus], map: "conn_webhook_status_idx")
+  @@index([defaultBranchId])
+  @@index([requiresReauthorization])
+  @@index([lastConnectionTestAt])
+  @@index([lastSuccessfulSyncAt])
+  @@index([createdByMembershipId])
+  @@index([updatedByMembershipId])
+  @@map("integration_connections")
+}
+
+model IntegrationCredential {
+  id                    String                    @id @default(cuid())
+  connectionId          String                    @map("connection_id")
+  credentialType        IntegrationCredentialType @map("credential_type")
+  encryptedAccessToken  String?                   @map("encrypted_access_token") @db.Text
+  encryptedRefreshToken String?                   @map("encrypted_refresh_token") @db.Text
+  encryptedPassword     String?                   @map("encrypted_password") @db.Text
+  encryptedAppSecret    String?                   @map("encrypted_app_secret") @db.Text
+  encryptionKeyVersion  Int                       @default(1) @map("encryption_key_version")
+  accessTokenExpiresAt  DateTime?                 @map("access_token_expires_at")
+  scopeSummary          String?                   @map("scope_summary") @db.VarChar(255)
+  createdAt             DateTime                  @default(now()) @map("created_at")
+  updatedAt             DateTime                  @updatedAt @map("updated_at")
+  rotatedAt             DateTime?                 @map("rotated_at")
+  revokedAt             DateTime?                 @map("revoked_at")
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, credentialType])
+  @@index([revokedAt])
+  @@map("integration_credentials")
+}
+
+model IntegrationWebhookDelivery {
+  id              String                           @id @default(cuid())
+  connectionId    String                           @map("connection_id")
+  businessId      String                           @map("business_id")
+  provider        IntegrationProvider
+  externalEventId String?                          @map("external_event_id") @db.VarChar(255)
+  payloadHash     String                           @map("payload_hash") @db.VarChar(64)
+  status          IntegrationWebhookDeliveryStatus @default(RECEIVED)
+  resultCode      String?                          @map("result_code") @db.VarChar(80)
+  safeMessage     String?                          @map("safe_message") @db.VarChar(500)
+  messageType     String?                          @map("message_type") @db.VarChar(40)
+  senderHash      String?                          @map("sender_hash") @db.VarChar(64)
+  safePreview     Json?                            @map("safe_preview")
+  receivedAt      DateTime                         @default(now()) @map("received_at")
+  processedAt     DateTime?                        @map("processed_at")
+  createdAt       DateTime                         @default(now()) @map("created_at")
+  updatedAt       DateTime                         @updatedAt @map("updated_at")
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade, map: "webhook_delivery_connection_fk")
+  business   Business              @relation(fields: [businessId], references: [id], onDelete: Cascade, map: "webhook_delivery_business_fk")
+
+  @@unique([connectionId, externalEventId], map: "webhook_delivery_event_key")
+  @@index([businessId, receivedAt], map: "webhook_delivery_business_received_idx")
+  @@index([connectionId, receivedAt], map: "webhook_delivery_conn_received_idx")
+  @@index([status, receivedAt], map: "webhook_delivery_status_received_idx")
+  @@index([externalEventId], map: "webhook_delivery_external_event_idx")
+  @@map("integration_webhook_deliveries")
+}
+
+model IntegrationOAuthState {
+  id                    String                 @id @default(cuid())
+  businessId            String                 @map("business_id")
+  connectionId          String                 @map("connection_id")
+  membershipId          String?                @map("membership_id")
+  userId                String                 @map("user_id")
+  defaultBranchId       String                 @map("default_branch_id")
+  provider              IntegrationProvider
+  emailProviderType     EmailProviderType      @map("email_provider_type")
+  action                IntegrationOAuthAction
+  stateHash             String                 @unique @map("state_hash") @db.VarChar(64)
+  encryptedCodeVerifier String                 @map("encrypted_code_verifier") @db.Text
+  redirectPath          String                 @map("redirect_path") @db.VarChar(512)
+  expiresAt             DateTime               @map("expires_at")
+  usedAt                DateTime?              @map("used_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+
+  business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  connection    IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  membership    BusinessMembership?   @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultBranch Branch                @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, membershipId])
+  @@index([connectionId])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@index([userId])
+  @@index([defaultBranchId])
+  @@map("integration_oauth_states")
+}
+
+model SynchronizationRun {
+  id                    String                     @id @default(cuid())
+  connectionId          String                     @map("connection_id")
+  businessId            String                     @map("business_id")
+  provider              IntegrationProvider
+  mode                  IntegrationMode
+  status                SynchronizationRunStatus   @default(PENDING)
+  triggerType           SynchronizationTriggerType @default(MANUAL) @map("trigger_type")
+  startedByMembershipId String?                    @map("started_by_membership_id")
+  demoScenario          IntegrationDemoScenario?   @map("demo_scenario")
+  requestedAt           DateTime                   @default(now()) @map("requested_at")
+  startedAt             DateTime?                  @map("started_at")
+  completedAt           DateTime?                  @map("completed_at")
+  durationMs            Int?                       @map("duration_ms")
+  itemsFetched          Int                        @default(0) @map("items_fetched")
+  itemsProcessed        Int                        @default(0) @map("items_processed")
+  itemsImported         Int                        @default(0) @map("items_imported")
+  itemsDuplicated       Int                        @default(0) @map("items_duplicated")
+  itemsSkipped          Int                        @default(0) @map("items_skipped")
+  itemsFailed           Int                        @default(0) @map("items_failed")
+  errorCode             String?                    @map("error_code") @db.VarChar(80)
+  safeSummary           String?                    @map("safe_summary") @db.VarChar(500)
+  lockToken             String?                    @map("lock_token") @db.VarChar(64)
+  attempts              Int                        @default(0)
+  nextAttemptAt         DateTime?                  @map("next_attempt_at")
+  createdAt             DateTime                   @default(now()) @map("created_at")
+  updatedAt             DateTime                   @updatedAt @map("updated_at")
+
+  connection          IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  business            Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  startedByMembership BusinessMembership?   @relation("SynchronizationRunStartedByMembership", fields: [startedByMembershipId], references: [id], onDelete: SetNull)
+  items               SynchronizationItem[]
+
+  @@index([connectionId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([provider, createdAt])
+  @@index([startedByMembershipId])
+  @@map("synchronization_runs")
+}
+
+model SynchronizationItem {
+  id                  String                    @id @default(cuid())
+  runId               String                    @map("run_id")
+  connectionId        String                    @map("connection_id")
+  provider            IntegrationProvider
+  externalId          String                    @map("external_id") @db.VarChar(255)
+  payloadHash         String                    @map("payload_hash") @db.VarChar(64)
+  status              SynchronizationItemStatus
+  feedbackIngestionId String?                   @map("feedback_ingestion_id")
+  feedbackId          String?                   @map("feedback_id")
+  resultCode          String?                   @map("result_code") @db.VarChar(80)
+  safeMessage         String?                   @map("safe_message") @db.VarChar(500)
+  externalReceivedAt  DateTime?                 @map("external_received_at")
+  sourceLabel         String?                   @map("source_label") @db.VarChar(160)
+  safePreview         Json?                     @map("safe_preview")
+  processedAt         DateTime?                 @map("processed_at")
+  retryCount          Int                       @default(0) @map("retry_count")
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+
+  run               SynchronizationRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  connection        IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  feedbackIngestion FeedbackIngestion?    @relation(fields: [feedbackIngestionId], references: [id], onDelete: SetNull)
+  feedback          Feedback?             @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, externalId])
+  @@index([runId])
+  @@index([connectionId, createdAt])
+  @@index([feedbackId])
+  @@index([feedbackIngestionId])
+  @@index([status, createdAt])
+  @@index([externalId])
+  @@map("synchronization_items")
+}
+
+model FeedbackAttachment {
+  id          String   @id @default(cuid())
+  feedbackId  String   @map("feedback_id")
+  filename    String   @db.VarChar(255)
+  mimeType    String   @map("mime_type") @db.VarChar(120)
+  sizeBytes   Int?     @map("size_bytes")
+  externalUrl String?  @map("external_url") @db.VarChar(1024)
+  checksum    String?  @db.VarChar(255)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+  @@map("feedback_attachments")
+}
+
+model FeedbackAIAnalysis {
+  id                        String                   @id @default(cuid())
+  businessId                String                   @map("business_id")
+  feedbackId                String                   @unique @map("feedback_id")
+  status                    FeedbackAIAnalysisStatus @default(PENDING)
+  sentiment                 FeedbackAISentiment?
+  sentimentConfidence       Float?                   @map("sentiment_confidence")
+  sentimentExplanation      String?                  @map("sentiment_explanation") @db.VarChar(240)
+  summary                   String?                  @db.VarChar(240)
+  detectedLanguage          String?                  @map("detected_language") @db.VarChar(40)
+  suggestedCategoryId       String?                  @map("suggested_category_id")
+  categoryConfidence        Float?                   @map("category_confidence")
+  suggestionDismissedAt     DateTime?                @map("suggestion_dismissed_at")
+  categoryAutoAppliedAt     DateTime?                @map("category_auto_applied_at")
+  categoryApplicationResult String?                  @map("category_application_result") @db.VarChar(80)
+  provider                  String                   @default("gemini") @db.VarChar(40)
+  model                     String                   @db.VarChar(120)
+  promptVersion             String                   @default("phase13-v1") @map("prompt_version") @db.VarChar(40)
+  schemaVersion             String                   @default("phase13-v1") @map("schema_version") @db.VarChar(40)
+  inputFingerprint          String?                  @map("input_fingerprint") @db.VarChar(64)
+  inputTruncated            Boolean                  @default(false) @map("input_truncated")
+  analyzedCharCount         Int                      @default(0) @map("analyzed_char_count")
+  errorCode                 String?                  @map("error_code") @db.VarChar(80)
+  errorMessage              String?                  @map("error_message") @db.VarChar(500)
+  retryCount                Int                      @default(0) @map("retry_count")
+  maxRetries                Int                      @default(3) @map("max_retries")
+  nextRetryAt               DateTime?                @map("next_retry_at")
+  requestedAt               DateTime                 @default(now()) @map("requested_at")
+  startedAt                 DateTime?                @map("started_at")
+  completedAt               DateTime?                @map("completed_at")
+  processingDurationMs      Int?                     @map("processing_duration_ms")
+  lockToken                 String?                  @map("lock_token") @db.VarChar(64)
+  lockedAt                  DateTime?                @map("locked_at")
+  lastAttemptAt             DateTime?                @map("last_attempt_at")
+  createdAt                 DateTime                 @default(now()) @map("created_at")
+  updatedAt                 DateTime                 @updatedAt @map("updated_at")
+
+  business          Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  feedback          Feedback          @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  suggestedCategory FeedbackCategory? @relation(fields: [suggestedCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status, nextRetryAt])
+  @@index([status, nextRetryAt])
+  @@index([status, lockedAt])
+  @@index([sentiment])
+  @@index([suggestedCategoryId])
+  @@map("feedback_ai_analyses")
+}
+
+model Customer {
+  id                    String         @id @default(cuid())
+  businessId            String         @map("business_id")
+  displayName           String         @map("display_name") @db.VarChar(160)
+  firstName             String?        @map("first_name") @db.VarChar(100)
+  lastName              String?        @map("last_name") @db.VarChar(100)
+  email                 String?        @db.VarChar(255)
+  normalizedEmail       String?        @map("normalized_email") @db.VarChar(255)
+  phone                 String?        @db.VarChar(40)
+  normalizedPhone       String?        @map("normalized_phone") @db.VarChar(40)
+  status                CustomerStatus @default(ACTIVE)
+  archivedAt            DateTime?      @map("archived_at")
+  createdByMembershipId String?        @map("created_by_membership_id")
+  updatedByMembershipId String?        @map("updated_by_membership_id")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  business            Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  feedback            Feedback[]
+  activities          CustomerActivity[]
+  createdByMembership BusinessMembership? @relation("CustomerCreatedByMembership", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  updatedByMembership BusinessMembership? @relation("CustomerUpdatedByMembership", fields: [updatedByMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([businessId, normalizedEmail])
+  @@index([businessId, normalizedPhone])
+  @@index([businessId, updatedAt])
+  @@index([businessId, displayName])
+  @@index([createdByMembershipId])
+  @@index([updatedByMembershipId])
+  @@map("customers")
+}
+
+model CustomerActivity {
+  id                String               @id @default(cuid())
+  businessId        String               @map("business_id")
+  customerId        String               @map("customer_id")
+  type              CustomerActivityType
+  actorMembershipId String?              @map("actor_membership_id")
+  feedbackId        String?              @map("feedback_id")
+  fieldName         String?              @map("field_name") @db.VarChar(80)
+  fromValue         String?              @map("from_value") @db.VarChar(255)
+  toValue           String?              @map("to_value") @db.VarChar(255)
+  createdAt         DateTime             @default(now()) @map("created_at")
+
+  business Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  actor    BusinessMembership? @relation(fields: [actorMembershipId], references: [id], onDelete: SetNull)
+  feedback Feedback?           @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([businessId, createdAt])
+  @@index([feedbackId])
+  @@index([actorMembershipId])
+  @@map("customer_activities")
+}
+
+model AccountToken {
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  type        AccountTokenType
+  tokenHash   String           @unique @map("token_hash") @db.VarChar(64)
+  expiresAt   DateTime         @map("expires_at")
+  usedAt      DateTime?        @map("used_at")
+  requestedIp String?          @map("requested_ip") @db.VarChar(45)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("account_tokens")
+}
+
+model FeedbackCategory {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  colorKey    String   @default("indigo") @map("color_key") @db.VarChar(32)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  feedback             Feedback[]
+  aiSuggestions        FeedbackAIAnalysis[]
+  automationConditions AutomationCondition[]
+  automationActions    AutomationAction[]
+
+  @@unique([businessId, name])
+  @@index([businessId, isActive])
+  @@map("feedback_categories")
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  refreshTokenHash String    @map("refresh_token_hash") @db.VarChar(128)
+  expiresAt        DateTime  @map("expires_at")
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+  revokedAt        DateTime? @map("revoked_at")
+  ipAddress        String?   @map("ip_address") @db.VarChar(45)
+  userAgent        String?   @map("user_agent") @db.VarChar(512)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model ExternalAccount {
+  id                String               @id @default(cuid())
+  userId            String               @map("user_id")
+  provider          ExternalAuthProvider
+  providerAccountId String               @map("provider_account_id") @db.VarChar(255)
+  providerEmail     String?              @map("provider_email") @db.VarChar(255)
+  displayName       String?              @map("display_name") @db.VarChar(255)
+  avatarUrl         String?              @map("avatar_url") @db.VarChar(1024)
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  lastUsedAt        DateTime?            @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("external_accounts")
+}
+
+model PlatformSettings {
+  id                     String             @id @default("platform") @db.VarChar(32)
+  platformName           String             @default("SME Feedback Aggregator") @map("platform_name") @db.VarChar(80)
+  brandTagline           String             @default("Multi-channel intelligence") @map("brand_tagline") @db.VarChar(120)
+  headline               String             @default("Turn customer feedback into business growth") @db.VarChar(180)
+  platformDescription    String             @default("A secure multi-channel feedback workspace for growing businesses.") @map("platform_description") @db.VarChar(500)
+  heroSupportingText     String             @default("Bring every customer voice into one clear workspace, understand what matters, and act with confidence.") @map("hero_supporting_text") @db.VarChar(320)
+  primaryCtaLabel        String             @default("Get started") @map("primary_cta_label") @db.VarChar(60)
+  secondaryCtaLabel      String             @default("See how it works") @map("secondary_cta_label") @db.VarChar(60)
+  logoUrl                String?            @map("logo_url") @db.VarChar(2048)
+  primaryColor           String             @default("#4F46E5") @map("primary_color") @db.Char(7)
+  accentColor            String             @default("#818CF8") @map("accent_color") @db.Char(7)
+  defaultAppearance      PlatformAppearance @default(SYSTEM) @map("default_appearance")
+  supportEmail           String             @default("support@example.com") @map("support_email") @db.VarChar(255)
+  supportPhone           String?            @map("support_phone") @db.VarChar(40)
+  defaultReportRangeDays Int                @default(30) @map("default_report_range_days")
+  reportFooterText       String             @default("Confidential platform report") @map("report_footer_text") @db.VarChar(180)
+  footerText             String             @default("Copyright 2026 SME Feedback Aggregator. All rights reserved.") @map("footer_text") @db.VarChar(180)
+  updatedByUserId        String?            @map("updated_by_user_id") @db.VarChar(191)
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+model PlatformAdminActivity {
+  id          String   @id @default(cuid())
+  actorUserId String   @map("actor_user_id")
+  action      String   @db.VarChar(80)
+  targetType  String   @map("target_type") @db.VarChar(40)
+  targetId    String?  @map("target_id") @db.VarChar(191)
+  summary     String   @db.VarChar(240)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User @relation("PlatformAdminActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("platform_admin_activities")
+}

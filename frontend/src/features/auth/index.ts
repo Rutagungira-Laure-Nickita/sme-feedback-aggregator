@@ -1,0 +1,12 @@
+export { AccountPage } from "./pages/AccountPage.js";
+export { ForgotPasswordPage } from "./pages/ForgotPasswordPage.js";
+export { LoginPage } from "./pages/LoginPage.js";
+export { PasswordResetSuccessPage } from "./pages/PasswordResetSuccessPage.js";
+export { RegisterPage } from "./pages/RegisterPage.js";
+export { ResetPasswordPage } from "./pages/ResetPasswordPage.js";
+export { ActiveSessionsPage } from "./pages/ActiveSessionsPage.js";
+export { VerificationPendingPage } from "./pages/VerificationPendingPage.js";
+export { VerifyEmailPage } from "./pages/VerifyEmailPage.js";
+export { ProtectedRoute } from "./components/ProtectedRoute.js";
+export { PublicOnlyRoute } from "./components/PublicOnlyRoute.js";
+export { RoleGuard } from "./components/RoleGuard.js";

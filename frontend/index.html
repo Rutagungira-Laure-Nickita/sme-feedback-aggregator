@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Collect, understand, and act on customer feedback across channels from one secure workspace."
+    />
+    <title>SME Feedback Aggregator</title>
+    <script>
+      (() => {
+        try {
+          window.localStorage.removeItem("sme-feedback-theme");
+          const storedAppearance = window.localStorage.getItem("sme-platform-appearance");
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const theme =
+            storedAppearance === "LIGHT"
+              ? "light"
+              : storedAppearance === "DARK"
+                ? "dark"
+                : prefersDark
+                  ? "dark"
+                  : "light";
+
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.style.colorScheme = theme;
+        } catch {
+          document.documentElement.style.colorScheme = "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

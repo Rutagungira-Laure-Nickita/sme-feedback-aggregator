@@ -1,0 +1,54 @@
+{
+  "name": "sme-feedback-aggregator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SME Multi-Channel Customer Feedback Aggregator",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "lint": "npm run lint -w backend && npm run lint -w frontend",
+    "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
+    "test:router": "node frontend/src/app/router/integrations-route.static.test.mjs",
+    "test:automation": "npm run test:automation -w backend",
+    "test:integrations": "npm run test:integrations -w backend",
+    "test:legal": "npm run test:legal -w backend",
+    "test:seed": "npm run test:seed -w backend",
+    "test:admin": "npm run test:admin -w backend && npm run test:admin -w frontend",
+    "test:phase25.1": "npm run test:phase25.1 -w frontend && npm run test:admin -w backend",
+    "test:phase25.2": "npm run test:phase25.2 -w frontend && npm run test:admin -w backend",
+    "test:phase25.3": "npm run test:phase25.3 -w frontend && npm run test:admin -w backend",
+    "test:phase25.4": "npm run test:phase25.4 -w frontend && npm run test:phase25.4 -w backend",
+    "test:phase26": "npm run test:phase26 -w frontend && npm run test:phase26 -w backend",
+    "test:phase27": "npm run test:phase27 -w frontend && npx tsx backend/src/modules/business-reports/business-reports.test.ts",
+    "test:phase28": "npm run test:phase28 -w backend && npm run test:phase28 -w frontend && npm run test:ai-analysis -w backend && npm run test:automation -w backend && npm run test:phase26 -w backend",
+    "phase28:reconcile": "npm run phase28:reconcile -w backend --",
+    "feedback:simulate": "npm --silent run feedback:simulate -w backend --",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "prisma:generate": "npm run prisma:generate -w backend",
+    "prisma:validate": "npm run prisma:validate -w backend",
+    "prisma:seed": "npm run prisma:seed -w backend",
+    "prisma:studio": "npm run prisma:studio -w backend",
+    "prisma:migrate": "npm run prisma:migrate -w backend"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^15.15.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
