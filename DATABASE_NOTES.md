@@ -1,5 +1,9 @@
 # Database Notes
 
+## Phase 29A Database Impact
+
+No Prisma schema, datasource, model, enum, column, index, migration, seed behavior, or stored row changed. Prisma Client 6.19.3 was regenerated from the existing `prisma-client-js` generator solely to verify the ESM runtime adapter. No migrate reset, db push, data reconciliation, or database mutation was run.
+
 ## Phase 28 Deterministic Data Reconciliation
 
 - No Prisma schema or migration change was required. Applied migrations were not edited and neither `prisma db push` nor any reset was run.

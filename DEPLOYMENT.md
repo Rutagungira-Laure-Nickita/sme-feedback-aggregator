@@ -1,5 +1,21 @@
 # Deployment
 
+## Phase 29A Railway Prisma ESM Compatibility
+
+The backend remains native ESM and is compatible with Railway's Node 20/24 runtime without relying on synthetic named exports from Prisma's CommonJS package. Prisma runtime values flow through `backend/src/lib/prisma-runtime.ts`; generated types remain erased direct type imports.
+
+The production sequence must generate Prisma Client before compiling and start the compiled server:
+
+```text
+npm install --include=dev
+npx prisma generate --schema=backend/prisma/schema.prisma
+npm run build -w backend
+npx prisma migrate deploy --schema=backend/prisma/schema.prisma
+npm run start -w backend
+```
+
+`npm run start -w backend` executes `node dist/server.js`. The TypeScript `tsx src/server.ts` path remains valid for development/smoke testing but is not required as the Railway production Start Command. Phase 29A adds no environment variable, schema migration, provider configuration, storage requirement, or database mutation.
+
 ## Phase 28 Deployment Notes
 
 Phase 28 requires no dependency, Prisma schema, migration, environment variable, worker, queue, storage volume, provider permission, or new Live integration. Deploy backend and frontend together because new-Business default category provisioning, report labels, inbox filters/presentation, and drawer behavior change in tandem. Existing Gmail OAuth and WhatsApp webhook configuration remains unchanged; Outlook/Facebook/Instagram are not enabled by this phase.

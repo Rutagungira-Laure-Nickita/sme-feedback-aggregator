@@ -12,7 +12,7 @@ import {
   FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 
 import type { RuleDefinitionInput } from "./automation.schemas.js";
 import {

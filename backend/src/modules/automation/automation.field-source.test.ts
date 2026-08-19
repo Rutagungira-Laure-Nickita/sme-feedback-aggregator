@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FeedbackFieldStateField, FeedbackFieldStateSource } from "@prisma/client";
+import {
+  FeedbackFieldStateField,
+  FeedbackFieldStateSource
+} from "../../lib/prisma-runtime.js";
 
 import {
   deriveHistoricalFeedbackFieldSource,

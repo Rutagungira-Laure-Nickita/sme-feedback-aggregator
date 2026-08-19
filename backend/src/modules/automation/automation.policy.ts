@@ -1,14 +1,16 @@
-import {
-  AutomationActionType,
-  AutomationConditionOperator,
-  AutomationConditionType,
-  AutomationRuleTrigger,
+import type {
   FeedbackAIAnalysisStatus,
   FeedbackAISentiment,
   FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus
 } from "@prisma/client";
+import {
+  AutomationActionType,
+  AutomationConditionOperator,
+  AutomationConditionType,
+  AutomationRuleTrigger
+} from "../../lib/prisma-runtime.js";
 import { createHash } from "node:crypto";
 import { deriveCategorySuggestionState } from "../ai-analysis/ai-analysis.policy.js";
 import { AUTOMATION_ERRORS } from "./automation.errors.js";

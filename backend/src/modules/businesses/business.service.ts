@@ -1,3 +1,11 @@
+import type {
+  Branch,
+  Business,
+  BusinessMembership,
+  StaffInvitation,
+  User
+} from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
   BranchStatus,
@@ -5,15 +13,10 @@ import {
   BusinessMembershipStatus,
   BusinessStatus,
   ExternalAuthProvider,
-  Prisma,
+  Prisma as PrismaRuntime,
   StaffInvitationStatus,
-  UserRole,
-  type Branch,
-  type Business,
-  type BusinessMembership,
-  type StaffInvitation,
-  type User
-} from "@prisma/client";
+  UserRole
+} from "../../lib/prisma-runtime.js";
 import { createDefaultFeedbackCategories } from "../feedback-categories/default-feedback-categories.js";
 import { AppError } from "../../lib/app-error.js";
 import { assertEmailDeliveryConfigured, sendEmail } from "../../lib/email.service.js";
@@ -2060,7 +2063,9 @@ function paginationResult(total: number, query: Pick<Pagination, "page" | "pageS
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }
 
 function resolveGoogleNames(

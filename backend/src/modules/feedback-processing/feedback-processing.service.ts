@@ -1,11 +1,11 @@
+import type { Feedback, FeedbackIngestion } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   BranchStatus,
   BusinessStatus,
   FeedbackIngestionStatus,
-  Prisma,
-  type Feedback,
-  type FeedbackIngestion
-} from "@prisma/client";
+  Prisma as PrismaRuntime
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import { scheduleAnalysisForFeedback } from "../ai-analysis/ai-analysis.service.js";
@@ -548,11 +548,13 @@ function normalizeProcessingError(error: unknown): Error {
 function toPrismaJson(
   value: JsonObject | null
 ): Prisma.InputJsonValue | typeof Prisma.DbNull {
-  return value === null ? Prisma.DbNull : value;
+  return value === null ? PrismaRuntime.DbNull : value;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }
 
 function delay(milliseconds: number): Promise<void> {

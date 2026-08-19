@@ -1,8 +1,8 @@
+import type { FeedbackFieldStateSource as FeedbackFieldStateSourceValue } from "@prisma/client";
 import {
   FeedbackFieldStateField,
-  FeedbackFieldStateSource,
-  type FeedbackFieldStateSource as FeedbackFieldStateSourceValue
-} from "@prisma/client";
+  FeedbackFieldStateSource
+} from "../../lib/prisma-runtime.js";
 
 export type HistoricalFieldSourceSnapshot = {
   categoryId: string | null;

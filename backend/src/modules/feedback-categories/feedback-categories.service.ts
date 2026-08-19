@@ -1,4 +1,7 @@
-import { BusinessMemberRole, BusinessMembershipStatus } from "@prisma/client";
+import {
+  BusinessMemberRole,
+  BusinessMembershipStatus
+} from "../../lib/prisma-runtime.js";
 import type { BusinessMembership } from "@prisma/client";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";

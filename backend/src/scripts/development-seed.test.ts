@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FeedbackChannel, IntegrationMode, UserRole } from "@prisma/client";
+import { FeedbackChannel, IntegrationMode, UserRole } from "../lib/prisma-runtime.js";
 import {
   DEFAULT_DEVELOPMENT_SEED_PASSWORD,
   DEVELOPMENT_SEED_FEEDBACK_FIXTURES,

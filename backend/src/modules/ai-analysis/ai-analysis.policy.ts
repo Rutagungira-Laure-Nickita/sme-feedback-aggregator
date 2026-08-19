@@ -1,4 +1,4 @@
-import { FeedbackAIAnalysisStatus } from "@prisma/client";
+import { FeedbackAIAnalysisStatus } from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 
 export const CATEGORY_APPLICATION_RESULT = {

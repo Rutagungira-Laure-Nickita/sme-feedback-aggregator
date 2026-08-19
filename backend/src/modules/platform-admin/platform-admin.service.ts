@@ -1,3 +1,5 @@
+import type { FeedbackChannel } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
   AutomationEventStatus,
@@ -5,12 +7,11 @@ import {
   AutomationRuleStatus,
   BusinessStatus,
   FeedbackAIAnalysisStatus,
-  FeedbackChannel,
   IntegrationConnectionStatus,
   IntegrationMode,
-  Prisma,
+  Prisma as PrismaRuntime,
   SynchronizationRunStatus
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import {
@@ -800,7 +801,7 @@ export async function getAdminSystemHealth() {
   const staleThreshold = new Date(now.getTime() - 15 * 60_000);
   const recent = new Date(now.getTime() - 24 * 60 * 60_000);
   const [databaseProbe, ai, automation, sync, webhooks] = await Promise.all([
-    prisma.$queryRaw<Array<{ healthy: number }>>(Prisma.sql`SELECT 1 AS healthy`),
+    prisma.$queryRaw<Array<{ healthy: number }>>(PrismaRuntime.sql`SELECT 1 AS healthy`),
     prisma.feedbackAIAnalysis.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.automationEvent.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.synchronizationRun.groupBy({ by: ["status"], _count: { _all: true } }),
@@ -1700,12 +1701,12 @@ export async function queryTimeSeries(
 ) {
   const bucketSql =
     bucket === "month"
-      ? Prisma.sql`DATE_FORMAT(${Prisma.raw(column)}, '%Y-%m-01')`
+      ? PrismaRuntime.sql`DATE_FORMAT(${PrismaRuntime.raw(column)}, '%Y-%m-01')`
       : bucket === "week"
-        ? Prisma.sql`DATE_SUB(DATE(${Prisma.raw(column)}), INTERVAL WEEKDAY(${Prisma.raw(column)}) DAY)`
-        : Prisma.sql`DATE(${Prisma.raw(column)})`;
+        ? PrismaRuntime.sql`DATE_SUB(DATE(${PrismaRuntime.raw(column)}), INTERVAL WEEKDAY(${PrismaRuntime.raw(column)}) DAY)`
+        : PrismaRuntime.sql`DATE(${PrismaRuntime.raw(column)})`;
   const rows = await prisma.$queryRaw<SqlCountRow[]>(
-    Prisma.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${Prisma.raw(table)} WHERE ${Prisma.raw(column)} >= ${start} AND ${Prisma.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
+    PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
   );
   return rows.map((row) => ({
     date: normalizeBucket(row.bucket),

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { inflateSync } from "node:zlib";
-import { FeedbackStatus } from "@prisma/client";
+import { FeedbackStatus } from "../../lib/prisma-runtime.js";
 import {
   ADMIN_REPORT_CATALOG,
   buildExecutiveManagementSummary,

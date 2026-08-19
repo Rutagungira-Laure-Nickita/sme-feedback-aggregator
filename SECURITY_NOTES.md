@@ -1,5 +1,9 @@
 # Security Notes
 
+## Phase 29A Runtime Import Safety
+
+The Prisma ESM repair changes no authentication, authorization, session, tenant-isolation, webhook-signature, credential-encryption, feedback-processing, AI, automation, or reporting rule. The adapter retains generated static types and introduces no broad `any` cast. Prisma errors, connection strings, tokens, credentials, and provider payloads remain behind their existing service and error-sanitization boundaries.
+
 ## Phase 28 Category and Reconciliation Safety
 
 - Categories remain private Business resources. Reads and writes resolve active membership; Owner/Admin is required for create/edit/activation, and every item lookup includes `businessId`.

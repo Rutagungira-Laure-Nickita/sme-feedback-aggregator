@@ -1,5 +1,9 @@
 # API Notes
 
+## Phase 29A API Compatibility
+
+No endpoint, request schema, response schema, status code, authorization rule, tenant boundary, or worker behavior changed. Phase 29A changes only how backend modules obtain generated Prisma runtime values under native ESM. All direct generated Prisma model/input/result imports remain type-only, and the existing API/service contracts are unchanged.
+
 ## Phase 28 Category Contract
 
 - No endpoint or route shape was added. Existing `/api/businesses/:businessId/categories` CRUD remains Owner/Admin-managed and Business-scoped; regular listing returns active categories unless an authorized manager explicitly requests inactive records.

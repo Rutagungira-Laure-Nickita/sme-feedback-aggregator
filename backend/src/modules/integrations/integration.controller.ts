@@ -30,7 +30,7 @@ import {
   testIntegrationConnection,
   updateIntegrationConnection
 } from "./integration.service.js";
-import { IntegrationOAuthAction } from "@prisma/client";
+import { IntegrationOAuthAction } from "../../lib/prisma-runtime.js";
 
 export async function listIntegrationProvidersController(
   request: Request,

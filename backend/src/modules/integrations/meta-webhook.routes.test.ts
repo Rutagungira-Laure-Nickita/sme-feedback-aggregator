@@ -3,13 +3,13 @@ import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
+import type { IntegrationWebhookDeliveryStatus } from "@prisma/client";
 import {
   FeedbackChannel,
   IntegrationConnectionStatus,
   IntegrationMode,
-  IntegrationProvider,
-  IntegrationWebhookDeliveryStatus
-} from "@prisma/client";
+  IntegrationProvider
+} from "../../lib/prisma-runtime.js";
 
 const VERIFY_TOKEN = "phase-24-route-verify-token";
 const APP_SECRET = "phase-24-route-app-secret";

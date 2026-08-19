@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FeedbackFieldStateSource } from "@prisma/client";
+import { FeedbackFieldStateSource } from "../../lib/prisma-runtime.js";
 
 import { AUTOMATION_ERRORS, safeAutomationErrorMessage } from "./automation.errors.js";
 import {

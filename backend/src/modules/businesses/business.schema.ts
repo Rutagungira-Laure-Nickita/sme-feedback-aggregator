@@ -4,7 +4,7 @@ import {
   BusinessMembershipStatus,
   BusinessStatus,
   StaffInvitationStatus
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { z } from "zod";
 
 const idSchema = z.string().trim().min(1).max(191);

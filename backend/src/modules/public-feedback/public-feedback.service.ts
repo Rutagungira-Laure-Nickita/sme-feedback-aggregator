@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import {
   BranchStatus,
   BusinessMemberRole,
   BusinessMembershipStatus,
   BusinessStatus,
-  FeedbackChannel,
-  Prisma
-} from "@prisma/client";
+  FeedbackChannel
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";

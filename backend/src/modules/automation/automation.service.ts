@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
-import {
+import type {
   AutomationActionExecutionStatus,
   AutomationActionType,
+  AutomationAction,
+  AutomationCondition,
+  AutomationRule,
+  BusinessMembership
+} from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import {
   AutomationEventStatus,
   AutomationExecutionStatus,
   AutomationRuleBranchScope,
@@ -16,12 +23,8 @@ import {
   FeedbackFieldStateSource,
   FeedbackPriority,
   FeedbackStatus,
-  Prisma,
-  type AutomationAction,
-  type AutomationCondition,
-  type AutomationRule,
-  type BusinessMembership
-} from "@prisma/client";
+  Prisma as PrismaRuntime
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 import { logger } from "../../lib/logger.js";
@@ -1384,7 +1387,8 @@ async function replaceRuleChildren(
       position: index + 1,
       valueString: condition.value ?? null,
       valueNumber: condition.valueNumber ?? null,
-      valueJson: condition.operator === "IN" ? (condition.values ?? []) : Prisma.DbNull,
+      valueJson:
+        condition.operator === "IN" ? (condition.values ?? []) : PrismaRuntime.DbNull,
       branchId: condition.branchId ?? null,
       categoryId: condition.categoryId ?? null
     }))
@@ -2013,7 +2017,9 @@ function toPrismaJson(value: unknown): Prisma.InputJsonValue {
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }
 
 function startOfToday(): Date {

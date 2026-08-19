@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { AccountStatus } from "@prisma/client";
+import { AccountStatus } from "../lib/prisma-runtime.js";
 import { AUTH_COOKIE_NAMES } from "../modules/auth/auth.constants.js";
 import { verifyAccessToken } from "../modules/auth/auth.tokens.js";
 import { AppError } from "../lib/app-error.js";

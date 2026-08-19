@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { UserRole } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import { AppError } from "../../lib/app-error.js";
 import { sendSuccess } from "../../utils/api-response.js";
 import {

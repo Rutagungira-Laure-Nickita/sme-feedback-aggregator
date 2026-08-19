@@ -1,4 +1,5 @@
-import { IntegrationMode, IntegrationProvider } from "@prisma/client";
+import type { IntegrationMode } from "@prisma/client";
+import { IntegrationProvider } from "../../lib/prisma-runtime.js";
 import { createDemoConnectors } from "./demo-connectors.js";
 import { EmailLiveConnector } from "./email-live-connector.js";
 import { MetaSocialLiveConnector } from "./meta-social-live-connector.js";

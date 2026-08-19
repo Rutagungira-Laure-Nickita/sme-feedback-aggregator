@@ -1,16 +1,18 @@
+import type {
+  Prisma,
+  FeedbackChannel,
+  Branch,
+  BusinessMembership,
+  Customer,
+  Feedback
+} from "@prisma/client";
 import {
   BusinessMemberRole,
   BusinessMembershipStatus,
   BusinessStatus,
   CustomerActivityType,
-  CustomerStatus,
-  Prisma,
-  type FeedbackChannel,
-  type Branch,
-  type BusinessMembership,
-  type Customer,
-  type Feedback
-} from "@prisma/client";
+  CustomerStatus
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import {

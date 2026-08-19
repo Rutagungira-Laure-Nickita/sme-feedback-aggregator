@@ -14,6 +14,7 @@
     "test:automation": "tsx --test src/modules/automation/*.test.ts",
     "test:integrations": "tsx --test src/modules/integrations/*.test.ts",
     "test:legal": "tsx --test src/modules/legal/*.test.ts",
+    "test:prisma-runtime": "tsx --test src/lib/prisma-runtime.test.ts",
     "test:seed": "tsx --test src/scripts/development-seed.test.ts",
     "test:admin": "tsx --test src/modules/platform-admin/*.test.ts",
     "test:phase25.4": "tsx --test src/modules/platform-admin/*.test.ts",

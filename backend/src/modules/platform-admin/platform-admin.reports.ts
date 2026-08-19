@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
   AutomationRuleStatus,
@@ -7,8 +8,8 @@ import {
   FeedbackStatus,
   IntegrationConnectionStatus,
   IntegrationMode,
-  Prisma
-} from "@prisma/client";
+  Prisma as PrismaRuntime
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import {
@@ -1054,7 +1055,7 @@ async function buildOperationsHealthReport(
     recentAutomation,
     businessStatuses
   ] = await Promise.all([
-    prisma.$queryRaw<Array<{ healthy: number }>>(Prisma.sql`SELECT 1 AS healthy`),
+    prisma.$queryRaw<Array<{ healthy: number }>>(PrismaRuntime.sql`SELECT 1 AS healthy`),
     prisma.integrationConnection.findMany({
       where: integrationWhere,
       select: integrationHealthSelect,
@@ -1579,25 +1580,27 @@ export async function queryFeedbackTimeSeries(scope: FeedbackScopePlan) {
   const bucket = reportBucket(from, to);
   const bucketSql =
     bucket === "month"
-      ? Prisma.sql`DATE_FORMAT(f.received_at, '%Y-%m-01')`
+      ? PrismaRuntime.sql`DATE_FORMAT(f.received_at, '%Y-%m-01')`
       : bucket === "week"
-        ? Prisma.sql`DATE_SUB(DATE(f.received_at), INTERVAL WEEKDAY(f.received_at) DAY)`
-        : Prisma.sql`DATE(f.received_at)`;
+        ? PrismaRuntime.sql`DATE_SUB(DATE(f.received_at), INTERVAL WEEKDAY(f.received_at) DAY)`
+        : PrismaRuntime.sql`DATE(f.received_at)`;
   const conditions = [
-    Prisma.sql`f.received_at >= ${from}`,
-    Prisma.sql`f.received_at <= ${to}`
+    PrismaRuntime.sql`f.received_at >= ${from}`,
+    PrismaRuntime.sql`f.received_at <= ${to}`
   ];
   if (filters.businessId)
-    conditions.push(Prisma.sql`f.business_id = ${filters.businessId}`);
-  if (filters.branchId) conditions.push(Prisma.sql`f.branch_id = ${filters.branchId}`);
-  if (filters.channel) conditions.push(Prisma.sql`f.channel = ${filters.channel}`);
-  if (filters.status) conditions.push(Prisma.sql`f.status = ${filters.status}`);
-  if (filters.sentiment) conditions.push(Prisma.sql`ai.sentiment = ${filters.sentiment}`);
+    conditions.push(PrismaRuntime.sql`f.business_id = ${filters.businessId}`);
+  if (filters.branchId)
+    conditions.push(PrismaRuntime.sql`f.branch_id = ${filters.branchId}`);
+  if (filters.channel) conditions.push(PrismaRuntime.sql`f.channel = ${filters.channel}`);
+  if (filters.status) conditions.push(PrismaRuntime.sql`f.status = ${filters.status}`);
+  if (filters.sentiment)
+    conditions.push(PrismaRuntime.sql`ai.sentiment = ${filters.sentiment}`);
   const analysisJoin = filters.sentiment
-    ? Prisma.sql`INNER JOIN feedback_ai_analyses ai ON ai.feedback_id = f.id`
-    : Prisma.empty;
+    ? PrismaRuntime.sql`INNER JOIN feedback_ai_analyses ai ON ai.feedback_id = f.id`
+    : PrismaRuntime.empty;
   const rows = await prisma.$queryRaw<SqlCountRow[]>(
-    Prisma.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM feedback f ${analysisJoin} WHERE ${Prisma.join(conditions, " AND ")} GROUP BY bucket ORDER BY bucket ASC`
+    PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM feedback f ${analysisJoin} WHERE ${PrismaRuntime.join(conditions, " AND ")} GROUP BY bucket ORDER BY bucket ASC`
   );
   return rows.map((row) => ({
     date:

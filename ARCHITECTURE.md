@@ -1,5 +1,11 @@
 # Architecture
 
+## Phase 29A Prisma ESM Runtime Boundary
+
+The backend remains native ESM with TypeScript `NodeNext`. Prisma 6.19.3's `prisma-client-js` generator exposes a CommonJS runtime package even though its declarations describe named exports. Node's synthetic named-export inference is not a portable contract for generated enum names.
+
+`backend/src/lib/prisma-runtime.ts` is the single runtime interoperability boundary. It default-imports the CommonJS package and destructures typed local ESM bindings for every generated enum, `Prisma`, and `PrismaClient`. Runtime consumers import those local bindings. Generated model/input/result/transaction types continue to use erased `import type` declarations from `@prisma/client`. Files that need both the Prisma type namespace and runtime helpers use `Prisma` for types and `PrismaRuntime` for values. This preserves strict generated typing while ensuring compiled modules never request generated named exports directly from the CommonJS package.
+
 ## Phase 28 Category and Responsive-Shell Architecture
 
 - `DEFAULT_FEEDBACK_CATEGORIES` is the single backend catalog for the 13 initial Business-owned categories. Business Owner and Platform Administrator creation flows call the same transaction helper after creating the Business/primary Branch.

@@ -1,13 +1,12 @@
 import { randomUUID } from "node:crypto";
+import type { ExternalAccount, Session, User } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
   AccountTokenType,
   ExternalAuthProvider,
-  Prisma,
-  type ExternalAccount,
-  type Session,
-  type User
-} from "@prisma/client";
+  Prisma as PrismaRuntime
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { assertEmailDeliveryConfigured, sendEmail } from "../../lib/email.service.js";
 import { logger } from "../../lib/logger.js";
@@ -721,7 +720,9 @@ function getLogoutSessionIdentity(
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }
 
 function sanitizeIpAddress(ipAddress: string | undefined): string | undefined {

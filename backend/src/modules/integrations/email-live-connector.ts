@@ -4,7 +4,7 @@ import {
   FeedbackChannel,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { canonicalStringify } from "../feedback-processing/feedback-hash.service.js";
 import type { NormalizedFeedbackInput } from "../feedback-processing/index.js";

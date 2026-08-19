@@ -9,7 +9,7 @@ import {
   FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 
 import {
   evaluateCondition,

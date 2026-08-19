@@ -6,7 +6,7 @@ import {
   IntegrationConnectionStatus,
   IntegrationMode,
   UserRole
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import type { NextFunction, Request, Response } from "express";
 import { requirePlatformAdmin } from "../../middleware/business-access.middleware.js";
 import {

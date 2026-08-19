@@ -1,5 +1,13 @@
 # Implementation Status
 
+## Phase 29A - Prisma ESM Runtime Compatibility for Railway
+
+Implementation and automated verification are complete. The backend remains native ESM/NodeNext, but generated Prisma runtime values no longer rely on Node synthetic named exports from Prisma's CommonJS entry point. `backend/src/lib/prisma-runtime.ts` imports the Prisma package through its stable default CommonJS-compatible binding and exposes true local ESM bindings for all 43 generated enums plus `Prisma` and `PrismaClient`. Direct `@prisma/client` imports outside that adapter are type-only and erased from JavaScript. Mixed Prisma namespace/value consumers retain generated namespace types and use an explicit `PrismaRuntime` value alias for helpers such as `sql`, `DbNull`, `JsonNull`, and known request errors.
+
+The complete backend census reviewed 82 files, 84 direct import declarations, and 388 imported specifiers. Sixty-four files originally had runtime imports; 286 actually runtime-used specifiers were redirected to the adapter, while 25 ordinary enum imports used only as types were corrected to `import type`. Prisma 6.19.3 with the `prisma-client-js` generator remains in place. No business logic, dependency version, API contract, Prisma schema, migration, seed semantics, or database data changed.
+
+Verification passed on Node 24.11.1: `npm install`; Prisma Client generation 6.19.3; backend typecheck, lint, build, Prisma validation, focused adapter test 1/1, complete backend inventory 208/208, Phase 28 matrix 136/136, integrations 31/31, Phase 25.4 reporting 49/49, and Phase 27 30/30. The compiled output has exactly one `@prisma/client` runtime import, the adapter's default import. Both `node dist/server.js` and `npm exec --workspace backend -- tsx src/server.ts` reached API-listening and worker-started logs without Prisma export errors. Final Railway auto-deploy observation remains an external post-push check.
+
 ## Phase 28 — Feedback Category System + Kigali Waffle Cuisine Demo Tenant + Mobile Nav Polish
 
 Implementation and automated verification are complete; user-run browser, responsive, and functional verification remains required. The product now has one canonical 13-item default feedback-category catalog. Both Business Owner and Platform Administrator business-creation transactions create those active Business-owned defaults, while the existing Owner/Admin category CRUD, activation controls, tenant isolation, AI active-category allowlist, workflow assignment, filters, automations, and reporting architecture remain authoritative.

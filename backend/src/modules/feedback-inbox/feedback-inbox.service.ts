@@ -1,14 +1,16 @@
-import {
+import type {
   Prisma,
   FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus,
   Branch,
-  BusinessMembership,
+  BusinessMembership
+} from "@prisma/client";
+import {
   BusinessMemberRole,
   BusinessMembershipStatus,
   BusinessStatus
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import { normalizeSearchInput } from "../../utils/search-normalization.js";

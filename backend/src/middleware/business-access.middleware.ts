@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "../lib/prisma-runtime.js";
 import { AppError } from "../lib/app-error.js";
 
 export function requirePlatformAdmin(

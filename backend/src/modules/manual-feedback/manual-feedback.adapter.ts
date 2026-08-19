@@ -1,4 +1,4 @@
-import { FeedbackChannel } from "@prisma/client";
+import { FeedbackChannel } from "../../lib/prisma-runtime.js";
 import type {
   FeedbackSourceAdapter,
   NormalizedFeedbackInput

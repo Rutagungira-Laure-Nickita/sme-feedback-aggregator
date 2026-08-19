@@ -4,7 +4,7 @@ import {
   BusinessMembershipStatus,
   BusinessStatus,
   FeedbackChannel
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import {

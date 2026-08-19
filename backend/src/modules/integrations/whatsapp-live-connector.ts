@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import {
   FeedbackChannel,
   IntegrationConnectionStatus,
   IntegrationCredentialType,
   IntegrationMode,
   IntegrationProvider,
-  IntegrationWebhookDeliveryStatus,
-  Prisma
-} from "@prisma/client";
+  IntegrationWebhookDeliveryStatus
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { prisma } from "../../lib/prisma.js";
 import { canonicalStringify } from "../feedback-processing/feedback-hash.service.js";

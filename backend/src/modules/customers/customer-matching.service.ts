@@ -1,4 +1,5 @@
-import { CustomerStatus, Prisma, type Customer } from "@prisma/client";
+import type { Prisma, Customer } from "@prisma/client";
+import { CustomerStatus } from "../../lib/prisma-runtime.js";
 import { prisma } from "../../lib/prisma.js";
 import {
   normalizeEmailForLookup,

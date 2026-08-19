@@ -10,7 +10,7 @@ import {
   IntegrationProvider,
   PlatformAppearance,
   UserRole
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { z } from "zod";
 
 export const adminPeriodSchema = z.enum(["7d", "30d", "90d", "12m"]);

@@ -1,4 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
+import type {
+  Branch,
+  BusinessMembership,
+  IntegrationConnection,
+  SynchronizationRun
+} from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   BranchStatus,
   BusinessMemberRole,
@@ -10,15 +17,11 @@ import {
   IntegrationOAuthAction,
   IntegrationMode,
   IntegrationProvider,
-  Prisma,
+  Prisma as PrismaRuntime,
   SynchronizationItemStatus,
   SynchronizationRunStatus,
-  SynchronizationTriggerType,
-  type Branch,
-  type BusinessMembership,
-  type IntegrationConnection,
-  type SynchronizationRun
-} from "@prisma/client";
+  SynchronizationTriggerType
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
@@ -2319,5 +2322,7 @@ function toPagination(page: number, pageSize: number, total: number) {
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }

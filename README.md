@@ -1,5 +1,9 @@
 # SME Multi-Channel Customer Feedback Aggregator
 
+## Phase 29A - Railway Prisma ESM Runtime Compatibility
+
+The native-ESM backend now loads Prisma 6.19.3 runtime values through a typed local adapter instead of requesting generated enum names as native named exports from Prisma's CommonJS package. Direct `@prisma/client` imports are type-only outside that adapter, so strict generated model/input/transaction typing is preserved while both compiled `node dist/server.js` and development `tsx src/server.ts` startup work on Node 24. No API, business logic, Prisma schema, migration, seed, or stored data changed.
+
 ## Phase 28 — Feedback Category System + Kigali Waffle Cuisine Demo Tenant + Mobile Nav Polish
 
 Businesses now start with 13 practical, active, Business-owned feedback categories while retaining full Owner/Admin custom category management. AI and automations continue to use only active categories owned by the current Business. All Feedback shows Category or `Uncategorized` directly in both List and Grid, and reporting uses the same names.

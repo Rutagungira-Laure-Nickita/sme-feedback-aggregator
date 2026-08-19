@@ -6,7 +6,7 @@ import {
   IntegrationDemoScenario,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 
 import { createDemoConnectors } from "./demo-connectors.js";
 import { createIntegrationConnectorRegistry } from "./integration-registry.js";

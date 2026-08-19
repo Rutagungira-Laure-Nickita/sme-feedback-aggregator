@@ -1,5 +1,11 @@
 # Next Steps
 
+## Phase 29A - Railway Deployment Verification Gate
+
+The Prisma ESM runtime repair and local automated/runtime verification are complete. After the committed `main` revision auto-deploys, confirm Railway runs Prisma generation before the backend build, completes `prisma migrate deploy` without schema changes, starts the compiled backend through `npm run start -w backend` (`node dist/server.js`), and serves the health endpoint without any missing Prisma named-export error. The temporary Railway `tsx` Start Command is no longer required for this compatibility repair.
+
+No Railway configuration change, Prisma upgrade, schema migration, database mutation, or manual product workflow retest is required specifically for Phase 29A. Existing deferred Phase 28 and earlier manual verification gates remain unchanged.
+
 ## Phase 28 — User Manual Verification
 
 Implementation, targeted development-data reconciliation, and automated verification are complete. The next unfinished task is the user's manual browser/device pass:

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import type { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
   AutomationActionExecutionStatus,
@@ -31,13 +33,12 @@ import {
   IntegrationDemoScenario,
   IntegrationMode,
   IntegrationProvider,
-  Prisma,
-  type PrismaClient,
+  Prisma as PrismaRuntime,
   SynchronizationItemStatus,
   SynchronizationRunStatus,
   SynchronizationTriggerType,
   UserRole
-} from "@prisma/client";
+} from "../lib/prisma-runtime.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { DEFAULT_FEEDBACK_CATEGORIES } from "../modules/feedback-categories/default-feedback-categories.js";
 
@@ -1271,7 +1272,7 @@ async function seedAutomationRules(prisma: PrismaClient): Promise<void> {
       position: 1,
       valueString: null,
       valueNumber: 2,
-      valueJson: Prisma.JsonNull,
+      valueJson: PrismaRuntime.JsonNull,
       branchId: null,
       categoryId: null
     }
@@ -1366,7 +1367,7 @@ async function seedAutomationRules(prisma: PrismaClient): Promise<void> {
       position: 1,
       valueString: FeedbackAISentiment.NEGATIVE,
       valueNumber: null,
-      valueJson: Prisma.JsonNull,
+      valueJson: PrismaRuntime.JsonNull,
       branchId: null,
       categoryId: null
     }

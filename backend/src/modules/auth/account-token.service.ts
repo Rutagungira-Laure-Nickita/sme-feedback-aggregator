@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { AccountTokenType, type Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { AccountTokenType } from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 

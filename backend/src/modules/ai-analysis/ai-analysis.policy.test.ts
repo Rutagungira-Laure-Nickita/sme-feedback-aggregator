@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FeedbackAIAnalysisStatus } from "@prisma/client";
+import { FeedbackAIAnalysisStatus } from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import {
   canProcessAfterDailyClaim,

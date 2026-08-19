@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
+import type {
+  BusinessMembership,
+  FeedbackAIAnalysis,
+  FeedbackCategory,
+  Prisma
+} from "@prisma/client";
 import {
   BusinessMemberRole,
   BusinessMembershipStatus,
   BusinessStatus,
-  FeedbackAIAnalysisStatus,
-  type BusinessMembership,
-  type FeedbackAIAnalysis,
-  type FeedbackCategory,
-  type Prisma
-} from "@prisma/client";
+  FeedbackAIAnalysisStatus
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 import { logger } from "../../lib/logger.js";

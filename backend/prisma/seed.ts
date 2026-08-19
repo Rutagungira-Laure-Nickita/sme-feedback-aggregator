@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { AccountStatus, PrismaClient, UserRole } from "@prisma/client";
+import { AccountStatus, PrismaClient, UserRole } from "../src/lib/prisma-runtime.js";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import {

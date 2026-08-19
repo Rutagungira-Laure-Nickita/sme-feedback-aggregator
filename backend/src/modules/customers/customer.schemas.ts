@@ -1,4 +1,4 @@
-import { CustomerStatus } from "@prisma/client";
+import { CustomerStatus } from "../../lib/prisma-runtime.js";
 import { z } from "zod";
 import { normalizeOptionalSearch } from "../../utils/search-normalization.js";
 

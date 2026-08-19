@@ -1,5 +1,8 @@
 import { OAuth2Client } from "google-auth-library";
-import { ExternalAuthProvider, Prisma } from "@prisma/client";
+import {
+  ExternalAuthProvider,
+  Prisma as PrismaRuntime
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
@@ -374,5 +377,7 @@ function splitDisplayName(
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+  return (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError && error.code === "P2002"
+  );
 }

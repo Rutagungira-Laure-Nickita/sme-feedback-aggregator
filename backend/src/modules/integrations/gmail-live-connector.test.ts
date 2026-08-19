@@ -6,7 +6,7 @@ import {
   FeedbackChannel,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import {
   GmailLiveConnector,
   gmailLiveConnectorTestUtils

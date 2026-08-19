@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-19 - Phase 29A Prisma ESM Runtime Compatibility for Railway
+
+- Added one typed native-ESM Prisma runtime adapter around the generated CommonJS package.
+- Reviewed all 82 backend files with direct Prisma imports and redirected every runtime enum/client/helper use while preserving erased generated types.
+- Added focused adapter regression coverage and restored compiled `node dist/server.js` plus `tsx src/server.ts` startup compatibility under Node 24.
+- Kept Prisma at 6.19.3 with `prisma-client-js`; no schema, migration, seed semantics, data, API, authorization, or business logic changed.
+- Passed backend typecheck/lint/build, Prisma generation/validation, 208/208 complete backend tests, Phase 28 136/136, integrations 31/31, Phase 25.4 49/49, Phase 27 30/30, compiled-output import audit, and both runtime startup smokes.
+
 ## 2026-08-18 — Phase 28 Feedback Categories, Kigali Waffle Showcase, and Navigation Polish
 
 - Added the exact 13-category active default taxonomy and provision it transactionally for newly created Businesses without changing custom-category ownership or CRUD behavior.

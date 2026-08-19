@@ -7,7 +7,7 @@ import {
   FeedbackChannel,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 
 process.env.DATABASE_URL ??= "mysql://root:password@localhost:3306/sme_feedback_test";
 process.env.JWT_ACCESS_SECRET ??= "a".repeat(32);

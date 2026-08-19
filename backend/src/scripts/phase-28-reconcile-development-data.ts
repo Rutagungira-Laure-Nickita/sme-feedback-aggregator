@@ -1,10 +1,10 @@
+import type { PrismaClient } from "@prisma/client";
 import {
   BranchStatus,
   BusinessStatus,
   IntegrationMode,
-  IntegrationProvider,
-  type PrismaClient
-} from "@prisma/client";
+  IntegrationProvider
+} from "../lib/prisma-runtime.js";
 import { prisma } from "../lib/prisma.js";
 import { DEFAULT_FEEDBACK_CATEGORIES } from "../modules/feedback-categories/default-feedback-categories.js";
 import {

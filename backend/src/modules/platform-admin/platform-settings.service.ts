@@ -1,4 +1,4 @@
-import { PlatformAppearance } from "@prisma/client";
+import { PlatformAppearance } from "../../lib/prisma-runtime.js";
 import { prisma } from "../../lib/prisma.js";
 import type { PlatformSettingsUpdate } from "./platform-admin.schemas.js";
 import { recordPlatformAdminActivity } from "./platform-admin-audit.service.js";

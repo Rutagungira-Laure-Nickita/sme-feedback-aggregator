@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
 
-import { FeedbackChannel, IntegrationMode, IntegrationProvider } from "@prisma/client";
+import {
+  FeedbackChannel,
+  IntegrationMode,
+  IntegrationProvider
+} from "../../lib/prisma-runtime.js";
 
 import { env } from "../../config/env.js";
 import { INTEGRATION_ERRORS, IntegrationError } from "./integration.errors.js";

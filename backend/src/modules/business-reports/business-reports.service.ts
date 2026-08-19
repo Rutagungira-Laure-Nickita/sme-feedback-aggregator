@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import {
   BusinessMembershipStatus,
   BusinessStatus,
@@ -6,9 +7,8 @@ import {
   FeedbackPriority,
   FeedbackStatus,
   IntegrationMode,
-  Prisma,
   UserRole
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import { classifyIntegrationHealth } from "../platform-admin/platform-admin.analytics.js";

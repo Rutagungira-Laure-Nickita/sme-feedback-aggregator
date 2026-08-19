@@ -7,7 +7,7 @@ import {
   IntegrationCredentialType,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { CodeChallengeMethod } from "google-auth-library";
 import { google, type gmail_v1 } from "googleapis";
 import { env } from "../../config/env.js";

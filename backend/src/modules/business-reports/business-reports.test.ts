@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { inflateSync } from "node:zlib";
-import { FeedbackStatus, IntegrationProvider, UserRole } from "@prisma/client";
+import {
+  FeedbackStatus,
+  IntegrationProvider,
+  UserRole
+} from "../../lib/prisma-runtime.js";
 import {
   businessReportPreviewSchema,
   businessReportRequestSchema

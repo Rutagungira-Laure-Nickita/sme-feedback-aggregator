@@ -1,4 +1,8 @@
-import { FeedbackAISentiment, FeedbackChannel, FeedbackStatus } from "@prisma/client";
+import {
+  FeedbackAISentiment,
+  FeedbackChannel,
+  FeedbackStatus
+} from "../../lib/prisma-runtime.js";
 import { z } from "zod";
 
 const optionalId = z.string().trim().min(1).max(191).optional();

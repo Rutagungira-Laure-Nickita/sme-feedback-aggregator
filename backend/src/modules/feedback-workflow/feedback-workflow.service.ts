@@ -1,11 +1,13 @@
-import {
+import type {
   Prisma,
   FeedbackStatus,
   FeedbackPriority,
-  BusinessMembershipStatus,
-  BusinessMemberRole,
-  type BusinessMembership
+  BusinessMembership
 } from "@prisma/client";
+import {
+  BusinessMembershipStatus,
+  BusinessMemberRole
+} from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 import { CHANNEL_LABELS } from "../feedback-inbox/feedback-inbox.types.js";

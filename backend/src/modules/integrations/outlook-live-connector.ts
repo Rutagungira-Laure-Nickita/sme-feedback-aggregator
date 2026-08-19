@@ -6,7 +6,7 @@ import {
   IntegrationCredentialType,
   IntegrationMode,
   IntegrationProvider
-} from "@prisma/client";
+} from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { prisma } from "../../lib/prisma.js";
 import { canonicalStringify } from "../feedback-processing/feedback-hash.service.js";
