@@ -261,7 +261,9 @@ async function buildOwnerReportSections(
     receivedAt: { gte: previousFrom, lte: previousTo },
     ...routedIntegrationRelation
   };
-  const branchFeedbackRelation = branchId ? { feedback: { is: { branchId } } } : {};
+  const branchFeedbackRelation = {
+    feedback: { is: { deletedAt: null, ...(branchId ? { branchId } : {}) } }
+  };
   const aiWhere: Prisma.FeedbackAIAnalysisWhereInput = {
     businessId,
     requestedAt: { gte: from, lte: to },

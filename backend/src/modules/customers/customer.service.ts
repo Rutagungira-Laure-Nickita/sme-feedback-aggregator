@@ -113,7 +113,7 @@ function getAccessibleBranchIds(context: MembershipContext): string[] | null {
 
 function feedbackBranchWhere(context: MembershipContext): Prisma.FeedbackWhereInput {
   const branchIds = getAccessibleBranchIds(context);
-  return branchIds ? { branchId: { in: branchIds } } : {};
+  return { deletedAt: null, ...(branchIds ? { branchId: { in: branchIds } } : {}) };
 }
 
 function customerVisibilityWhere(context: MembershipContext): Prisma.CustomerWhereInput {
@@ -130,6 +130,7 @@ function customerVisibilityWhere(context: MembershipContext): Prisma.CustomerWhe
     feedback: {
       some: {
         businessId: context.businessId,
+        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
       }
     }
@@ -334,8 +335,15 @@ async function normalizeCustomerListQuery(
       select: { id: true }
     });
 
-    if (!branch || !isBranchIdAllowed(context, normalized.branchId)) {
-      delete normalized.branchId;
+    if (!branch) {
+      throw new AppError(
+        "Branch was not found for this business.",
+        "BRANCH_NOT_FOUND",
+        404
+      );
+    }
+    if (!isBranchIdAllowed(context, normalized.branchId)) {
+      throw new AppError("Branch access denied.", "BRANCH_ACCESS_DENIED", 403);
     }
   }
 
@@ -621,8 +629,15 @@ async function normalizeCustomerFeedbackQuery(
       select: { id: true }
     });
 
-    if (!branch || !isBranchIdAllowed(context, normalized.branchId)) {
-      delete normalized.branchId;
+    if (!branch) {
+      throw new AppError(
+        "Branch was not found for this business.",
+        "BRANCH_NOT_FOUND",
+        404
+      );
+    }
+    if (!isBranchIdAllowed(context, normalized.branchId)) {
+      throw new AppError("Branch access denied.", "BRANCH_ACCESS_DENIED", 403);
     }
   }
 
@@ -987,8 +1002,8 @@ export async function getFeedbackCustomerState(
 
 export async function tryAutoLinkCustomerForFeedback(feedbackId: string): Promise<void> {
   try {
-    const feedback = await prisma.feedback.findUnique({
-      where: { id: feedbackId },
+    const feedback = await prisma.feedback.findFirst({
+      where: { id: feedbackId, deletedAt: null },
       select: {
         id: true,
         businessId: true,

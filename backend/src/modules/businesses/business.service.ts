@@ -131,7 +131,20 @@ export async function listMyBusinesses(
 
   return {
     businesses: memberships.map((membership) => ({
-      ...toBusinessSummary(membership.business),
+      ...toBusinessSummary(
+        membership.role === BusinessMemberRole.OWNER ||
+          membership.role === BusinessMemberRole.ADMIN ||
+          membership.allBranchesAccess
+          ? membership.business
+          : {
+              ...membership.business,
+              branches: membership.business.branches.filter((branch) =>
+                membership.branchAccess.some((access) => access.branchId === branch.id)
+              ),
+              memberships: [membership],
+              invitations: []
+            }
+      ),
       membership: toMembershipSummary(membership)
     })),
     pagination: paginationResult(total, query)
@@ -283,9 +296,29 @@ export async function createAdminBusiness(
 export async function getBusiness(actor: Actor, businessId: string) {
   const context = await getBusinessContext(actor, businessId, { allowInactive: true });
   const isActive = context.business.status === BusinessStatus.ACTIVE;
+  const accessibleBranchIds = await getAccessibleBranchIds(context.membership);
+  const visibleBusiness = accessibleBranchIds
+    ? {
+        ...context.business,
+        branches: context.business.branches.filter((branch) =>
+          accessibleBranchIds.includes(branch.id)
+        ),
+        memberships: context.business.memberships.filter(
+          (membership) =>
+            membership.id === context.membership.id ||
+            membership.role === BusinessMemberRole.OWNER ||
+            membership.role === BusinessMemberRole.ADMIN ||
+            membership.allBranchesAccess ||
+            membership.branchAccess.some((access) =>
+              accessibleBranchIds.includes(access.branchId)
+            )
+        ),
+        invitations: []
+      }
+    : context.business;
 
   return {
-    business: toBusinessDetail(context.business),
+    business: toBusinessDetail(visibleBusiness),
     membership: toMembershipSummary(context.membership),
     permissions: isActive
       ? permissionsFor(context.membership.role)
@@ -1157,7 +1190,7 @@ export async function getAdminBusiness(businessId: string) {
     prisma.business.findUnique({ where: { id: businessId }, include: BUSINESS_INCLUDE }),
     prisma.feedback.groupBy({
       by: ["status"],
-      where: { businessId },
+      where: { businessId, deletedAt: null },
       _count: { _all: true }
     }),
     prisma.integrationConnection.findMany({
@@ -1173,7 +1206,7 @@ export async function getAdminBusiness(businessId: string) {
       orderBy: { updatedAt: "desc" }
     }),
     prisma.feedback.findMany({
-      where: { businessId },
+      where: { businessId, deletedAt: null },
       select: {
         id: true,
         channel: true,

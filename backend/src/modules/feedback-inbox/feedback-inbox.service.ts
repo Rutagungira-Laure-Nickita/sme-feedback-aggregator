@@ -28,11 +28,11 @@ import type {
   FeedbackAttachmentResponse
 } from "./feedback-inbox.types.js";
 
-type Actor = {
+export type FeedbackActor = {
   userId: string;
 };
 
-type MembershipContext = {
+export type FeedbackMembershipContext = {
   businessId: string;
   membership: BusinessMembership & {
     branchAccess: { branchId: string; branch: Branch }[];
@@ -71,10 +71,10 @@ const FEEDBACK_SELECT_LIST = {
   createdAt: true
 } satisfies Prisma.FeedbackSelect;
 
-async function resolveMembershipContext(
-  actor: Actor,
+export async function resolveFeedbackMembershipContext(
+  actor: FeedbackActor,
   businessId: string
-): Promise<MembershipContext> {
+): Promise<FeedbackMembershipContext> {
   const membership = await prisma.businessMembership.findUnique({
     where: {
       businessId_userId: { businessId, userId: actor.userId }
@@ -108,8 +108,8 @@ async function resolveMembershipContext(
   return { businessId, membership };
 }
 
-function getAccessibleBranchIds(
-  membership: MembershipContext["membership"]
+export function getFeedbackAccessibleBranchIds(
+  membership: FeedbackMembershipContext["membership"]
 ): string[] | null {
   if (
     membership.role === BusinessMemberRole.OWNER ||
@@ -124,13 +124,14 @@ function getAccessibleBranchIds(
     .map((access) => access.branchId);
 }
 
-function buildWhereClause(
-  context: MembershipContext,
+export function buildFeedbackWhereClause(
+  context: FeedbackMembershipContext,
   query: FeedbackInboxQuery
 ): Prisma.FeedbackWhereInput {
-  const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+  const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
   const where: Prisma.FeedbackWhereInput = {
     businessId: context.businessId,
+    deletedAt: null,
     ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
   };
   const andFilters: Prisma.FeedbackWhereInput[] = [];
@@ -331,21 +332,28 @@ function buildAISuggestionStateWhere(
   }
 }
 
-async function normalizeScopedFilters(
-  context: MembershipContext,
+export async function normalizeFeedbackScopedFilters(
+  context: FeedbackMembershipContext,
   query: FeedbackInboxQuery
 ): Promise<FeedbackInboxQuery> {
   const normalized: FeedbackInboxQuery = { ...query };
 
   if (normalized.branchId) {
-    const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+    const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
     const branch = await prisma.branch.findFirst({
       where: { id: normalized.branchId, businessId: context.businessId },
       select: { id: true }
     });
 
-    if (!branch || (accessibleBranchIds && !accessibleBranchIds.includes(branch.id))) {
-      delete normalized.branchId;
+    if (!branch) {
+      throw new AppError(
+        "Branch was not found for this business.",
+        "BRANCH_NOT_FOUND",
+        404
+      );
+    }
+    if (accessibleBranchIds && !accessibleBranchIds.includes(branch.id)) {
+      throw new AppError("Branch access denied.", "BRANCH_ACCESS_DENIED", 403);
     }
   }
 
@@ -356,7 +364,11 @@ async function normalizeScopedFilters(
     });
 
     if (!category) {
-      delete normalized.categoryId;
+      throw new AppError(
+        "Category was not found for this business.",
+        "CATEGORY_NOT_FOUND",
+        404
+      );
     }
   }
 
@@ -375,7 +387,7 @@ async function normalizeScopedFilters(
     });
 
     if (!membership || !isMembershipEligibleForActorBranches(context, membership)) {
-      delete normalized.assignedTo;
+      throw new AppError("Assignee access denied.", "ASSIGNEE_ACCESS_DENIED", 403);
     }
   }
 
@@ -390,7 +402,7 @@ async function normalizeScopedFilters(
     });
 
     if (!customer) {
-      delete normalized.customerId;
+      throw new AppError("Customer access denied.", "CUSTOMER_ACCESS_DENIED", 403);
     }
   }
 
@@ -419,7 +431,7 @@ function parseDateBoundary(value: string, boundary: "start" | "end"): Date {
 }
 
 function isMembershipEligibleForActorBranches(
-  context: MembershipContext,
+  context: FeedbackMembershipContext,
   membership: Pick<BusinessMembership, "role" | "allBranchesAccess" | "status"> & {
     branchAccess: Array<{ branchId: string }>;
   }
@@ -433,15 +445,17 @@ function isMembershipEligibleForActorBranches(
     return true;
   }
 
-  const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+  const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
   if (!accessibleBranchIds) return true;
   return membership.branchAccess.some((access) =>
     accessibleBranchIds.includes(access.branchId)
   );
 }
 
-function customerVisibilityWhere(context: MembershipContext): Prisma.CustomerWhereInput {
-  const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+function customerVisibilityWhere(
+  context: FeedbackMembershipContext
+): Prisma.CustomerWhereInput {
+  const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
   if (!accessibleBranchIds) return {};
 
   return {
@@ -554,7 +568,7 @@ async function toFeedbackListItem(
     receivedAt: Date;
     createdAt: Date;
   },
-  membership: MembershipContext["membership"]
+  membership: FeedbackMembershipContext["membership"]
 ): Promise<FeedbackListItem> {
   const [assigneeInfo, categoryInfo] = await Promise.all([
     resolveAssigneeInfo(item.assignedToMembershipId, item.branchId),
@@ -587,10 +601,13 @@ async function toFeedbackListItem(
   };
 }
 
-async function getSummaryCounts(context: MembershipContext): Promise<FeedbackSummary> {
-  const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+async function getSummaryCounts(
+  context: FeedbackMembershipContext
+): Promise<FeedbackSummary> {
+  const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
   const baseWhere: Prisma.FeedbackWhereInput = {
     businessId: context.businessId,
+    deletedAt: null,
     ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
   };
 
@@ -768,12 +785,12 @@ async function resolveSourceDetail(
 }
 
 export async function listFeedback(
-  actor: Actor,
+  actor: FeedbackActor,
   businessId: string,
   query: FeedbackInboxQuery
 ): Promise<FeedbackListResponse> {
-  const context = await resolveMembershipContext(actor, businessId);
-  const scopedQuery = await normalizeScopedFilters(context, query);
+  const context = await resolveFeedbackMembershipContext(actor, businessId);
+  const scopedQuery = await normalizeFeedbackScopedFilters(context, query);
 
   // Validate date range
   if (scopedQuery.dateFrom && scopedQuery.dateTo) {
@@ -797,7 +814,7 @@ export async function listFeedback(
     }
   }
 
-  const where = buildWhereClause(context, scopedQuery);
+  const where = buildFeedbackWhereClause(context, scopedQuery);
   const orderBy = buildOrderBy(scopedQuery.sort ?? "newest");
   const skip = (scopedQuery.page - 1) * scopedQuery.pageSize;
 
@@ -824,18 +841,103 @@ export async function listFeedback(
   };
 }
 
+export async function getFeedbackDashboard(actor: FeedbackActor, businessId: string) {
+  const context = await resolveFeedbackMembershipContext(actor, businessId);
+  const branchIds = getFeedbackAccessibleBranchIds(context.membership);
+  const from = new Date();
+  from.setDate(from.getDate() - 29);
+  from.setHours(0, 0, 0, 0);
+  const where: Prisma.FeedbackWhereInput = {
+    businessId,
+    deletedAt: null,
+    receivedAt: { gte: from },
+    ...(branchIds ? { branchId: { in: branchIds } } : {})
+  };
+  const [total, attentionCount, statuses, channels, sentiments, rating, recent] =
+    await Promise.all([
+      prisma.feedback.count({ where }),
+      prisma.feedback.count({
+        where: {
+          ...where,
+          priority: { in: ["HIGH", "URGENT"] },
+          status: { in: ["NEW", "IN_REVIEW"] }
+        }
+      }),
+      prisma.feedback.groupBy({ by: ["status"], where, _count: { _all: true } }),
+      prisma.feedback.groupBy({ by: ["channel"], where, _count: { _all: true } }),
+      prisma.feedbackAIAnalysis.groupBy({
+        by: ["sentiment"],
+        where: { businessId, feedback: { is: { ...where } }, sentiment: { not: null } },
+        _count: { _all: true }
+      }),
+      prisma.feedback.aggregate({
+        where: { ...where, rating: { not: null } },
+        _avg: { rating: true }
+      }),
+      prisma.feedback.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          status: true,
+          priority: true,
+          receivedAt: true,
+          branch: { select: { id: true, name: true } },
+          customerName: true
+        },
+        orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
+        take: 5
+      })
+    ]);
+  return {
+    periodDays: 30,
+    scope: {
+      allBranches: branchIds === null,
+      branchIds: branchIds ?? [],
+      label:
+        branchIds === null
+          ? "All business branches"
+          : branchIds.length === 1
+            ? (context.membership.branchAccess.find(
+                (item) => item.branchId === branchIds[0]
+              )?.branch.name ?? "Assigned branch")
+            : "All assigned branches"
+    },
+    total,
+    attentionCount,
+    statuses: Object.fromEntries(statuses.map((item) => [item.status, item._count._all])),
+    channels: channels.map((item) => ({
+      channel: item.channel,
+      count: item._count._all
+    })),
+    sentiments: sentiments.map((item) => ({
+      sentiment: item.sentiment,
+      count: item._count._all
+    })),
+    averageRating: rating._avg.rating,
+    recent: recent.map((item) => ({
+      ...item,
+      messagePreview: createMessagePreview(item.message),
+      message: undefined,
+      receivedAt: item.receivedAt.toISOString()
+    }))
+  };
+}
+
 export async function getFeedbackDetail(
-  actor: Actor,
+  actor: FeedbackActor,
   businessId: string,
   feedbackId: string
 ): Promise<FeedbackDetailResponse> {
-  const context = await resolveMembershipContext(actor, businessId);
-  const accessibleBranchIds = getAccessibleBranchIds(context.membership);
+  const context = await resolveFeedbackMembershipContext(actor, businessId);
+  const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
 
   const feedback = await prisma.feedback.findFirst({
     where: {
       id: feedbackId,
       businessId,
+      deletedAt: null,
       ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
     },
     include: {
@@ -930,6 +1032,7 @@ export async function getFeedbackDetail(
     occurredAt: feedback.occurredAt?.toISOString() ?? null,
     receivedAt: feedback.receivedAt.toISOString(),
     createdAt: feedback.createdAt.toISOString(),
+    updatedAt: feedback.updatedAt.toISOString(),
     source,
     attachments: feedback.attachments.map((att): FeedbackAttachmentResponse => ({
       id: att.id,

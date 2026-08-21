@@ -6,7 +6,11 @@ import {
   feedbackIdParamsSchema
 } from "./feedback-inbox.schemas.js";
 import type { FeedbackInboxQuery } from "./feedback-inbox.types.js";
-import { listFeedback, getFeedbackDetail } from "./feedback-inbox.service.js";
+import {
+  listFeedback,
+  getFeedbackDetail,
+  getFeedbackDashboard
+} from "./feedback-inbox.service.js";
 
 function getActor(request: Request): { userId: string } {
   if (!request.auth) {
@@ -59,6 +63,22 @@ export async function getFeedbackDetailController(
     const params = parseInput(feedbackIdParamsSchema.safeParse(request.params));
     const result = await getFeedbackDetail(actor, params.businessId, params.feedbackId);
     sendSuccess(response, "Feedback details loaded", result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getFeedbackDashboardController(
+  request: Request,
+  response: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const result = await getFeedbackDashboard(
+      getActor(request),
+      request.params.businessId ?? ""
+    );
+    sendSuccess(response, "Feedback dashboard loaded", result);
   } catch (error) {
     next(error);
   }

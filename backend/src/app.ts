@@ -25,6 +25,7 @@ import {
 } from "./modules/integrations/index.js";
 import { legalRouter } from "./modules/legal/legal.routes.js";
 import { publicFeedbackRouter } from "./modules/public-feedback/index.js";
+import { customerDashboardRouter } from "./modules/customer-dashboard/index.js";
 import {
   platformAdminRouter,
   platformSettingsPublicRouter
@@ -62,6 +63,7 @@ export function createApp(): express.Express {
   app.use("/api/platform-settings", platformSettingsPublicRouter);
   app.use("/api/integrations/email/oauth", authMiddleware, integrationOAuthRouter);
   app.use("/api/public/feedback", publicFeedbackRouter);
+  app.use("/api/customer", customerDashboardRouter);
   app.use("/api/health", healthRouter);
 
   app.use(notFoundMiddleware);

@@ -20,6 +20,7 @@
     "test:phase25.4": "tsx --test src/modules/platform-admin/*.test.ts",
     "test:phase26": "tsx --test src/modules/business-reports/*.test.ts",
     "test:phase28": "tsx --test src/modules/feedback-categories/*.test.ts src/scripts/development-seed.test.ts",
+    "test:hardening": "tsx --test src/modules/feedback-inbox/feedback-management.test.ts && node --test src/modules/feedback-inbox/final-hardening.static.test.mjs",
     "phase28:reconcile": "tsx src/scripts/phase-28-reconcile-development-data.ts",
     "feedback:simulate": "tsx src/scripts/simulate-feedback-processing.ts",
     "prisma:generate": "prisma generate",

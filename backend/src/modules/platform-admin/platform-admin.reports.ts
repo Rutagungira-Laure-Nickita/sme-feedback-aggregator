@@ -235,6 +235,7 @@ export function createFeedbackScopePlan(
   return {
     filters,
     where: {
+      deletedAt: null,
       businessId: filters.businessId,
       branchId: filters.branchId,
       channel: filters.channel,

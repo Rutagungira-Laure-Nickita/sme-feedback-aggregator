@@ -80,8 +80,8 @@ export async function scheduleAnalysisForFeedback(feedbackId: string): Promise<v
   }
 
   try {
-    const feedback = await prisma.feedback.findUnique({
-      where: { id: feedbackId },
+    const feedback = await prisma.feedback.findFirst({
+      where: { id: feedbackId, deletedAt: null },
       select: {
         id: true,
         businessId: true,
@@ -789,8 +789,8 @@ async function processClaimedAnalysis(
 }
 
 async function prepareInputForFeedback(feedbackId: string) {
-  const feedback = await prisma.feedback.findUnique({
-    where: { id: feedbackId },
+  const feedback = await prisma.feedback.findFirst({
+    where: { id: feedbackId, deletedAt: null },
     select: {
       id: true,
       businessId: true,
@@ -1013,6 +1013,7 @@ async function resolveFeedbackAccess(
     where: {
       id: feedbackId,
       businessId: context.businessId,
+      deletedAt: null,
       ...(branchIds ? { branchId: { in: branchIds } } : {})
     },
     select: { id: true, businessId: true, branchId: true }

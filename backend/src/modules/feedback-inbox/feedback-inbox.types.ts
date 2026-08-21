@@ -88,6 +88,7 @@ export type FeedbackDetailResponse = {
   occurredAt: string | null;
   receivedAt: string;
   createdAt: string;
+  updatedAt: string;
   source: {
     label: string;
     detail: string | null;

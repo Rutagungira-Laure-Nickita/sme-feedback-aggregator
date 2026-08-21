@@ -102,24 +102,35 @@ export async function getAdminDashboard(period: AdminPeriod) {
     prisma.user.count({
       where: { createdAt: { gte: window.previousStart, lte: window.previousEnd } }
     }),
-    prisma.feedback.count(),
+    prisma.feedback.count({ where: { deletedAt: null } }),
     prisma.feedback.count({
-      where: { receivedAt: { gte: window.start, lte: window.end } }
+      where: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
     }),
     prisma.feedback.count({
-      where: { receivedAt: { gte: window.previousStart, lte: window.previousEnd } }
+      where: {
+        deletedAt: null,
+        receivedAt: { gte: window.previousStart, lte: window.previousEnd }
+      }
     }),
-    prisma.feedback.count({ where: { receivedAt: { gte: todayStart, lte: now } } }),
-    prisma.feedback.count({ where: { receivedAt: { gte: weekStart, lte: now } } }),
-    prisma.feedback.count({ where: { receivedAt: { gte: monthStart, lte: now } } }),
+    prisma.feedback.count({
+      where: { deletedAt: null, receivedAt: { gte: todayStart, lte: now } }
+    }),
+    prisma.feedback.count({
+      where: { deletedAt: null, receivedAt: { gte: weekStart, lte: now } }
+    }),
+    prisma.feedback.count({
+      where: { deletedAt: null, receivedAt: { gte: monthStart, lte: now } }
+    }),
     prisma.branch.count(),
     prisma.customer.count(),
-    prisma.feedback.count({ where: { status: { in: ["NEW", "IN_REVIEW"] } } }),
-    prisma.feedbackAIAnalysis.count({
-      where: { status: FeedbackAIAnalysisStatus.COMPLETED }
+    prisma.feedback.count({
+      where: { deletedAt: null, status: { in: ["NEW", "IN_REVIEW"] } }
     }),
     prisma.feedbackAIAnalysis.count({
-      where: { status: FeedbackAIAnalysisStatus.FAILED }
+      where: { status: FeedbackAIAnalysisStatus.COMPLETED, feedback: { deletedAt: null } }
+    }),
+    prisma.feedbackAIAnalysis.count({
+      where: { status: FeedbackAIAnalysisStatus.FAILED, feedback: { deletedAt: null } }
     }),
     prisma.automationRule.count({ where: { status: AutomationRuleStatus.ACTIVE } }),
     prisma.automationExecution.count({
@@ -144,7 +155,7 @@ export async function getAdminDashboard(period: AdminPeriod) {
     }),
     prisma.feedback.groupBy({
       by: ["channel"],
-      where: { receivedAt: { gte: window.start, lte: window.end } },
+      where: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } },
       _count: { _all: true },
       orderBy: { channel: "asc" }
     }),
@@ -152,13 +163,15 @@ export async function getAdminDashboard(period: AdminPeriod) {
       by: ["sentiment"],
       where: {
         status: FeedbackAIAnalysisStatus.COMPLETED,
-        feedback: { receivedAt: { gte: window.start, lte: window.end } }
+        feedback: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
       },
       _count: { _all: true }
     }),
     prisma.feedbackAIAnalysis.groupBy({
       by: ["status"],
-      where: { feedback: { receivedAt: { gte: window.start, lte: window.end } } },
+      where: {
+        feedback: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
+      },
       _count: { _all: true }
     }),
     prisma.integrationConnection.groupBy({
@@ -497,6 +510,7 @@ export async function applyAdminUserAction(
 
 export async function listAdminFeedback(query: AdminFeedbackQuery) {
   const where: Prisma.FeedbackWhereInput = {
+    deletedAt: null,
     businessId: query.businessId,
     branchId: query.branchId,
     channel: query.channel,
@@ -551,8 +565,8 @@ export async function listAdminFeedback(query: AdminFeedbackQuery) {
 }
 
 export async function getAdminFeedback(feedbackId: string) {
-  const feedback = await prisma.feedback.findUnique({
-    where: { id: feedbackId },
+  const feedback = await prisma.feedback.findFirst({
+    where: { id: feedbackId, deletedAt: null },
     include: {
       business: { select: { id: true, name: true } },
       branch: { select: { id: true, name: true } },
@@ -802,7 +816,11 @@ export async function getAdminSystemHealth() {
   const recent = new Date(now.getTime() - 24 * 60 * 60_000);
   const [databaseProbe, ai, automation, sync, webhooks] = await Promise.all([
     prisma.$queryRaw<Array<{ healthy: number }>>(PrismaRuntime.sql`SELECT 1 AS healthy`),
-    prisma.feedbackAIAnalysis.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.feedbackAIAnalysis.groupBy({
+      by: ["status"],
+      where: { feedback: { deletedAt: null } },
+      _count: { _all: true }
+    }),
     prisma.automationEvent.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.synchronizationRun.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.integrationWebhookDelivery.groupBy({
@@ -815,6 +833,7 @@ export async function getAdminSystemHealth() {
     prisma.feedbackAIAnalysis.count({
       where: {
         status: FeedbackAIAnalysisStatus.PROCESSING,
+        feedback: { deletedAt: null },
         lockedAt: { lt: staleThreshold }
       }
     }),
@@ -876,6 +895,7 @@ export async function buildLegacyAdminReport(
   const from = startOfUtcDay(input.dateFrom);
   const to = endOfUtcDay(input.dateTo);
   const feedbackWhere: Prisma.FeedbackWhereInput = {
+    deletedAt: null,
     businessId: input.businessId,
     branchId: input.branchId,
     channel: input.channel,
@@ -1074,12 +1094,19 @@ async function addBusinessAdoptionSections(
       name: true,
       status: true,
       createdAt: true,
-      _count: { select: { branches: true, memberships: true, feedbacks: true } },
+      _count: {
+        select: {
+          branches: true,
+          memberships: true,
+          feedbacks: { where: { deletedAt: null } }
+        }
+      },
       integrationConnections: {
         where: { status: { not: IntegrationConnectionStatus.DISCONNECTED } },
         select: { provider: true, mode: true }
       },
       feedbacks: {
+        where: { deletedAt: null },
         select: { receivedAt: true },
         orderBy: { receivedAt: "desc" },
         take: 1
@@ -1650,8 +1677,15 @@ async function getBusinessOverview() {
       id: true,
       name: true,
       status: true,
-      _count: { select: { branches: true, memberships: true, feedbacks: true } },
+      _count: {
+        select: {
+          branches: true,
+          memberships: true,
+          feedbacks: { where: { deletedAt: null } }
+        }
+      },
       feedbacks: {
+        where: { deletedAt: null },
         select: { receivedAt: true },
         orderBy: { receivedAt: "desc" },
         take: 1
@@ -1672,24 +1706,26 @@ async function getBusinessOverview() {
         }
       }
     },
-    orderBy: { feedbacks: { _count: "desc" } },
-    take: 8
+    orderBy: { createdAt: "desc" }
   });
-  return businesses.map((item) => ({
-    id: item.id,
-    name: item.name,
-    status: item.status,
-    branches: item._count.branches,
-    users: item._count.memberships,
-    feedback: item._count.feedbacks,
-    liveChannels: new Set(
-      item.integrationConnections.map((connection) => connection.provider)
-    ).size,
-    needsAttention: item.integrationConnections.some(
-      (connection) => classifyIntegrationHealth(connection) !== "HEALTHY"
-    ),
-    lastActivity: item.feedbacks[0]?.receivedAt.toISOString() ?? null
-  }));
+  return businesses
+    .sort((a, b) => b._count.feedbacks - a._count.feedbacks)
+    .slice(0, 8)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      status: item.status,
+      branches: item._count.branches,
+      users: item._count.memberships,
+      feedback: item._count.feedbacks,
+      liveChannels: new Set(
+        item.integrationConnections.map((connection) => connection.provider)
+      ).size,
+      needsAttention: item.integrationConnections.some(
+        (connection) => classifyIntegrationHealth(connection) !== "HEALTHY"
+      ),
+      lastActivity: item.feedbacks[0]?.receivedAt.toISOString() ?? null
+    }));
 }
 
 export async function queryTimeSeries(
@@ -1706,7 +1742,9 @@ export async function queryTimeSeries(
         ? PrismaRuntime.sql`DATE_SUB(DATE(${PrismaRuntime.raw(column)}), INTERVAL WEEKDAY(${PrismaRuntime.raw(column)}) DAY)`
         : PrismaRuntime.sql`DATE(${PrismaRuntime.raw(column)})`;
   const rows = await prisma.$queryRaw<SqlCountRow[]>(
-    PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
+    table === "feedback"
+      ? PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE deleted_at IS NULL AND ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
+      : PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
   );
   return rows.map((row) => ({
     date: normalizeBucket(row.bucket),

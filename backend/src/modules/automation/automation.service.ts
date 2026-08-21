@@ -1472,6 +1472,7 @@ async function loadFeedbackSnapshot(
     where: {
       id: feedbackId,
       businessId: context.businessId,
+      deletedAt: null,
       ...(branchIds ? { branchId: { in: branchIds } } : {})
     },
     include: { aiAnalysis: true }
@@ -1485,8 +1486,8 @@ async function loadFeedbackSnapshot(
 async function loadFeedbackSnapshotForSystem(
   feedbackId: string
 ): Promise<AutomationFeedbackSnapshot | null> {
-  return prisma.feedback.findUnique({
-    where: { id: feedbackId },
+  return prisma.feedback.findFirst({
+    where: { id: feedbackId, deletedAt: null },
     include: { aiAnalysis: true }
   });
 }

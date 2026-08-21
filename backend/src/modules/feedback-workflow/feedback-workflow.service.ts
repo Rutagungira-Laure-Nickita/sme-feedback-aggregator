@@ -117,6 +117,7 @@ async function resolveFeedbackAccess(
     where: {
       id: feedbackId,
       businessId: context.businessId,
+      deletedAt: null,
       ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
     },
     select: {
@@ -187,6 +188,7 @@ export async function updateStatus(
       where: {
         id: feedbackId,
         businessId: context.businessId,
+        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
       },
       select: { id: true, status: true }
@@ -450,6 +452,7 @@ export async function updateAssignment(
       where: {
         id: feedbackId,
         businessId: context.businessId,
+        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
       },
       select: { id: true, branchId: true, assignedToMembershipId: true }
@@ -676,6 +679,7 @@ export async function updateFeedbackCategory(
       where: {
         id: feedbackId,
         businessId: context.businessId,
+        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
       },
       select: { id: true, categoryId: true }
@@ -844,6 +848,7 @@ export async function updateFeedbackPriority(
       where: {
         id: feedbackId,
         businessId: context.businessId,
+        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
       },
       select: { id: true, priority: true }

@@ -83,6 +83,8 @@ enum FeedbackPriority {
 }
 
 enum FeedbackActivityType {
+  FEEDBACK_EDITED
+  FEEDBACK_DELETED
   STATUS_CHANGED
   NOTE_ADDED
   ASSIGNMENT_CHANGED
@@ -449,6 +451,7 @@ model BusinessMembership {
   updatedAutomationRules        AutomationRule[]         @relation("AutomationRuleUpdatedByMembership")
   automationActionTargets       AutomationAction[]
   feedbackFieldStatesUpdated    FeedbackFieldState[]
+  deletedFeedbacks              Feedback[]               @relation("FeedbackDeletedByMembership")
   createdIntegrationConnections IntegrationConnection[]  @relation("IntegrationConnectionCreatedByMembership")
   updatedIntegrationConnections IntegrationConnection[]  @relation("IntegrationConnectionUpdatedByMembership")
   integrationOAuthStates        IntegrationOAuthState[]
@@ -591,6 +594,8 @@ model Feedback {
   occurredAt             DateTime?        @map("occurred_at")
   receivedAt             DateTime         @default(now()) @map("received_at")
   sourceMetadata         Json?            @map("source_metadata")
+  deletedAt              DateTime?        @map("deleted_at")
+  deletedByMembershipId  String?          @map("deleted_by_membership_id")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")
 
@@ -608,6 +613,7 @@ model Feedback {
   automationExecutions AutomationExecution[]
   fieldStates          FeedbackFieldState[]
   synchronizationItems SynchronizationItem[]
+  deletedBy            BusinessMembership?   @relation("FeedbackDeletedByMembership", fields: [deletedByMembershipId], references: [id], onDelete: SetNull)
 
   @@unique([businessId, channel, externalId])
   @@index([businessId, receivedAt])
@@ -618,6 +624,8 @@ model Feedback {
   @@index([assignedToMembershipId])
   @@index([categoryId])
   @@index([customerId, receivedAt])
+  @@index([businessId, deletedAt, receivedAt])
+  @@index([deletedByMembershipId])
   @@map("feedback")
 }
 
