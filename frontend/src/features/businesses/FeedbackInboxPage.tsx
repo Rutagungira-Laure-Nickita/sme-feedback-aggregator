@@ -13,10 +13,14 @@ import {
   Inbox,
   MessageSquare,
   MessageSquarePlus,
+  MoreHorizontal,
+  Pencil,
   RefreshCw,
   Search,
   SlidersHorizontal,
   Star,
+  Tags,
+  Trash2,
   UserCheck,
   UserX,
   X
@@ -31,6 +35,14 @@ import { CollectionViewToggle } from "../../components/collection-view/Collectio
 import type { CollectionView } from "../../components/collection-view/collection-view.js";
 import { useCollectionView } from "../../components/collection-view/useCollectionView.js";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "../../components/ui/dialog.js";
 import {
   AppSelectField,
   type AppSelectOption
@@ -66,7 +78,13 @@ import {
   updateFeedbackPriority,
   retryFeedbackAIAnalysis,
   applyAICategorySuggestion,
-  dismissAICategorySuggestion
+  dismissAICategorySuggestion,
+  editFeedback,
+  deleteFeedback,
+  bulkUpdateFeedbackStatus,
+  bulkCategorizeFeedback,
+  bulkDeleteFeedback,
+  type FeedbackSelection
 } from "./feedbackInboxApi.js";
 import {
   createCustomerFromFeedback,
@@ -90,7 +108,10 @@ type BusinessContext = {
   permissions: {
     canManageBusiness: boolean;
   };
+  membership: { role: string; allBranchesAccess: boolean };
 };
+
+type FeedbackManagementAction = "view" | "edit" | "status" | "category" | "delete";
 
 const PAGE_SIZES = [10, 20, 50];
 
@@ -640,6 +661,7 @@ type FiltersProps = {
   categories: CategoryInfo[];
   assignees: AssigneeFilterOption[];
   onClear: () => void;
+  branchScopeLimited?: boolean;
 };
 
 function Filters({
@@ -687,7 +709,8 @@ function Filters({
   branches,
   categories,
   assignees,
-  onClear
+  onClear,
+  branchScopeLimited = false
 }: FiltersProps): JSX.Element {
   const [searchDraft, setSearchDraft] = useState(search);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -709,7 +732,7 @@ function Filters({
   }, []);
 
   const branchOptions = [
-    { value: "", label: "All branches" },
+    { value: "", label: branchScopeLimited ? "All assigned branches" : "All branches" },
     ...branches.map((branch) => ({ value: branch.id, label: branch.name }))
   ];
   const categoryOptions = [
@@ -917,14 +940,25 @@ function Filters({
               />
             </div>
           </div>
-          <FilterSelect
-            label="Branch"
-            value={branchId}
-            onValueChange={onBranchId}
-            options={branchOptions}
-            ariaLabel="Filter by branch"
-            className="min-w-[min(100%,11rem)] flex-[1_1_11rem]"
-          />
+          {branchScopeLimited && branches.length === 1 ? (
+            <div className="min-w-[min(100%,11rem)] flex-[1_1_11rem]">
+              <p className="mb-1.5 text-xs font-bold text-app-text-muted">
+                Assigned branch
+              </p>
+              <div className="flex h-10 items-center rounded-md border border-app-border bg-app-surface-muted px-3 text-sm font-black text-app-text">
+                {branches[0]?.name}
+              </div>
+            </div>
+          ) : (
+            <FilterSelect
+              label="Branch"
+              value={branchId}
+              onValueChange={onBranchId}
+              options={branchOptions}
+              ariaLabel="Filter by branch"
+              className="min-w-[min(100%,11rem)] flex-[1_1_11rem]"
+            />
+          )}
           <FilterSelect
             label="Status"
             value={status}
@@ -1082,16 +1116,29 @@ function ActiveFilterChips({
 
 function DesktopTable({
   items,
-  onSelect
+  onSelect,
+  canManage,
+  selectedIds,
+  onToggleSelected,
+  onAction
 }: {
   items: FeedbackListItem[];
   onSelect: (id: string) => void;
+  canManage: boolean;
+  selectedIds: Set<string>;
+  onToggleSelected: (id: string) => void;
+  onAction: (action: FeedbackManagementAction, item: FeedbackListItem) => void;
 }): JSX.Element {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-app-border text-xs font-bold uppercase tracking-wider text-app-text-muted">
+            {canManage ? (
+              <th scope="col" className="w-10 py-3 pr-3">
+                <span className="sr-only">Select</span>
+              </th>
+            ) : null}
             <th scope="col" className="py-3 pr-4">
               Customer
             </th>
@@ -1126,6 +1173,17 @@ function DesktopTable({
                 }
               }}
             >
+              {canManage ? (
+                <td className="py-3 pr-3" onClick={(event) => event.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => onToggleSelected(item.id)}
+                    className="h-4 w-4 rounded border-app-border text-app-primary focus:ring-app-focus"
+                    aria-label={`Select feedback from ${item.customer.name ?? "anonymous"}`}
+                  />
+                </td>
+              ) : null}
               <td className="py-3 pr-4">
                 <div className="flex items-center gap-2">
                   <CustomerAvatar name={item.customer.name} />
@@ -1163,17 +1221,13 @@ function DesktopTable({
                 </span>
               </td>
               <td className="py-3 text-right">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(item.id);
-                  }}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-app-primary transition hover:bg-app-primary-soft focus:outline-none focus:ring-2 focus:ring-app-focus/30"
-                  aria-label={`View feedback from ${item.customer.name ?? "anonymous"}`}
-                >
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                </button>
+                <div onClick={(event) => event.stopPropagation()}>
+                  <FeedbackActionsMenu
+                    item={item}
+                    canManage={canManage}
+                    onAction={onAction}
+                  />
+                </div>
               </td>
             </tr>
           ))}
@@ -1188,11 +1242,19 @@ function DesktopTable({
 function MobileCards({
   items,
   onSelect,
-  view = "list"
+  view = "list",
+  canManage,
+  selectedIds,
+  onToggleSelected,
+  onAction
 }: {
   items: FeedbackListItem[];
   onSelect: (id: string) => void;
   view?: CollectionView;
+  canManage: boolean;
+  selectedIds: Set<string>;
+  onToggleSelected: (id: string) => void;
+  onAction: (action: FeedbackManagementAction, item: FeedbackListItem) => void;
 }): JSX.Element {
   return (
     <div
@@ -1203,11 +1265,14 @@ function MobileCards({
       }
     >
       {items.map((item) => (
-        <button
+        <article
           key={item.id}
-          type="button"
           onClick={() => onSelect(item.id)}
-          className="group w-full rounded-2xl border border-app-border/80 bg-app-surface p-5 text-left shadow-[0_10px_28px_rgba(15,23,42,0.045)] transition hover:-translate-y-0.5 hover:border-app-primary/50 hover:shadow-panel dark:bg-app-surface-muted/40"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onSelect(item.id);
+          }}
+          tabIndex={0}
+          className="group w-full cursor-pointer rounded-2xl border border-app-border/80 bg-app-surface p-5 text-left shadow-[0_10px_28px_rgba(15,23,42,0.045)] transition hover:-translate-y-0.5 hover:border-app-primary/50 hover:shadow-panel dark:bg-app-surface-muted/40"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
@@ -1230,6 +1295,25 @@ function MobileCards({
                 </div>
               </div>
             </div>
+            <div
+              className="flex shrink-0 items-center gap-1"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {canManage ? (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(item.id)}
+                  onChange={() => onToggleSelected(item.id)}
+                  className="h-4 w-4 rounded border-app-border text-app-primary"
+                  aria-label={`Select feedback from ${item.customer.name ?? "anonymous"}`}
+                />
+              ) : null}
+              <FeedbackActionsMenu
+                item={item}
+                canManage={canManage}
+                onAction={onAction}
+              />
+            </div>
           </div>
           <div className="mt-2">
             {item.title ? (
@@ -1248,9 +1332,79 @@ function MobileCards({
               View <Eye className="h-3.5 w-3.5" aria-hidden="true" />
             </span>
           </div>
-        </button>
+        </article>
       ))}
     </div>
+  );
+}
+
+function FeedbackActionsMenu({
+  item,
+  canManage,
+  onAction
+}: {
+  item: FeedbackListItem;
+  canManage: boolean;
+  onAction: (action: FeedbackManagementAction, item: FeedbackListItem) => void;
+}) {
+  const actions: Array<{
+    action: FeedbackManagementAction;
+    label: string;
+    icon: JSX.Element;
+    destructive?: boolean;
+  }> = [
+    { action: "view", label: "View", icon: <Eye className="h-4 w-4" /> },
+    ...(canManage
+      ? [
+          {
+            action: "edit" as const,
+            label: "Edit",
+            icon: <Pencil className="h-4 w-4" />
+          },
+          {
+            action: "status" as const,
+            label: "Change status",
+            icon: <ArrowRight className="h-4 w-4" />
+          },
+          {
+            action: "category" as const,
+            label: "Categorize",
+            icon: <Tags className="h-4 w-4" />
+          },
+          {
+            action: "delete" as const,
+            label: "Delete",
+            icon: <Trash2 className="h-4 w-4" />,
+            destructive: true
+          }
+        ]
+      : [])
+  ];
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-app-primary transition hover:bg-app-primary-soft focus:outline-none focus:ring-2 focus:ring-app-focus/30"
+          aria-label={`Actions for feedback from ${item.customer.name ?? "anonymous"}`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-48 max-w-[calc(100vw-1rem)] p-1">
+        {actions.map(({ action, label, icon, destructive }) => (
+          <button
+            key={action}
+            type="button"
+            onClick={() => onAction(action, item)}
+            className={`flex min-h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-bold transition hover:bg-app-surface-muted ${destructive ? "text-red-600 dark:text-red-300" : "text-app-text"}`}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -2935,6 +3089,12 @@ export function FeedbackInboxPage({
 }): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [allMatchingSelected, setAllMatchingSelected] = useState(false);
+  const [managementDialog, setManagementDialog] = useState<{
+    kind: "edit" | "status" | "category" | "delete" | "deleteAll";
+    item?: FeedbackListItem;
+  } | null>(null);
 
   // Read filter state from URL
   const page = parseInt(searchParams.get("page") ?? "1", 10);
@@ -3143,6 +3303,9 @@ export function FeedbackInboxPage({
   };
 
   const items = data?.items ?? [];
+  const canManage =
+    businessContext.membership.role === "OWNER" ||
+    businessContext.membership.role === "ADMIN";
   const collectionView = useCollectionView(
     `business-${businessContext.businessId}-feedback`,
     items.length
@@ -3170,6 +3333,55 @@ export function FeedbackInboxPage({
     publicForm: 0,
     qrCode: 0,
     external: 0
+  };
+  const {
+    page: _selectionPage,
+    pageSize: _selectionPageSize,
+    sort: _selectionSort,
+    ...selectionFilters
+  } = query;
+  const selection: FeedbackSelection = allMatchingSelected
+    ? { allMatching: true, filters: selectionFilters }
+    : { feedbackIds: [...selectedIds] };
+  const selectedCount = allMatchingSelected ? pagination.totalItems : selectedIds.size;
+  const toggleSelected = (id: string) => {
+    setAllMatchingSelected(false);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setAllMatchingSelected(false);
+  };
+  const handleManagementAction = (
+    action: FeedbackManagementAction,
+    item: FeedbackListItem
+  ) => {
+    if (action === "view") return handleSelectFeedback(item.id);
+    setManagementDialog({ kind: action, item });
+  };
+  const handleManagementComplete = async () => {
+    clearSelection();
+    setManagementDialog(null);
+    handleCloseDetail();
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["businesses", businessContext.businessId, "feedback-inbox"]
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["businesses", businessContext.businessId, "owner-dashboard"]
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["businesses", businessContext.businessId, "feedback-dashboard"]
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["businesses", businessContext.businessId, "customers"]
+      })
+    ]);
   };
 
   const hasFilters = Boolean(
@@ -3473,6 +3685,9 @@ export function FeedbackInboxPage({
             customerLinkState={customerLinkState}
             onCustomerLinkState={(v) => handleFilterChange("customerLinkState", v)}
             onClear={handleClearFilters}
+            branchScopeLimited={
+              !canManage && !businessContext.membership.allBranchesAccess
+            }
           />
           <ActiveFilterChips
             chips={activeChips}
@@ -3482,15 +3697,95 @@ export function FeedbackInboxPage({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-bold text-app-text-muted">
-            {pagination.totalItems} feedback records
-          </p>
-          <CollectionViewToggle
-            view={collectionView.view}
-            onChange={collectionView.setView}
-            label="Feedback view"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold text-app-text-muted">
+              {pagination.totalItems} feedback records
+            </p>
+            {canManage && pagination.totalItems > 0 ? (
+              <button
+                type="button"
+                onClick={() => setManagementDialog({ kind: "deleteAll" })}
+                className="inline-flex min-h-9 items-center gap-1 rounded-md border border-red-200 px-2.5 text-xs font-black text-red-600 transition hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/30"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove all
+              </button>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canManage && items.length ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAllMatchingSelected(false);
+                    setSelectedIds(new Set(items.map((item) => item.id)));
+                  }}
+                  className="min-h-9 rounded-md border border-app-border px-3 text-xs font-black hover:bg-app-surface-muted"
+                >
+                  Select visible
+                </button>
+                {pagination.totalItems > items.length ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAllMatchingSelected(true);
+                      setSelectedIds(new Set());
+                    }}
+                    className="min-h-9 rounded-md border border-app-border px-3 text-xs font-black hover:bg-app-surface-muted"
+                  >
+                    Select all {pagination.totalItems} feedback
+                  </button>
+                ) : null}
+              </>
+            ) : null}
+            <CollectionViewToggle
+              view={collectionView.view}
+              onChange={collectionView.setView}
+              label="Feedback view"
+            />
+          </div>
         </div>
+
+        {canManage && selectedCount > 0 ? (
+          <div className="sticky top-2 z-20 mt-4 flex flex-col gap-3 rounded-xl border border-app-primary/30 bg-app-surface/95 p-3 shadow-panel backdrop-blur sm:flex-row sm:flex-wrap sm:items-center">
+            <p className="text-sm font-black text-app-text">
+              {allMatchingSelected
+                ? `All ${selectedCount} matching feedback selected`
+                : `${selectedCount} feedback selected`}
+            </p>
+            <div className="flex flex-wrap gap-2 sm:ml-auto">
+              <button
+                type="button"
+                onClick={() => setManagementDialog({ kind: "status" })}
+                className="min-h-10 rounded-lg bg-app-primary px-3 text-xs font-black text-app-primary-foreground"
+              >
+                Change status
+              </button>
+              <button
+                type="button"
+                onClick={() => setManagementDialog({ kind: "category" })}
+                className="min-h-10 rounded-lg border border-app-border px-3 text-xs font-black"
+              >
+                Categorize
+              </button>
+              <button
+                type="button"
+                onClick={() => setManagementDialog({ kind: "delete" })}
+                className="min-h-10 rounded-lg border border-red-200 px-3 text-xs font-black text-red-600 dark:border-red-900/60 dark:text-red-300"
+              >
+                Delete selected
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="min-h-10 rounded-lg px-3 text-xs font-black text-app-text-muted"
+              >
+                Clear selection
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {/* Loading state */}
         {isLoading ? (
@@ -3556,7 +3851,14 @@ export function FeedbackInboxPage({
               <div
                 className={collectionView.view === "list" ? "hidden lg:block" : "hidden"}
               >
-                <DesktopTable items={items} onSelect={handleSelectFeedback} />
+                <DesktopTable
+                  items={items}
+                  onSelect={handleSelectFeedback}
+                  canManage={canManage}
+                  selectedIds={selectedIds}
+                  onToggleSelected={toggleSelected}
+                  onAction={handleManagementAction}
+                />
               </div>
 
               {/* Responsive list fallback and grid cards */}
@@ -3565,6 +3867,10 @@ export function FeedbackInboxPage({
                   items={items}
                   onSelect={handleSelectFeedback}
                   view={collectionView.view}
+                  canManage={canManage}
+                  selectedIds={selectedIds}
+                  onToggleSelected={toggleSelected}
+                  onAction={handleManagementAction}
                 />
               </div>
 
@@ -3588,6 +3894,369 @@ export function FeedbackInboxPage({
         feedbackId={feedbackId}
         onClose={handleCloseDetail}
       />
+      <FeedbackManagementDialog
+        state={managementDialog}
+        businessId={businessContext.businessId}
+        businessName={businessContext.activeBusiness.name}
+        branches={branches}
+        categories={categories}
+        selection={
+          managementDialog?.kind === "deleteAll"
+            ? { allMatching: true, filters: {} }
+            : managementDialog?.item
+              ? { feedbackIds: [managementDialog.item.id] }
+              : selection
+        }
+        affectedCount={
+          managementDialog?.kind === "deleteAll"
+            ? summary.total
+            : managementDialog?.item
+              ? 1
+              : selectedCount
+        }
+        onClose={() => setManagementDialog(null)}
+        onComplete={handleManagementComplete}
+      />
     </>
+  );
+}
+
+function FeedbackManagementDialog({
+  state,
+  businessId,
+  businessName,
+  branches,
+  categories,
+  selection,
+  affectedCount,
+  onClose,
+  onComplete
+}: {
+  state: {
+    kind: "edit" | "status" | "category" | "delete" | "deleteAll";
+    item?: FeedbackListItem;
+  } | null;
+  businessId: string;
+  businessName: string;
+  branches: BranchSummary[];
+  categories: CategoryInfo[];
+  selection: FeedbackSelection;
+  affectedCount: number;
+  onClose: () => void;
+  onComplete: () => Promise<void>;
+}) {
+  const detail = useQuery({
+    queryKey: ["businesses", businessId, "feedback", state?.item?.id],
+    queryFn: () => fetchFeedbackDetail(businessId, state!.item!.id),
+    enabled: state?.kind === "edit" && Boolean(state.item)
+  });
+  const [form, setForm] = useState({
+    title: "",
+    message: "",
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    branchId: "",
+    categoryId: "",
+    status: "NEW",
+    priority: "NORMAL"
+  });
+  const [choice, setChoice] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  useEffect(() => {
+    if (!detail.data) return;
+    setForm({
+      title: detail.data.title ?? "",
+      message: detail.data.message,
+      customerName: detail.data.customer.name ?? "",
+      customerEmail: detail.data.customer.email ?? "",
+      customerPhone: detail.data.customer.phone ?? "",
+      branchId: detail.data.branch.id,
+      categoryId: detail.data.category?.id ?? "",
+      status: detail.data.status,
+      priority: detail.data.priority
+    });
+  }, [detail.data]);
+  useEffect(() => {
+    setChoice("");
+    setConfirmation("");
+  }, [state?.kind, state?.item?.id]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!state) return;
+      if (state.kind === "edit" && state.item && detail.data) {
+        return editFeedback(businessId, state.item.id, {
+          title: form.title.trim() || null,
+          message: form.message,
+          customerName: form.customerName.trim() || null,
+          customerEmail: form.customerEmail.trim() || null,
+          customerPhone: form.customerPhone.trim() || null,
+          branchId: form.branchId,
+          categoryId: form.categoryId || null,
+          status: form.status as FeedbackStatus,
+          priority: form.priority as FeedbackPriority,
+          expectedUpdatedAt: detail.data.updatedAt
+        });
+      }
+      if (state.kind === "status")
+        return bulkUpdateFeedbackStatus(businessId, selection, choice as FeedbackStatus);
+      if (state.kind === "category")
+        return bulkCategorizeFeedback(
+          businessId,
+          selection,
+          choice === "__uncategorized__" ? null : choice
+        );
+      if (state.kind === "delete" && state.item)
+        return deleteFeedback(businessId, state.item.id);
+      return bulkDeleteFeedback(
+        businessId,
+        selection,
+        selection.allMatching ? "DELETE" : undefined
+      );
+    },
+    onSuccess: onComplete
+  });
+
+  const title =
+    state?.kind === "edit"
+      ? "Edit feedback"
+      : state?.kind === "status"
+        ? "Change feedback status"
+        : state?.kind === "category"
+          ? "Categorize feedback"
+          : state?.kind === "deleteAll"
+            ? `Remove all feedback from ${businessName}?`
+            : affectedCount === 1
+              ? "Delete this feedback?"
+              : "Delete selected feedback?";
+  const destructive = state?.kind === "delete" || state?.kind === "deleteAll";
+  const requiresTyping = destructive && Boolean(selection.allMatching);
+  const submitDisabled =
+    mutation.isPending ||
+    (state?.kind === "edit" && (!detail.data || !form.message.trim())) ||
+    ((state?.kind === "status" || state?.kind === "category") && choice === "") ||
+    (requiresTyping && confirmation !== "DELETE");
+
+  return (
+    <Dialog
+      open={Boolean(state)}
+      onOpenChange={(open) => !open && !mutation.isPending && onClose()}
+    >
+      <DialogContent className="max-h-[calc(100dvh-.5rem)] w-[calc(100vw-.5rem)] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {destructive
+              ? `${affectedCount} feedback record${affectedCount === 1 ? "" : "s"} will be removed from normal business, dashboard, report, and customer views. Customer, branch, integration, and ingestion records remain intact.`
+              : state?.kind === "edit"
+                ? "Editable application fields only. Channel, provider, external IDs, original timestamps, source metadata, connection IDs, and deduplication identifiers remain unchanged."
+                : `This action is limited to ${affectedCount} selected feedback record${affectedCount === 1 ? "" : "s"} in ${businessName}.`}
+          </DialogDescription>
+        </DialogHeader>
+        {state?.kind === "edit" ? (
+          detail.isLoading ? (
+            <p className="text-sm font-semibold text-app-text-muted">Loading feedback…</p>
+          ) : (
+            <form
+              className="grid gap-4 sm:grid-cols-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                mutation.mutate();
+              }}
+            >
+              <Field label="Title / subject">
+                <input
+                  value={form.title}
+                  maxLength={250}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                  className="app-input"
+                />
+              </Field>
+              <Field label="Branch">
+                <AppSelectField
+                  value={form.branchId}
+                  onValueChange={(value) => setForm({ ...form, branchId: value })}
+                  options={branches.map((branch) => ({
+                    value: branch.id,
+                    label: branch.name
+                  }))}
+                  ariaLabel="Feedback branch"
+                />
+              </Field>
+              <Field label="Customer name">
+                <input
+                  value={form.customerName}
+                  maxLength={160}
+                  onChange={(event) =>
+                    setForm({ ...form, customerName: event.target.value })
+                  }
+                  className="app-input"
+                />
+              </Field>
+              <Field label="Customer email">
+                <input
+                  type="email"
+                  value={form.customerEmail}
+                  maxLength={255}
+                  onChange={(event) =>
+                    setForm({ ...form, customerEmail: event.target.value })
+                  }
+                  className="app-input"
+                />
+              </Field>
+              <Field label="Customer phone">
+                <input
+                  value={form.customerPhone}
+                  maxLength={40}
+                  onChange={(event) =>
+                    setForm({ ...form, customerPhone: event.target.value })
+                  }
+                  className="app-input"
+                />
+              </Field>
+              <Field label="Category">
+                <AppSelectField
+                  value={form.categoryId}
+                  onValueChange={(value) => setForm({ ...form, categoryId: value })}
+                  options={[
+                    { value: "", label: "Uncategorized" },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.name
+                    }))
+                  ]}
+                  ariaLabel="Feedback category"
+                />
+              </Field>
+              <Field label="Status">
+                <AppSelectField
+                  value={form.status}
+                  onValueChange={(value) => setForm({ ...form, status: value })}
+                  options={STATUS_OPTIONS.filter((item) => item.value)}
+                  ariaLabel="Feedback status"
+                />
+              </Field>
+              <Field label="Priority">
+                <AppSelectField
+                  value={form.priority}
+                  onValueChange={(value) => setForm({ ...form, priority: value })}
+                  options={PRIORITY_OPTIONS.filter((item) => item.value)}
+                  ariaLabel="Feedback priority"
+                />
+              </Field>
+              <Field label="Feedback message" wide>
+                <textarea
+                  value={form.message}
+                  maxLength={20000}
+                  rows={7}
+                  required
+                  onChange={(event) => setForm({ ...form, message: event.target.value })}
+                  className="app-input min-h-36 resize-y py-3"
+                />
+              </Field>
+              <DialogFooter className="sm:col-span-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="min-h-11 rounded-lg border border-app-border px-4 text-sm font-black"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitDisabled}
+                  className="min-h-11 rounded-lg bg-app-primary px-4 text-sm font-black text-app-primary-foreground disabled:opacity-50"
+                >
+                  {mutation.isPending ? "Saving…" : "Save changes"}
+                </button>
+              </DialogFooter>
+            </form>
+          )
+        ) : null}
+        {state?.kind === "status" ? (
+          <AppSelectField
+            value={choice}
+            onValueChange={setChoice}
+            options={STATUS_OPTIONS.filter((item) => item.value)}
+            ariaLabel="New status"
+            placeholder="Choose status"
+          />
+        ) : null}
+        {state?.kind === "category" ? (
+          <AppSelectField
+            value={choice}
+            onValueChange={setChoice}
+            options={[
+              { value: "__uncategorized__", label: "Uncategorized" },
+              ...categories.map((category) => ({
+                value: category.id,
+                label: category.name
+              }))
+            ]}
+            ariaLabel="New category"
+            placeholder="Choose category"
+          />
+        ) : null}
+        {destructive && requiresTyping ? (
+          <Field label="Type DELETE to confirm">
+            <input
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              autoComplete="off"
+              className="app-input"
+            />
+          </Field>
+        ) : null}
+        {mutation.error ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+            {normalizeApiError(mutation.error).message}
+          </p>
+        ) : null}
+        {state?.kind !== "edit" ? (
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={mutation.isPending}
+              className="min-h-11 rounded-lg border border-app-border px-4 text-sm font-black"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => mutation.mutate()}
+              disabled={submitDisabled}
+              className={`min-h-11 rounded-lg px-4 text-sm font-black text-white disabled:opacity-50 ${destructive ? "bg-red-600 hover:bg-red-700" : "bg-app-primary"}`}
+            >
+              {mutation.isPending
+                ? "Working…"
+                : destructive
+                  ? `Delete ${affectedCount} feedback`
+                  : "Apply"}
+            </button>
+          </DialogFooter>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({
+  label,
+  children,
+  wide = false
+}: {
+  label: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <label
+      className={`min-w-0 text-xs font-black uppercase tracking-wide text-app-text-muted ${wide ? "sm:col-span-2" : ""}`}
+    >
+      {label}
+      <div className="mt-2">{children}</div>
+    </label>
   );
 }

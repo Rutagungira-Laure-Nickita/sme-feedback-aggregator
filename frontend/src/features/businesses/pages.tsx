@@ -103,6 +103,7 @@ import {
   createCategory,
   fetchBusinessAIStatus,
   fetchCategories,
+  fetchFeedbackDashboard,
   requestBusinessAIBackfill,
   updateCategory,
   updateCategoryActivation,
@@ -503,38 +504,72 @@ function BusinessOverviewContent({
     enabled: user?.role === "BUSINESS_OWNER" && business.status === "ACTIVE",
     staleTime: 60_000
   });
+  const staffDashboardQuery = useQuery({
+    queryKey: ["businesses", business.id, "feedback-dashboard"],
+    queryFn: () => fetchFeedbackDashboard(business.id),
+    enabled: user?.role === "STAFF" && business.status === "ACTIVE",
+    staleTime: 60_000
+  });
   const report = dashboardQuery.data;
+  const staffDashboard = staffDashboardQuery.data;
   const highlights = new Map(report?.highlights.map((item) => [item.label, item.value]));
   const feedbackTrend = reportSectionRows(report, "Feedback trend").map((row) => ({
     period: String(row[0] ?? ""),
     feedback: Number(row[1] ?? 0)
   }));
-  const sentiment = reportSectionRows(report, "Sentiment analysis").map((row) => ({
-    name: String(row[0] ?? "Not analyzed"),
-    value: Number(row[1] ?? 0)
-  }));
-  const channels = reportSectionRows(report, "Channel distribution").map((row) => ({
-    name: formatRole(String(row[0] ?? "Other")),
-    value: Number(row[1] ?? 0)
-  }));
-  const importantFeedback = reportSectionRows(
-    report,
-    "Important customer experience feedback"
-  ).slice(0, 4);
-  const periodFeedback = dashboardHighlight(highlights, "Feedback in selected period");
-  const openFeedback = dashboardHighlight(highlights, "Open feedback (period)");
-  const unresolvedPriority = dashboardHighlight(
-    highlights,
-    "Unresolved high or urgent (period)"
-  );
-  const averageRating = dashboardHighlight(highlights, "Average rating (period)");
+  const sentiment = staffDashboard
+    ? staffDashboard.sentiments.map((item) => ({
+        name: formatRole(item.sentiment ?? "Not analyzed"),
+        value: item.count
+      }))
+    : reportSectionRows(report, "Sentiment analysis").map((row) => ({
+        name: String(row[0] ?? "Not analyzed"),
+        value: Number(row[1] ?? 0)
+      }));
+  const channels = staffDashboard
+    ? staffDashboard.channels.map((item) => ({
+        name: formatRole(item.channel),
+        value: item.count
+      }))
+    : reportSectionRows(report, "Channel distribution").map((row) => ({
+        name: formatRole(String(row[0] ?? "Other")),
+        value: Number(row[1] ?? 0)
+      }));
+  const importantFeedback = staffDashboard
+    ? staffDashboard.recent
+        .filter((item) => item.priority === "HIGH" || item.priority === "URGENT")
+        .map((item) => [
+          item.receivedAt,
+          business.name,
+          item.branch.name,
+          item.priority,
+          item.status,
+          "Not exposed",
+          "",
+          "",
+          item.messagePreview
+        ])
+        .slice(0, 4)
+    : reportSectionRows(report, "Important customer experience feedback").slice(0, 4);
+  const periodFeedback =
+    staffDashboard?.total ??
+    dashboardHighlight(highlights, "Feedback in selected period");
+  const openFeedback = staffDashboard
+    ? (staffDashboard.statuses.NEW ?? 0) + (staffDashboard.statuses.IN_REVIEW ?? 0)
+    : dashboardHighlight(highlights, "Open feedback (period)");
+  const unresolvedPriority =
+    staffDashboard?.attentionCount ??
+    dashboardHighlight(highlights, "Unresolved high or urgent (period)");
+  const averageRating =
+    staffDashboard?.averageRating?.toFixed(1) ??
+    dashboardHighlight(highlights, "Average rating (period)");
   const healthyIntegrations = dashboardHighlight(highlights, "Healthy connections");
   const firstName = user?.firstName?.trim() || "there";
 
   return (
     <WorkspaceShell
       title={`Welcome back, ${firstName}`}
-      subtitle={`${business.name} · Customer experience overview for the last 30 days.`}
+      subtitle={`${business.name} · ${staffDashboard?.scope.label ?? "Customer experience overview"} for the last 30 days.`}
       businesses={businesses}
       activeBusiness={activeBusiness}
       actions={
@@ -571,13 +606,15 @@ function BusinessOverviewContent({
               <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
               Add feedback
             </Link>
-            <Link
-              to={`/business/${business.id}/reports`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
-            >
-              <FileText className="h-4 w-4" aria-hidden="true" />
-              Open report
-            </Link>
+            {user?.role === "BUSINESS_OWNER" ? (
+              <Link
+                to={`/business/${business.id}/reports`}
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-black text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+              >
+                <FileText className="h-4 w-4" aria-hidden="true" />
+                Open report
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
@@ -585,36 +622,54 @@ function BusinessOverviewContent({
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Feedback · 30 days"
-          value={dashboardQuery.isLoading ? "—" : periodFeedback}
+          value={
+            dashboardQuery.isLoading || staffDashboardQuery.isLoading
+              ? "—"
+              : periodFeedback
+          }
           detail="Customer voice received in this period"
           icon={<TrendingUp className="h-4 w-4" aria-hidden="true" />}
         />
         <StatCard
           label="Open feedback"
-          value={dashboardQuery.isLoading ? "—" : openFeedback}
+          value={
+            dashboardQuery.isLoading || staffDashboardQuery.isLoading ? "—" : openFeedback
+          }
           detail="New or currently in review"
           icon={<Inbox className="h-4 w-4" aria-hidden="true" />}
           tone="sky"
         />
         <StatCard
           label="Needs attention"
-          value={dashboardQuery.isLoading ? "—" : unresolvedPriority}
+          value={
+            dashboardQuery.isLoading || staffDashboardQuery.isLoading
+              ? "—"
+              : unresolvedPriority
+          }
           detail="High or urgent unresolved feedback"
           icon={<Activity className="h-4 w-4" aria-hidden="true" />}
           tone="amber"
         />
         <StatCard
           label="Average rating"
-          value={dashboardQuery.isLoading ? "—" : averageRating}
+          value={
+            dashboardQuery.isLoading || staffDashboardQuery.isLoading
+              ? "—"
+              : averageRating
+          }
           detail="Across rated feedback in this period"
           icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
           tone="emerald"
         />
       </div>
 
-      {dashboardQuery.error ? (
+      {dashboardQuery.error || staffDashboardQuery.error ? (
         <div className="mt-5">
-          <InlineError message={normalizeApiError(dashboardQuery.error).message} />
+          <InlineError
+            message={
+              normalizeApiError(dashboardQuery.error ?? staffDashboardQuery.error).message
+            }
+          />
         </div>
       ) : null}
 
@@ -806,20 +861,24 @@ function BusinessOverviewContent({
               description="Keep customer experience work moving."
             />
             <div className="mt-5 grid gap-2">
-              <WorkspaceButton
-                to={`/business/${business.id}/feedback/qr-codes`}
-                tone="secondary"
-              >
-                <QrCode className="h-4 w-4" />
-                Manage QR codes
-              </WorkspaceButton>
-              <WorkspaceButton
-                to={`/business/${business.id}/automations`}
-                tone="secondary"
-              >
-                <Sparkles className="h-4 w-4" />
-                Review automations
-              </WorkspaceButton>
+              {permissions.canManageBranches ? (
+                <>
+                  <WorkspaceButton
+                    to={`/business/${business.id}/feedback/qr-codes`}
+                    tone="secondary"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Manage QR codes
+                  </WorkspaceButton>
+                  <WorkspaceButton
+                    to={`/business/${business.id}/automations`}
+                    tone="secondary"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Review automations
+                  </WorkspaceButton>
+                </>
+              ) : null}
               {permissions.canManageStaff ? (
                 <WorkspaceButton
                   to={`/business/${business.id}/staff/invite`}

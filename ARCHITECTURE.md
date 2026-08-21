@@ -1,5 +1,15 @@
 # Architecture
 
+## Final Product Hardening Architecture
+
+Feedback management is layered onto the existing authenticated Business feedback router. `feedback-management.schemas.ts`, controller, and service define the Owner/Admin-only editable contract, transactional bulk operations, optimistic edit concurrency, status-transition reuse, human field-state ownership, and soft deletion. Selection can be explicit IDs or the existing validated inbox filter contract; every mutation still resolves the authenticated membership and fixes `businessId` server-side. Normal reads centralize `deletedAt: null`; physical Feedback, FeedbackIngestion, provider delivery/deduplication, activities, AI analysis, automation, and customer history remain intact.
+
+`feedback-inbox.service.ts` is also the shared Branch-scope boundary for inbox lists/details, validated filters, summaries, and the real 30-day Staff dashboard. Owner/Admin/all-Branch memberships use all active Business Branches; restricted Manager/Staff memberships use only active assigned Branch IDs. The Business Overview switches between the existing owner report-backed model and this scoped dashboard without weakening backend authorization.
+
+The customer workspace is a separate `/api/customer` and `/customer/*` vertical slice. Its backend derives ownership exclusively from the authenticated `CUSTOMER` user's email and linked Business Customer identities, selects a deliberately small safe projection, and never accepts a tenant/customer identity from the caller. Its frontend uses `CustomerShell`, the shared persisted collection-view hook, responsive dialogs, and existing public feedback routes rather than duplicating submission processing.
+
+Existing integration adapters and synchronization/webhook pipelines are unchanged. The integrations UI maps provider capabilities to honest actions: Gmail retains synchronization, while webhook-driven WhatsApp refreshes persisted activity rather than calling a nonexistent sync operation. Desktop shell containers use a bounded viewport column with an independently scrolling navigation region; page content retains its own scroll context.
+
 ## Phase 29A Prisma ESM Runtime Boundary
 
 The backend remains native ESM with TypeScript `NodeNext`. Prisma 6.19.3's `prisma-client-js` generator exposes a CommonJS runtime package even though its declarations describe named exports. Node's synthetic named-export inference is not a portable contract for generated enum names.

@@ -16,7 +16,8 @@
     "test:phase25.4": "tsx --test tests/phase-25-4-preview.test.ts && node tests/phase-25-4.static.test.mjs",
     "test:phase26": "tsx --test tests/phase-26-owner-reports.test.ts && node tests/phase-26-owner-reports.static.test.mjs",
     "test:phase27": "tsx tests/phase-27-owner-integrations.test.ts && node tests/phase-27-ui-overhaul.static.test.mjs",
-    "test:phase28": "node tests/phase-28-category-navigation.static.test.mjs"
+    "test:phase28": "node tests/phase-28-category-navigation.static.test.mjs",
+    "test:hardening": "node --test tests/final-hardening.static.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

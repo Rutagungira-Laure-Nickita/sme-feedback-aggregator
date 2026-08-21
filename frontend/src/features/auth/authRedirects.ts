@@ -10,6 +10,7 @@ export function getDefaultAuthenticatedRoute(
     case "STAFF":
       return "/business";
     case "CUSTOMER":
+      return "/customer";
     default:
       return "/account";
   }

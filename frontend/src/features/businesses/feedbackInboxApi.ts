@@ -146,6 +146,7 @@ export type FeedbackDetail = {
   occurredAt: string | null;
   receivedAt: string;
   createdAt: string;
+  updatedAt: string;
   source: {
     label: string;
     detail: string | null;
@@ -167,6 +168,7 @@ export type FeedbackInboxPagination = {
 
 export type FeedbackSummary = {
   total: number;
+  attentionCount: number;
   manual: number;
   publicForm: number;
   qrCode: number;
@@ -257,6 +259,110 @@ export async function fetchFeedbackDetail(
     success: boolean;
     data: FeedbackDetail;
   }>(`/businesses/${businessId}/feedback/${feedbackId}`);
+  return response.data.data;
+}
+
+export type FeedbackSelection = {
+  feedbackIds?: string[];
+  allMatching?: boolean;
+  filters?: Omit<FeedbackInboxQuery, "page" | "pageSize" | "sort">;
+};
+
+export type FeedbackEditInput = {
+  title?: string | null;
+  message?: string;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  branchId?: string;
+  categoryId?: string | null;
+  status?: FeedbackStatus;
+  priority?: FeedbackPriority;
+  expectedUpdatedAt: string;
+};
+
+export async function editFeedback(
+  businessId: string,
+  feedbackId: string,
+  input: FeedbackEditInput
+) {
+  const response = await apiClient.patch(
+    `/businesses/${businessId}/feedback/${feedbackId}`,
+    input
+  );
+  return response.data.data as { feedbackId: string; changedFields: string[] };
+}
+
+export async function deleteFeedback(businessId: string, feedbackId: string) {
+  const response = await apiClient.delete(
+    `/businesses/${businessId}/feedback/${feedbackId}`
+  );
+  return response.data.data as { affectedCount: number };
+}
+
+export async function bulkUpdateFeedbackStatus(
+  businessId: string,
+  selection: FeedbackSelection,
+  status: FeedbackStatus
+) {
+  const response = await apiClient.post(
+    `/businesses/${businessId}/feedback/bulk/status`,
+    { selection, status }
+  );
+  return response.data.data as { affectedCount: number };
+}
+
+export async function bulkCategorizeFeedback(
+  businessId: string,
+  selection: FeedbackSelection,
+  categoryId: string | null
+) {
+  const response = await apiClient.post(
+    `/businesses/${businessId}/feedback/bulk/category`,
+    { selection, categoryId }
+  );
+  return response.data.data as { affectedCount: number };
+}
+
+export async function bulkDeleteFeedback(
+  businessId: string,
+  selection: FeedbackSelection,
+  confirmation?: "DELETE"
+) {
+  const response = await apiClient.post(
+    `/businesses/${businessId}/feedback/bulk/delete`,
+    { selection, confirmation }
+  );
+  return response.data.data as { affectedCount: number; deletedAt?: string };
+}
+
+export type FeedbackDashboard = {
+  periodDays: number;
+  scope: { allBranches: boolean; branchIds: string[]; label: string };
+  total: number;
+  attentionCount: number;
+  statuses: Partial<Record<FeedbackStatus, number>>;
+  channels: Array<{ channel: FeedbackChannel; count: number }>;
+  sentiments: Array<{ sentiment: FeedbackAISentiment | null; count: number }>;
+  averageRating: number | null;
+  recent: Array<{
+    id: string;
+    title: string | null;
+    messagePreview: string;
+    status: FeedbackStatus;
+    priority: FeedbackPriority;
+    receivedAt: string;
+    branch: { id: string; name: string };
+    customerName: string | null;
+  }>;
+};
+
+export async function fetchFeedbackDashboard(
+  businessId: string
+): Promise<FeedbackDashboard> {
+  const response = await apiClient.get<{ success: boolean; data: FeedbackDashboard }>(
+    `/businesses/${businessId}/feedback/dashboard`
+  );
   return response.data.data;
 }
 

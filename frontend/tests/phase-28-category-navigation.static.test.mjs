@@ -32,7 +32,7 @@ test("feedback list and grid expose category without restoring table clutter", (
 test("authenticated drawers use viewport-safe scrolling and dismissal behavior", () => {
   for (const source of [shells, accountShell]) {
     assert.match(source, /h-\[100dvh\]/);
-    assert.match(source, /overflow-y-auto overscroll-contain/);
+    assert.match(source, /overflow-y-auto[^"]*overscroll-contain/);
     assert.match(source, /event\.key === "Escape"/);
     assert.match(source, /document\.body\.style\.overflow = "hidden"/);
     assert.match(source, /event\.target === event\.currentTarget/);

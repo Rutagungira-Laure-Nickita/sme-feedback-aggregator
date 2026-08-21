@@ -61,6 +61,7 @@ type WorkspaceNavItem = {
     path: string;
     icon: LucideIcon;
     disabled?: boolean;
+    staffHidden?: boolean;
   }>;
   ownerAdminOnly?: boolean;
   ownerOnly?: boolean;
@@ -74,18 +75,23 @@ const navItems: WorkspaceNavItem[] = [
     icon: ClipboardList,
     children: [
       { label: "Add Feedback", path: "feedback/manual", icon: MessageSquarePlus },
-      { label: "QR Codes", path: "feedback/qr-codes", icon: QrCode },
+      { label: "QR Codes", path: "feedback/qr-codes", icon: QrCode, staffHidden: true },
       { label: "All Feedback", path: "feedback", icon: Inbox, disabled: false }
     ]
   },
   { label: "Customers", path: "customers", icon: UserRound },
-  { label: "Automations", path: "automations", icon: Zap },
+  { label: "Automations", path: "automations", icon: Zap, ownerAdminOnly: true },
   { label: "Integrations", path: "integrations", icon: PlugZap, ownerAdminOnly: true },
   { label: "Reports", path: "reports", icon: FileText, ownerOnly: true },
   { label: "Branches", path: "branches", icon: MapPin },
-  { label: "Staff", path: "staff", icon: Users },
-  { label: "Invitations", path: "invitations", icon: UserRoundPlus },
-  { label: "Settings", path: "settings", icon: Settings }
+  { label: "Staff", path: "staff", icon: Users, ownerAdminOnly: true },
+  {
+    label: "Invitations",
+    path: "invitations",
+    icon: UserRoundPlus,
+    ownerAdminOnly: true
+  },
+  { label: "Settings", path: "settings", icon: Settings, ownerAdminOnly: true }
 ];
 
 const adminNavGroups = [
@@ -166,7 +172,7 @@ export function WorkspaceShell({
     <div className="flex h-full min-h-0 flex-col">
       <BrandMark compact />
       <nav
-        className="mt-7 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1"
+        className="mt-7 min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden overscroll-contain pr-1"
         aria-label="Business navigation"
       >
         {navItems.map(
@@ -214,9 +220,12 @@ export function WorkspaceShell({
                         label: childLabel,
                         path: childPath,
                         icon: ChildIcon,
-                        disabled
+                        disabled,
+                        staffHidden
                       }) =>
-                        disabled || !childPath ? (
+                        staffHidden &&
+                        activeBusiness.membership.role === "STAFF" ? null : disabled ||
+                          !childPath ? (
                           <span
                             key={childLabel}
                             className="flex min-h-10 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm font-semibold text-app-text-muted/60"
@@ -297,7 +306,7 @@ export function WorkspaceShell({
   return (
     <main className="min-h-screen overflow-x-hidden bg-app-background p-1.5 text-app-text transition-colors min-[360px]:p-2 sm:p-5 lg:p-7">
       <section className="mx-auto grid min-h-[calc(100vh-1rem)] w-full max-w-[1480px] overflow-hidden rounded-[1.25rem] border border-app-border/90 bg-app-surface shadow-premium dark:bg-[rgb(4,13,31)] sm:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[248px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-app-border bg-app-surface-muted/70 p-5 dark:bg-[rgb(10,25,51)] lg:flex lg:flex-col">
+        <aside className="sticky top-7 hidden h-[calc(100dvh-3.5rem)] self-start overflow-hidden border-r border-app-border bg-app-surface-muted/70 p-5 dark:bg-[rgb(10,25,51)] lg:flex lg:flex-col">
           {sidebar}
         </aside>
 
@@ -658,7 +667,7 @@ export function AdminShell({
         </p>
       </div>
       <nav
-        className="mt-6 min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pr-1"
+        className="mt-6 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pr-1"
         aria-label="Platform administrator navigation"
       >
         {adminNavGroups.map((group) => (
@@ -704,7 +713,7 @@ export function AdminShell({
   return (
     <main className="min-h-screen overflow-x-hidden bg-app-background p-2 text-app-text transition-colors sm:p-5 lg:p-7">
       <section className="mx-auto grid min-h-[calc(100vh-1.5rem)] w-full max-w-[1500px] overflow-hidden rounded-[1.25rem] border border-app-border bg-app-surface shadow-premium dark:bg-[rgb(4,13,31)] sm:min-h-[calc(100vh-2.5rem)] lg:grid-cols-[252px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-app-border bg-app-surface-muted/70 p-5 dark:bg-[rgb(10,25,51)] lg:flex lg:flex-col">
+        <aside className="sticky top-7 hidden h-[calc(100dvh-3.5rem)] self-start overflow-hidden border-r border-app-border bg-app-surface-muted/70 p-5 dark:bg-[rgb(10,25,51)] lg:flex lg:flex-col">
           {navigation}
         </aside>
         {isMobileOpen ? (

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .app-input {
+    @apply min-h-11 w-full min-w-0 rounded-lg border border-app-border bg-app-surface px-3 text-sm font-semibold text-app-text outline-none transition placeholder:text-app-text-muted focus:border-app-primary focus:ring-2 focus:ring-app-focus/20;
+  }
+}
+
 :root {
   --color-background: 246 248 253;
   --color-surface: 255 255 255;

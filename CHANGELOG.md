@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-21 - Final Product Hardening and UI/UX Pass
+
+- Added Owner/Admin feedback edit, single soft-delete, transactional bulk status/category/delete, current-page/all-matching selection, optimistic concurrency, audit activity, and exact typed confirmation for unfiltered Remove all.
+- Added additive feedback soft-delete schema/migration while preserving ingestion, provider deduplication, source records, workflow/AI/automation/customer history, and immutable provider metadata. The migration was created but not applied; no reset, db push, reseed, or data cleanup ran.
+- Hardened Staff Branch scope and fail-closed filter validation; added a real Branch-scoped Staff Overview and removed owner/admin configuration navigation for restricted Staff.
+- Added the real-data Customer dashboard, My Feedback persisted List/Grid, safe responsive detail, submission destinations, Profile/security routes, session-derived ownership APIs, and `/account` compatibility redirect.
+- Preserved Gmail connection/synchronization behavior and aligned WhatsApp actions around read-only Refresh Activity, View Activity, and Test Connection without adding a fake sync path.
+- Added independently scrolling desktop sidebars across Business, Platform Administrator, Account, and Customer shells while retaining bounded, dismissible mobile navigation and the established responsive collection-view policy.
+- Added 21 focused unit/contract hardening checks and passed Phase 28 136/136, integrations 31/31, Phase 27 30/30, Platform Administrator 44/44, typecheck, lint, Prisma generation/validation, production build, and diff validation. Updated one Phase 28 assertion to ignore irrelevant Tailwind token ordering.
+
 ## 2026-08-19 - Phase 29A Prisma ESM Runtime Compatibility for Railway
 
 - Added one typed native-ESM Prisma runtime adapter around the generated CommonJS package.

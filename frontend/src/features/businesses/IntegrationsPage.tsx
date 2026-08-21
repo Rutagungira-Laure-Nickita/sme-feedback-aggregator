@@ -161,7 +161,14 @@ type ConnectionFormState = {
 };
 
 type ConnectionAction =
-  "pause" | "resume" | "disconnect" | "reconnect" | "reauthorize" | "test" | "sync";
+  | "pause"
+  | "resume"
+  | "disconnect"
+  | "reconnect"
+  | "reauthorize"
+  | "test"
+  | "sync"
+  | "refresh";
 type LiveEmailProviderType = Extract<EmailProviderType, "GMAIL" | "MICROSOFT">;
 
 export function IntegrationsPage(): JSX.Element {
@@ -422,6 +429,14 @@ export function IntegrationsPage(): JSX.Element {
       if (action === "test") {
         const health = await testIntegrationConnection(businessId ?? "", connection.id);
         return { ...connection, lastErrorCode: health.ok ? null : health.code };
+      }
+      if (action === "refresh") {
+        await Promise.all([
+          providersQuery.refetch(),
+          connectionsQuery.refetch(),
+          webhookActivityQuery.refetch()
+        ]);
+        return connection;
       }
       const run = await syncIntegrationConnection(businessId ?? "", connection.id);
       setSelectedRunId(run.id);
@@ -981,7 +996,7 @@ function EmailLiveConnectionCard({
                 {connection ? (
                   <SmallButton tone="secondary" onClick={() => onHistory(connection)}>
                     <History className="h-4 w-4" aria-hidden="true" />
-                    View History
+                    View Activity
                   </SmallButton>
                 ) : null}
               </div>
@@ -2874,10 +2889,10 @@ function getPrimaryAction(
   }
   if (options.liveWebhookDriven && status === "CONNECTED") {
     return {
-      label: "Test Connection",
-      action: "test",
+      label: "Refresh Activity",
+      action: "refresh",
       tone: "primary",
-      icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+      icon: <RefreshCw className="h-4 w-4" aria-hidden="true" />
     };
   }
   if (status === "CONNECTED") {
@@ -2920,6 +2935,7 @@ function validParam<T extends readonly string[]>(
 }
 
 function actionNotice(action: ConnectionAction): string {
+  if (action === "refresh") return "Connection and webhook activity refreshed.";
   if (action === "sync") return "Synchronization completed.";
   if (action === "test") return "Connection test completed.";
   if (action === "pause") return "Connection paused.";

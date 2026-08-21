@@ -1,5 +1,20 @@
 # API Notes
 
+## Final Product Hardening API Contracts
+
+Authenticated Business feedback routes add:
+
+- `GET /api/businesses/:businessId/feedback/dashboard` — active-membership, Branch-scoped 30-day totals, attention count, workflow/channel/sentiment distributions, average rating, scope label, and safe recent feedback.
+- `PATCH /api/businesses/:businessId/feedback/:feedbackId` — Owner/Admin only; accepts title, message, customer name/email/phone, Branch, category, status, priority, and required `expectedUpdatedAt`. Unknown immutable provider/ingestion fields are stripped; stale writes return `409 FEEDBACK_EDIT_CONFLICT`.
+- `DELETE /api/businesses/:businessId/feedback/:feedbackId` — Owner/Admin-only soft deletion.
+- `POST /api/businesses/:businessId/feedback/bulk/status` — Owner/Admin-only explicit-ID or all-matching selection plus target status; the established transition graph is enforced for every changed item.
+- `POST /api/businesses/:businessId/feedback/bulk/category` — Owner/Admin-only selection plus active Business-owned category ID or `null`.
+- `POST /api/businesses/:businessId/feedback/bulk/delete` — Owner/Admin-only soft deletion. An unfiltered all-matching request requires exact `confirmation: "DELETE"`.
+
+Authenticated Customer routes add `GET /api/customer/dashboard`, `GET /api/customer/feedback`, and `GET /api/customer/feedback/:feedbackId`. They require platform role `CUSTOMER`, infer identity from the session, support bounded search/status/channel/sort pagination, return only safe customer-facing fields, and return 404 for unowned/deleted IDs.
+
+Existing inbox/customer filter validation now returns controlled 403/404 errors for inaccessible or foreign Branch/category/customer/assignee identifiers instead of silently removing the filter. Existing Gmail/WhatsApp API paths and response contracts are unchanged; Refresh Activity is a frontend refetch of connection/webhook activity and does not add an endpoint.
+
 ## Phase 29A API Compatibility
 
 No endpoint, request schema, response schema, status code, authorization rule, tenant boundary, or worker behavior changed. Phase 29A changes only how backend modules obtain generated Prisma runtime values under native ESM. All direct generated Prisma model/input/result imports remain type-only, and the existing API/service contracts are unchanged.

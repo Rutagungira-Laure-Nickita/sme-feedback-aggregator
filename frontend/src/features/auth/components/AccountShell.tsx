@@ -78,7 +78,7 @@ export function AccountShell({
     <div className="flex h-full min-h-0 flex-col">
       <BrandMark />
       <nav
-        className="mt-10 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1"
+        className="mt-10 min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden overscroll-contain pr-1"
         aria-label="Account navigation"
       >
         {navItems.map(({ label, icon: Icon, path }) => {
@@ -137,7 +137,7 @@ export function AccountShell({
   return (
     <main className="min-h-screen overflow-x-hidden bg-app-background p-2 text-app-text transition-colors sm:p-6 lg:p-8">
       <section className="mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-[1320px] overflow-hidden rounded-[1.25rem] border border-app-border bg-app-surface shadow-premium dark:bg-[rgb(7,19,41)] sm:min-h-[calc(100vh-3rem)] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-app-border bg-app-surface-muted/70 p-5 lg:flex lg:flex-col">
+        <aside className="sticky top-8 hidden h-[calc(100dvh-4rem)] self-start overflow-hidden border-r border-app-border bg-app-surface-muted/70 p-5 lg:flex lg:flex-col">
           {sidebar}
         </aside>
 

@@ -1,5 +1,21 @@
 # Deployment
 
+## Final Product Hardening Deployment Notes
+
+Deploy the migration before starting the updated backend, then deploy backend and frontend together:
+
+```text
+npm install --include=dev
+npx prisma generate --schema=backend/prisma/schema.prisma
+npx prisma migrate deploy --schema=backend/prisma/schema.prisma
+npm run build
+npm run start -w backend
+```
+
+Required migration: `20260821120000_final_product_hardening`. Do not use `prisma migrate reset`, `prisma db push`, reseeding, or feedback cleanup. The migration is additive except for extending the existing MySQL feedback-activity enum; it preserves Feedback, ingestion/provider identifiers, deduplication, and related history. Take the normal database backup and verify migration status before rollout. Older backend instances should not remain serving against workflows that depend on the new soft-delete fields during a staggered rollout.
+
+No new package, environment variable, provider credential/permission, worker, queue, storage volume, Vercel/Railway setting, or webhook configuration is required. Existing Gmail OAuth and WhatsApp Cloud API settings are unchanged. Clear stale frontend assets after deployment and execute the hardening checklist in `NEXT_STEPS.md`, including role/tenant checks and a duplicate-safe Gmail/WhatsApp ingestion spot-check.
+
 ## Phase 29A Railway Prisma ESM Compatibility
 
 The backend remains native ESM and is compatible with Railway's Node 20/24 runtime without relying on synthetic named exports from Prisma's CommonJS package. Prisma runtime values flow through `backend/src/lib/prisma-runtime.ts`; generated types remain erased direct type imports.

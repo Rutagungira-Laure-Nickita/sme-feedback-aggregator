@@ -1,5 +1,14 @@
 # Security Notes
 
+## Final Product Hardening Security Boundaries
+
+- Feedback edit/delete/bulk services require an authenticated active membership in an active Business and allow only `OWNER` or `ADMIN`. Every lookup/update includes route `businessId` and `deletedAt: null`; category and Branch targets must belong to that Business. Provider channel, external IDs, ingestion/source metadata, and original timestamps are outside the accepted edit schema.
+- Edits use `expectedUpdatedAt` optimistic concurrency. Statuses reuse the existing transition graph; status/category/priority writes record human ownership and activities. Customer identity edits clear a potentially stale Customer link and invoke the established exact-match linker so an old linked customer cannot retain unintended dashboard access.
+- Restricted Staff Branch scope comes only from authenticated active `BusinessMembershipBranch` rows. Foreign or inaccessible Branch/category/customer/assignee filters fail closed. Staff dashboard, feedback, customer, and detail queries share this scope; hiding navigation is only a usability layer over backend checks.
+- Customer APIs require `CUSTOMER`, derive identity from the session user email/linked normalized Customer email, exclude soft-deleted feedback, return 404 for unowned IDs, and select no internal note, assignee, AI analysis, audit activity, source metadata, provider ID, credential, token, or raw payload.
+- Soft deletion preserves ingestion/provider deduplication and audit records. Exact `DELETE` is required for an unfiltered all-matching removal. Normal dashboards/reports and processing candidates exclude removed rows; no hard-delete or cascade path was introduced.
+- Gmail OAuth/sync and WhatsApp signature/webhook/test behavior are unchanged. WhatsApp Refresh Activity performs read-only queries and cannot simulate synchronization. No credential, environment, webhook secret, provider permission, or live-connector exposure changed.
+
 ## Phase 29A Runtime Import Safety
 
 The Prisma ESM repair changes no authentication, authorization, session, tenant-isolation, webhook-signature, credential-encryption, feedback-processing, AI, automation, or reporting rule. The adapter retains generated static types and introduces no broad `any` cast. Prisma errors, connection strings, tokens, credentials, and provider payloads remain behind their existing service and error-sanitization boundaries.

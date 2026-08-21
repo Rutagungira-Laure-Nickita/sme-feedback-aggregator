@@ -97,7 +97,8 @@ export function FeedbackInboxWrapper(): JSX.Element {
           id: businessData.business.id,
           status: businessData.business.status
         },
-        permissions: businessData.permissions
+        permissions: businessData.permissions,
+        membership: businessData.membership
       }}
     />
   );

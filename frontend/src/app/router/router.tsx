@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy } from "react";
 import {
-  AccountPage,
   ActiveSessionsPage,
   ForgotPasswordPage,
   LoginPage,
@@ -14,6 +13,7 @@ import {
   VerifyEmailPage
 } from "../../features/auth/index.js";
 import { RoleGuard } from "../../features/auth/components/RoleGuard.js";
+import { AccountCompatibilityRoute } from "../../features/auth/components/AccountCompatibilityRoute.js";
 import { LazyRoute } from "./LazyRoute.js";
 import { IntegrationsCanonicalRedirect } from "./IntegrationsCanonicalRedirect.js";
 import { HealthStatusPage } from "../../features/health/pages/HealthStatusPage.js";
@@ -189,6 +189,11 @@ const AdminBusinessCreatePage = lazy(() =>
     default: module.AdminBusinessCreatePage
   }))
 );
+const CustomerDashboardPage = lazy(() =>
+  import("../../features/customer/index.js").then((module) => ({
+    default: module.CustomerDashboardPage
+  }))
+);
 
 export const router = createBrowserRouter([
   {
@@ -283,8 +288,48 @@ export const router = createBrowserRouter([
         path: "account",
         element: (
           <ProtectedRoute>
-            <AccountPage />
+            <AccountCompatibilityRoute />
           </ProtectedRoute>
+        )
+      },
+      {
+        path: "customer",
+        element: (
+          <RoleGuard allowedRoles={["CUSTOMER"]}>
+            <LazyRoute>
+              <CustomerDashboardPage />
+            </LazyRoute>
+          </RoleGuard>
+        )
+      },
+      {
+        path: "customer/feedback",
+        element: (
+          <RoleGuard allowedRoles={["CUSTOMER"]}>
+            <LazyRoute>
+              <CustomerDashboardPage section="feedback" />
+            </LazyRoute>
+          </RoleGuard>
+        )
+      },
+      {
+        path: "customer/submit",
+        element: (
+          <RoleGuard allowedRoles={["CUSTOMER"]}>
+            <LazyRoute>
+              <CustomerDashboardPage section="submit" />
+            </LazyRoute>
+          </RoleGuard>
+        )
+      },
+      {
+        path: "customer/profile",
+        element: (
+          <RoleGuard allowedRoles={["CUSTOMER"]}>
+            <LazyRoute>
+              <CustomerDashboardPage section="profile" />
+            </LazyRoute>
+          </RoleGuard>
         )
       },
       {

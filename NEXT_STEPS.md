@@ -1,5 +1,19 @@
 # Next Steps
 
+## Final Product Hardening — Migration and Manual Verification Gate
+
+The exact next unfinished task is to apply migration `20260821120000_final_product_hardening` through the normal Prisma migration workflow, then perform the user-run browser/security pass below. Do not use `migrate reset`, `db push`, or reseeding. Deploy backend and frontend together only after the migration is ready for the target database.
+
+1. Business Owner/Admin feedback management: edit title/message/customer/Branch/category/status/priority; refresh a stale edit to confirm conflict handling; verify List and Grid menus; select visible/all matching; bulk status/category/delete; verify filtered selection semantics and error recovery; type exact `DELETE` in Remove all and cancel once before confirming in a disposable tenant.
+2. Soft-delete integrity: confirm removed rows disappear from inbox, customer dashboard, owner/admin dashboards, search, AI/automation candidates, and report Preview/PDF/CSV while ingestion/provider deduplication remains effective for a repeated Gmail/WhatsApp provider item.
+3. Tenant and role security: confirm Owner/Admin actions cannot target another Business; Manager/Staff cannot call edit/delete/bulk endpoints; restricted Staff see only assigned Branch feedback/customers/dashboard totals, cannot force a foreign Branch/filter ID in the URL/API, and do not see owner/admin navigation.
+4. Customer workspace: sign in as `CUSTOMER`; confirm `/account` redirects to `/customer`; verify real totals/recent feedback, My Feedback search/status/channel/List/Grid persistence, safe detail, submission destinations, Profile, sessions link, responsive layout, keyboard focus, Escape, and empty/error states. Confirm a second customer cannot retrieve the first customer's feedback ID.
+5. Integrations: verify Gmail Connect/Reconnect, Sync now, and View Activity remain operational. Verify connected WhatsApp Refresh Activity performs read-only refetch, View Activity and Test Connection work, and no WhatsApp manual-sync action appears.
+6. Responsive/accessibility: verify independent desktop sidebar scrolling and mobile drawer scrolling at short phone/tablet heights; no page-level horizontal overflow; List/Grid automatic defaults and explicit overrides at 0/1/2+ results; dialogs trap focus, close by Escape/button/backdrop as intended, restore body scrolling, and remain usable in Light/Dark/System.
+7. Regression: spot-check Platform Administrator feedback/business dashboards and all three reports, owner reporting, public portal/QR submission, Gmail/WhatsApp ingestion, categories, AI, automation, and active-business routing after the migration.
+
+Do not mark the hardening pass manually verified until this checklist and the deferred cross-business/security regression checks pass. Phase 29A's Railway deployment observation remains pending separately.
+
 ## Phase 29A - Railway Deployment Verification Gate
 
 The Prisma ESM runtime repair and local automated/runtime verification are complete. After the committed `main` revision auto-deploys, confirm Railway runs Prisma generation before the backend build, completes `prisma migrate deploy` without schema changes, starts the compiled backend through `npm run start -w backend` (`node dist/server.js`), and serves the health endpoint without any missing Prisma named-export error. The temporary Railway `tsx` Start Command is no longer required for this compatibility repair.

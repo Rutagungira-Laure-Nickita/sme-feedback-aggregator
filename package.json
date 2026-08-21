@@ -26,6 +26,7 @@
     "test:phase26": "npm run test:phase26 -w frontend && npm run test:phase26 -w backend",
     "test:phase27": "npm run test:phase27 -w frontend && npx tsx backend/src/modules/business-reports/business-reports.test.ts",
     "test:phase28": "npm run test:phase28 -w backend && npm run test:phase28 -w frontend && npm run test:ai-analysis -w backend && npm run test:automation -w backend && npm run test:phase26 -w backend",
+    "test:hardening": "npm run test:hardening -w backend && npm run test:hardening -w frontend",
     "phase28:reconcile": "npm run phase28:reconcile -w backend --",
     "feedback:simulate": "npm --silent run feedback:simulate -w backend --",
     "format": "prettier . --write",

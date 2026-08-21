@@ -1,5 +1,13 @@
 # SME Multi-Channel Customer Feedback Aggregator
 
+## Final Product Hardening + UI/UX Pass
+
+The product now includes professional Owner/Admin feedback management with edit, audited soft-delete, bulk status/category/delete, filtered select-all, strong Remove-all confirmation, and immutable provider/ingestion metadata. Removed feedback is hidden from normal inboxes, dashboards, customer views, AI/automation work, and reports while provider deduplication and history remain preserved.
+
+Staff workspaces now use authenticated Branch-scoped feedback/customer/dashboard data and fail closed on forged filters. Customers have a dedicated real-data `/customer` workspace with Dashboard, My Feedback List/Grid and safe details, Submit Feedback destinations, Profile, and session security. Gmail behavior remains intact; webhook-driven WhatsApp exposes honest Refresh Activity/View Activity/Test Connection actions. Desktop navigation scrolls independently across Business, Admin, Account, and Customer shells, with the established Indigo Light/Dark/System and responsive List/Grid behavior retained.
+
+Migration `20260821120000_final_product_hardening` was created but not applied by Codex. Apply it through the normal migration workflow before running this backend version; never reset or reseed for this change. Automated verification passes, while user-run migration/browser/authorization/tenant/responsive verification remains in `NEXT_STEPS.md`.
+
 ## Phase 29A - Railway Prisma ESM Runtime Compatibility
 
 The native-ESM backend now loads Prisma 6.19.3 runtime values through a typed local adapter instead of requesting generated enum names as native named exports from Prisma's CommonJS package. Direct `@prisma/client` imports are type-only outside that adapter, so strict generated model/input/transaction typing is preserved while both compiled `node dist/server.js` and development `tsx src/server.ts` startup work on Node 24. No API, business logic, Prisma schema, migration, seed, or stored data changed.

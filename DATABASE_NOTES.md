@@ -1,5 +1,17 @@
 # Database Notes
 
+## Final Product Hardening Database Impact
+
+Migration `20260821120000_final_product_hardening` is created and intentionally not applied by Codex. It must be applied with the normal deployment migration workflow before this backend version serves traffic. It does not rewrite or remove existing feedback/provider data.
+
+- `Feedback.deletedAt` is a nullable removal timestamp.
+- `Feedback.deletedByMembershipId` is a nullable audited actor relation with `ON DELETE SET NULL`.
+- `BusinessMembership.deletedFeedbacks` is the inverse relation.
+- `FeedbackActivityType` adds `FEEDBACK_EDITED` and `FEEDBACK_DELETED`.
+- Indexes cover `(businessId, deletedAt, receivedAt)` and the deletion actor foreign key.
+
+Deletion is application-level soft deletion. Existing Feedback IDs, FeedbackIngestion rows, unique external/provider identifiers, synchronization/webhook history, attachments, workflow activity, field state, AI analysis, automation records, and Customer activity remain stored. Ordinary product queries explicitly require `deletedAt: null`; this preserves provider deduplication and audit history. No applied migration was edited, and no reset, db push, seed, reconciliation, or development/production row mutation was run.
+
 ## Phase 29A Database Impact
 
 No Prisma schema, datasource, model, enum, column, index, migration, seed behavior, or stored row changed. Prisma Client 6.19.3 was regenerated from the existing `prisma-client-js` generator solely to verify the ESM runtime adapter. No migrate reset, db push, data reconciliation, or database mutation was run.
