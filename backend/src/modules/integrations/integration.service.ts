@@ -51,8 +51,13 @@ import {
   createGmailAuthorizationSession,
   exchangeGmailAuthorizationCode,
   maskEmail,
-  oauthVerifierAssociatedData
+  oauthVerifierAssociatedData,
+  resolveGmailFeedbackLabel
 } from "./gmail-live-connector.js";
+import {
+  isSupportedProductConnection,
+  supportedLiveIntegrationWhere
+} from "./supported-integration-policy.js";
 import {
   assertLiveOutlookConfigured,
   createOutlookAuthorizationSession,
@@ -107,7 +112,7 @@ const connectionInclude = {
 export async function listIntegrationProviders(actor: Actor, businessId: string) {
   await resolveIntegrationManagementContext(actor, businessId);
   const connections = await prisma.integrationConnection.findMany({
-    where: { businessId },
+    where: { AND: [{ businessId }, supportedLiveIntegrationWhere()] },
     include: { defaultBranch: { select: { id: true, name: true, status: true } } }
   });
   const connectionByProvider = new Map(
@@ -118,40 +123,56 @@ export async function listIntegrationProviders(actor: Actor, businessId: string)
   );
 
   return {
-    providers: integrationConnectorRegistry.listProviders().map((provider) => {
-      const liveEmail =
-        provider.provider === IntegrationProvider.EMAIL &&
-        provider.mode === IntegrationMode.LIVE;
-      const liveWhatsApp =
-        provider.provider === IntegrationProvider.WHATSAPP &&
-        provider.mode === IntegrationMode.LIVE;
-      const liveMetaSocial =
-        (provider.provider === IntegrationProvider.FACEBOOK ||
-          provider.provider === IntegrationProvider.INSTAGRAM) &&
-        provider.mode === IntegrationMode.LIVE;
-      return {
-        ...provider,
-        demoMode: provider.mode === IntegrationMode.DEMO,
-        liveAvailable: liveEmail
-          ? isLiveEmailConfigured()
-          : liveWhatsApp
-            ? isLiveWhatsAppConfigured()
-            : liveMetaSocial
-              ? isLiveMetaSocialConfigured()
-              : false,
-        disclosure:
-          provider.mode === IntegrationMode.LIVE
-            ? liveWhatsApp
-              ? "Live WhatsApp imports real inbound Meta WhatsApp text messages through signed webhooks. Non-text media is not downloaded and outbound replies are not supported."
+    providers: integrationConnectorRegistry
+      .listProviders()
+      .filter((provider) =>
+        isSupportedProductConnection({
+          provider: provider.provider,
+          mode: provider.mode,
+          liveProviderType:
+            provider.provider === IntegrationProvider.EMAIL
+              ? EmailProviderType.GMAIL
+              : null
+        })
+      )
+      .map((provider) => {
+        const liveEmail =
+          provider.provider === IntegrationProvider.EMAIL &&
+          provider.mode === IntegrationMode.LIVE;
+        const liveWhatsApp =
+          provider.provider === IntegrationProvider.WHATSAPP &&
+          provider.mode === IntegrationMode.LIVE;
+        const liveMetaSocial =
+          (provider.provider === IntegrationProvider.FACEBOOK ||
+            provider.provider === IntegrationProvider.INSTAGRAM) &&
+          provider.mode === IntegrationMode.LIVE;
+        return {
+          ...provider,
+          label: liveEmail ? "Gmail" : provider.label,
+          description: liveEmail
+            ? "Import real Gmail Inbox messages that carry the configured Customer Feedback label."
+            : provider.description,
+          demoMode: provider.mode === IntegrationMode.DEMO,
+          liveAvailable: liveEmail
+            ? isLiveEmailProviderConfigured(EmailProviderType.GMAIL)
+            : liveWhatsApp
+              ? isLiveWhatsAppConfigured()
               : liveMetaSocial
-                ? `${providerLabel(provider.provider)} Live imports supported real comments through signed Meta webhooks. Replies, DMs, publishing, and media downloads are not supported.`
-                : "Live Email imports real Gmail or Outlook Inbox messages. It is inbound-only, manual, limited to the latest 20 messages initially, and never changes provider read state."
-            : "Demo Mode uses simulated external data. No real provider account is connected.",
-        connection:
-          connectionByProvider.get(connectionKey(provider.provider, provider.mode)) ??
-          null
-      };
-    })
+                ? isLiveMetaSocialConfigured()
+                : false,
+          disclosure:
+            provider.mode === IntegrationMode.LIVE
+              ? liveWhatsApp
+                ? "Live WhatsApp imports real inbound Meta WhatsApp text messages through signed webhooks. Non-text media is not downloaded and outbound replies are not supported."
+                : liveMetaSocial
+                  ? `${providerLabel(provider.provider)} Live imports supported real comments through signed Meta webhooks. Replies, DMs, publishing, and media downloads are not supported.`
+                  : "Live Gmail imports only Inbox messages carrying the configured Customer Feedback label. It is inbound-only, manual, limited to the latest 20 eligible messages initially, and never changes provider read state."
+              : "Demo Mode uses simulated external data. No real provider account is connected.",
+          connection:
+            connectionByProvider.get(connectionKey(provider.provider, provider.mode)) ??
+            null
+        };
+      })
   };
 }
 
@@ -162,8 +183,16 @@ export async function listIntegrationConnections(
 ) {
   await resolveIntegrationManagementContext(actor, businessId);
   const requestedMode = query.mode ? (query.mode as IntegrationMode) : undefined;
-  const where: Prisma.IntegrationConnectionWhereInput = {
+  const supportedWhere: Prisma.IntegrationConnectionWhereInput = {
+    AND: [{ businessId }, supportedLiveIntegrationWhere()]
+  };
+  const supportedRunWhere: Prisma.SynchronizationRunWhereInput = {
     businessId,
+    mode: IntegrationMode.LIVE,
+    connection: { is: supportedLiveIntegrationWhere() }
+  };
+  const where: Prisma.IntegrationConnectionWhereInput = {
+    AND: [supportedWhere],
     ...(requestedMode ? { mode: requestedMode } : {}),
     ...(query.provider ? { provider: query.provider as IntegrationProvider } : {}),
     ...(query.status ? { status: query.status as IntegrationConnectionStatus } : {}),
@@ -197,11 +226,11 @@ export async function listIntegrationConnections(
     prisma.integrationConnection.count({ where }),
     prisma.integrationConnection.groupBy({
       by: ["status"],
-      where: { businessId, ...(requestedMode ? { mode: requestedMode } : {}) },
+      where: supportedWhere,
       _count: { _all: true }
     }),
     prisma.synchronizationRun.findMany({
-      where: { businessId, ...(requestedMode ? { mode: requestedMode } : {}) },
+      where: supportedRunWhere,
       include: {
         connection: { select: { id: true, displayName: true, liveProviderType: true } }
       },
@@ -209,15 +238,15 @@ export async function listIntegrationConnections(
       take: 5
     }),
     prisma.integrationConnection.aggregate({
-      where: { businessId, ...(requestedMode ? { mode: requestedMode } : {}) },
+      where: supportedWhere,
       _sum: { totalImported: true }
     }),
     prisma.synchronizationRun.aggregate({
-      where: { businessId, ...(requestedMode ? { mode: requestedMode } : {}) },
+      where: supportedRunWhere,
       _sum: { itemsDuplicated: true }
     }),
     prisma.synchronizationRun.aggregate({
-      where: { businessId, ...(requestedMode ? { mode: requestedMode } : {}) },
+      where: supportedRunWhere,
       _sum: { itemsFailed: true }
     })
   ]);
@@ -248,6 +277,19 @@ export async function createIntegrationConnection(
   input: CreateIntegrationConnectionInput
 ) {
   const context = await resolveIntegrationManagementContext(actor, businessId);
+  if (
+    !isSupportedProductConnection({
+      provider: input.provider,
+      mode: input.mode,
+      liveProviderType: input.liveProviderType
+    })
+  ) {
+    throw new IntegrationError(
+      "Only Live Gmail and Live WhatsApp connections are supported in this product.",
+      INTEGRATION_ERRORS.MODE_UNSUPPORTED,
+      400
+    );
+  }
   const branch = await validateDefaultBranch(businessId, input.defaultBranchId);
 
   if (input.mode === IntegrationMode.LIVE) {
@@ -357,7 +399,9 @@ async function createLiveEmailConnection(
           displayName: input.displayName,
           defaultBranchId,
           liveProviderType: input.liveProviderType,
-          synchronizationFolder: "INBOX",
+          synchronizationFolder: resolveGmailFeedbackLabel(input.gmailFeedbackLabel),
+          lastProviderCursor: null,
+          lastProviderCursorAt: null,
           status: IntegrationConnectionStatus.ERROR,
           requiresReauthorization: true,
           lastErrorCode,
@@ -377,7 +421,7 @@ async function createLiveEmailConnection(
           defaultBranchId,
           demoScenario: null,
           liveProviderType: input.liveProviderType,
-          synchronizationFolder: "INBOX",
+          synchronizationFolder: resolveGmailFeedbackLabel(input.gmailFeedbackLabel),
           requiresReauthorization: true,
           lastErrorCode,
           createdByMembershipId: context.membership.id,
@@ -627,6 +671,7 @@ export async function updateIntegrationConnection(
 ) {
   const context = await resolveIntegrationManagementContext(actor, businessId);
   const existing = await loadConnection(businessId, connectionId);
+  assertProductSupportedConnection(existing);
   if (input.defaultBranchId) {
     await validateDefaultBranch(businessId, input.defaultBranchId);
   }
@@ -637,6 +682,16 @@ export async function updateIntegrationConnection(
       ...(input.displayName ? { displayName: input.displayName } : {}),
       ...(input.defaultBranchId ? { defaultBranchId: input.defaultBranchId } : {}),
       ...(input.demoScenario ? { demoScenario: input.demoScenario } : {}),
+      ...(existing.provider === IntegrationProvider.EMAIL &&
+      existing.mode === IntegrationMode.LIVE &&
+      existing.liveProviderType === EmailProviderType.GMAIL &&
+      input.gmailFeedbackLabel
+        ? {
+            synchronizationFolder: resolveGmailFeedbackLabel(input.gmailFeedbackLabel),
+            lastProviderCursor: null,
+            lastProviderCursorAt: null
+          }
+        : {}),
       ...(existing.provider === IntegrationProvider.WHATSAPP &&
       existing.mode === IntegrationMode.LIVE
         ? {
@@ -739,6 +794,7 @@ export async function authorizeIntegrationConnection(
 ) {
   const context = await resolveIntegrationManagementContext(actor, businessId);
   const connection = await loadConnection(businessId, connectionId);
+  assertProductSupportedConnection(connection);
   assertLiveEmailConnection(connection);
   const emailProviderType = requireLiveEmailProviderType(connection.liveProviderType);
   await validateDefaultBranch(businessId, connection.defaultBranchId);
@@ -851,6 +907,7 @@ async function completeEmailOAuthCallback(
         400
       );
     }
+    assertProductSupportedConnection(state.connection);
 
     const context = await resolveIntegrationManagementContext(actor, state.businessId);
     if (state.membershipId !== context.membership.id) {
@@ -965,6 +1022,7 @@ export async function resumeIntegrationConnection(
 ) {
   const context = await resolveIntegrationManagementContext(actor, businessId);
   const connection = await loadConnection(businessId, connectionId);
+  assertProductSupportedConnection(connection);
   if (connection.status === IntegrationConnectionStatus.DISCONNECTED) {
     throw new IntegrationError(
       "Reconnect this connection before syncing.",
@@ -1040,6 +1098,7 @@ export async function reconnectIntegrationConnection(
 ) {
   const context = await resolveIntegrationManagementContext(actor, businessId);
   const connection = await loadConnection(businessId, connectionId);
+  assertProductSupportedConnection(connection);
   if (connection.mode === IntegrationMode.LIVE) {
     if (connection.provider === IntegrationProvider.EMAIL) {
       return authorizeIntegrationConnection(
@@ -1497,6 +1556,22 @@ async function processSynchronizationItem(
   const safePreview = connector.getSafePreview(item);
   const processedAt = new Date();
 
+  if (item.skipReason) {
+    await upsertSynchronizationItem({
+      run,
+      item,
+      payloadHash,
+      status: SynchronizationItemStatus.SKIPPED,
+      resultCode: INTEGRATION_ERRORS.EMAIL_MESSAGE_AUTOMATED,
+      safeMessage: item.skipReason,
+      feedbackId: null,
+      feedbackIngestionId: null,
+      safePreview,
+      processedAt
+    });
+    return SynchronizationItemStatus.SKIPPED;
+  }
+
   try {
     const normalizedInput = connector.normalizeItem(item, context);
     const result = await feedbackProcessingService.process(normalizedInput);
@@ -1762,6 +1837,7 @@ function assertConnectionCanRun(
     "status" | "mode" | "provider" | "liveProviderType" | "requiresReauthorization"
   >
 ) {
+  assertProductSupportedConnection(connection);
   if (connection.status === IntegrationConnectionStatus.PAUSED) {
     throw new IntegrationError(
       "Resume this connection before synchronizing.",
@@ -1816,6 +1892,18 @@ function assertConnectionCanRun(
   }
 
   assertDemoMode(connection.mode);
+}
+
+function assertProductSupportedConnection(
+  connection: Pick<IntegrationConnection, "provider" | "mode" | "liveProviderType">
+) {
+  if (!isSupportedProductConnection(connection)) {
+    throw new IntegrationError(
+      "This historical integration is retained for audit only and cannot be activated or synchronized.",
+      INTEGRATION_ERRORS.MODE_UNSUPPORTED,
+      409
+    );
+  }
 }
 
 function toConnectorContext(
@@ -1909,13 +1997,6 @@ function buildIntegrationsRedirect(
 
 function connectionKey(provider: IntegrationProvider, mode: IntegrationMode): string {
   return `${provider}:${mode}`;
-}
-
-function isLiveEmailConfigured(): boolean {
-  return (
-    isLiveEmailProviderConfigured(EmailProviderType.GMAIL) ||
-    isLiveEmailProviderConfigured(EmailProviderType.MICROSOFT)
-  );
 }
 
 function isLiveWhatsAppConfigured(): boolean {
@@ -2092,6 +2173,11 @@ function serializeConnection(
     providerAccountId: connection.providerAccountId,
     providerAccountLabel: connection.providerAccountLabel,
     synchronizationFolder: connection.synchronizationFolder,
+    gmailFeedbackLabel:
+      connection.provider === IntegrationProvider.EMAIL &&
+      connection.liveProviderType === EmailProviderType.GMAIL
+        ? resolveGmailFeedbackLabel(connection.synchronizationFolder)
+        : null,
     lastProviderCursorAt: connection.lastProviderCursorAt?.toISOString() ?? null,
     requiresReauthorization: connection.requiresReauthorization,
     lastConnectionTestAt: connection.lastConnectionTestAt?.toISOString() ?? null,
@@ -2128,7 +2214,7 @@ function serializeConnection(
             ? "Live Facebook imports supported Page comments through signed Meta webhooks. Replies, Messenger, publishing, media downloads, and reactions-as-feedback are not supported, and imported feedback remains after disconnect."
             : connection.provider === IntegrationProvider.INSTAGRAM
               ? "Live Instagram imports supported professional-account comments through signed Meta webhooks. Mentions are deferred, personal accounts are unsupported, replies, DMs, publishing, and media downloads are not supported, and imported feedback remains after disconnect."
-              : "Live Email imports real Gmail or Outlook Inbox messages. It is inbound-only, manual, limited to 20 messages per run, and never changes provider read state."
+              : "Live Gmail imports only Inbox messages carrying the configured Customer Feedback label. It is inbound-only, manual, limited to 20 eligible messages per run, and never changes provider read state."
         : "Demo Mode uses simulated external data. No real provider account is connected.",
     createdAt: connection.createdAt.toISOString(),
     updatedAt: connection.updatedAt.toISOString()
@@ -2289,7 +2375,7 @@ function providerLabel(provider: IntegrationProvider): string {
     case IntegrationProvider.WHATSAPP:
       return "WhatsApp";
     case IntegrationProvider.EMAIL:
-      return "Email";
+      return "Gmail";
     case IntegrationProvider.X:
       return "X";
     case IntegrationProvider.FACEBOOK:

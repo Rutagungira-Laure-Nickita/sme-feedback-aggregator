@@ -1,5 +1,14 @@
 # API Notes
 
+## Supported-Channel and Gmail Label Contracts
+
+- Normal integration provider/connection lists and lifecycle operations now support only Live `EMAIL` with `liveProviderType=GMAIL` and Live `WHATSAPP`. Attempts to create or operate Demo, Outlook, Google Reviews, X, Facebook, or Instagram connections return controlled unsupported-provider errors. Historical records remain database-auditable.
+- Gmail create/update input accepts optional `gmailFeedbackLabel`; blank input normalizes to `Customer Feedback`. Connection responses expose this non-secret label. Changing it resets the Gmail cursor so the next run safely establishes the new label scope.
+- Gmail synchronization requires the configured label and Inbox. A missing label returns `409 GMAIL_FEEDBACK_LABEL_NOT_FOUND`; automated/bulk/newsletter candidates produce safe `SKIPPED` synchronization items with `EMAIL_MESSAGE_AUTOMATED` and create no Feedback.
+- `POST /api/integrations/meta/webhook` accepts signed `whatsapp_business_account` delivery only. Signed Facebook/Instagram payloads return a controlled `410`; GET verification and WhatsApp raw-body HMAC verification remain unchanged.
+- Feedback bulk selection accepts `excludedFeedbackIds` only with `allMatching: true` (maximum 5,000 IDs). The exclusions are applied to the same authorized, validated filter scope used for counting and mutation. Explicit-ID selection is unchanged.
+- Feedback/customer/dashboard/admin/report channel filters accept only `MANUAL`, `PUBLIC_FORM`, `QR_CODE`, `EMAIL`, and `WHATSAPP`; EMAIL is presented to users as Gmail.
+
 ## Final Product Hardening API Contracts
 
 Authenticated Business feedback routes add:

@@ -42,6 +42,21 @@ test("selection rejects an empty request and accepts explicit or all-matching sc
       .success,
     true
   );
+  assert.equal(
+    feedbackSelectionSchema.safeParse({
+      allMatching: true,
+      excludedFeedbackIds: ["feedback-2"],
+      filters: { status: "NEW" }
+    }).success,
+    true
+  );
+  assert.equal(
+    feedbackSelectionSchema.safeParse({
+      feedbackIds: ["feedback-1"],
+      excludedFeedbackIds: ["feedback-2"]
+    }).success,
+    false
+  );
 });
 
 test("bulk status validation follows the established workflow transition graph", () => {

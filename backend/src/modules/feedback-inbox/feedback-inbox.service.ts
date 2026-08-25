@@ -27,6 +27,7 @@ import type {
   FeedbackListResponse,
   FeedbackAttachmentResponse
 } from "./feedback-inbox.types.js";
+import { supportedOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 
 export type FeedbackActor = {
   userId: string;
@@ -40,15 +41,7 @@ export type FeedbackMembershipContext = {
 };
 
 const MESSAGE_PREVIEW_LENGTH = 180;
-const EXTERNAL_FEEDBACK_CHANNELS: FeedbackChannel[] = [
-  "WHATSAPP",
-  "INSTAGRAM",
-  "X",
-  "GOOGLE_REVIEW",
-  "EMAIL",
-  "FACEBOOK",
-  "OTHER"
-];
+const EXTERNAL_FEEDBACK_CHANNELS: FeedbackChannel[] = ["WHATSAPP", "EMAIL"];
 
 const FEEDBACK_SELECT_LIST = {
   id: true,
@@ -135,6 +128,7 @@ export function buildFeedbackWhereClause(
     ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
   };
   const andFilters: Prisma.FeedbackWhereInput[] = [];
+  andFilters.push(supportedOperationalFeedbackWhere());
 
   if (query.branchId) {
     where.branchId = query.branchId;
@@ -217,7 +211,10 @@ export function buildFeedbackWhereClause(
 
   if (query.search) {
     const normalizedSearch = normalizeSearchInput(query.search, 200);
-    if (!normalizedSearch) return where;
+    if (!normalizedSearch) {
+      where.AND = andFilters;
+      return where;
+    }
     const text = normalizedSearch.text;
     const email = normalizedSearch.email ?? text.toLowerCase();
     const phone = normalizedSearch.phone ?? text;

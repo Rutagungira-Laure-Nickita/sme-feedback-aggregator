@@ -7,12 +7,7 @@ const feedbackChannelSchema = z.enum([
   "PUBLIC_FORM",
   "QR_CODE",
   "WHATSAPP",
-  "INSTAGRAM",
-  "X",
-  "GOOGLE_REVIEW",
-  "EMAIL",
-  "FACEBOOK",
-  "OTHER"
+  "EMAIL"
 ]);
 
 export const feedbackEditSchema = z
@@ -61,6 +56,7 @@ const bulkFilterSchema = z.object({
 export const feedbackSelectionSchema = z
   .object({
     feedbackIds: z.array(z.string().min(1)).max(5_000).optional(),
+    excludedFeedbackIds: z.array(z.string().min(1)).max(5_000).optional(),
     allMatching: z.boolean().optional(),
     filters: bulkFilterSchema.optional()
   })
@@ -69,6 +65,10 @@ export const feedbackSelectionSchema = z
       value.allMatching === true ||
       Boolean(value.feedbackIds && value.feedbackIds.length),
     "Select at least one feedback record."
+  )
+  .refine(
+    (value) => value.allMatching === true || !value.excludedFeedbackIds?.length,
+    "Excluded feedback records are only valid with an all-matching selection."
   );
 
 export const bulkStatusSchema = z.object({

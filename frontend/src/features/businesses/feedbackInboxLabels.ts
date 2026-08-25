@@ -30,7 +30,7 @@ export function getChannelLabel(channel: string): string {
     case "GOOGLE_REVIEW":
       return "Google Review";
     case "EMAIL":
-      return "Email";
+      return "Gmail";
     case "FACEBOOK":
       return "Facebook";
     case "OTHER":

@@ -1,5 +1,11 @@
 # Database Notes
 
+## Supported-Channel Correction Database Impact
+
+No Prisma schema, migration, enum, column, index, or stored production/development row was changed. Historical Demo, Outlook, Google Reviews, X, Facebook, and Instagram connections, synchronization runs, webhook deliveries, and feedback remain physically retained for audit and compatibility; operational queries exclude them through application predicates. Do not delete or rewrite these rows as part of rollout.
+
+The existing nullable `IntegrationConnection.synchronizationFolder` field stores the configured Gmail label, defaulting in service behavior to `Customer Feedback`; this is non-secret configuration and requires no migration. Changing it clears the Gmail cursor through existing fields. Fresh development seed now creates no integration fixtures and only native Manual Entry/Public Form/QR Code feedback fixtures; existing historical rows are not cleaned up when seed logic is inspected or rerun. The previously created `20260821120000_final_product_hardening` migration remains pending and immutable; this correction neither applies nor edits it.
+
 ## Final Product Hardening Database Impact
 
 Migration `20260821120000_final_product_hardening` is created and intentionally not applied by Codex. It must be applied with the normal deployment migration workflow before this backend version serves traffic. It does not rewrite or remove existing feedback/provider data.

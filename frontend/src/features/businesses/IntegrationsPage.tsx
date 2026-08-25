@@ -28,6 +28,8 @@ import {
 import { useMemo, useState, type ReactNode } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { normalizeApiError } from "../../api/axios.js";
+import { useCollectionView } from "../../components/collection-view/useCollectionView.js";
+import type { CollectionView } from "../../components/collection-view/collection-view.js";
 import {
   Dialog,
   DialogClose,
@@ -104,7 +106,7 @@ const INPUT_CLASS =
 const PROVIDER_LABELS: Record<IntegrationProvider, string> = {
   GOOGLE_REVIEWS: "Google Reviews",
   WHATSAPP: "WhatsApp",
-  EMAIL: "Email",
+  EMAIL: "Gmail",
   X: "X",
   FACEBOOK: "Facebook",
   INSTAGRAM: "Instagram"
@@ -155,6 +157,7 @@ type ConnectionFormState = {
   providerAccountLabel: string;
   providerAccountType: string;
   temporaryAccessToken: string;
+  gmailFeedbackLabel: string;
   displayName: string;
   defaultBranchId: string;
   liveDisclosureAccepted: boolean;
@@ -194,7 +197,7 @@ export function IntegrationsPage(): JSX.Element {
     liveEmailProviderParam === "outlook" ? "Outlook" : "Gmail";
   const oauthNotice =
     liveEmailStatus === "connected"
-      ? `${liveEmailProviderName} Live Email connected. You can test the connection or run a manual Inbox sync.`
+      ? `${liveEmailProviderName} connected. You can test the connection or sync messages carrying the configured Customer Feedback label.`
       : liveEmailStatus === "error"
         ? `${liveEmailProviderName} authorization needs attention${
             liveEmailErrorCode ? `: ${friendlyCode(liveEmailErrorCode)}` : "."
@@ -335,6 +338,10 @@ export function IntegrationsPage(): JSX.Element {
       }),
     [allConnections, branchId, provider, providerCapabilities, search, status]
   );
+  const collectionView = useCollectionView(
+    `business-${businessId ?? "unknown"}-integrations`,
+    providerCards.length
+  );
 
   const invalidateIntegrations = () => {
     void queryClient.invalidateQueries({
@@ -364,7 +371,8 @@ export function IntegrationsPage(): JSX.Element {
           providerAccountId: formState.providerAccountId.trim() || undefined,
           providerAccountLabel: formState.providerAccountLabel.trim() || undefined,
           providerAccountType: formState.providerAccountType.trim() || undefined,
-          temporaryAccessToken: formState.temporaryAccessToken.trim() || undefined
+          temporaryAccessToken: formState.temporaryAccessToken.trim() || undefined,
+          gmailFeedbackLabel: formState.gmailFeedbackLabel.trim() || undefined
         });
       }
       return createIntegrationConnection(businessId ?? "", {
@@ -380,7 +388,8 @@ export function IntegrationsPage(): JSX.Element {
         providerAccountId: formState.providerAccountId.trim() || undefined,
         providerAccountLabel: formState.providerAccountLabel.trim() || undefined,
         providerAccountType: formState.providerAccountType.trim() || undefined,
-        temporaryAccessToken: formState.temporaryAccessToken.trim() || undefined
+        temporaryAccessToken: formState.temporaryAccessToken.trim() || undefined,
+        gmailFeedbackLabel: formState.gmailFeedbackLabel.trim() || undefined
       });
     },
     onSuccess(result) {
@@ -594,6 +603,8 @@ export function IntegrationsPage(): JSX.Element {
               connections={allConnections}
               branches={branches}
               isLoading={providersQuery.isLoading || connectionsQuery.isLoading}
+              view={collectionView.view}
+              onViewChange={collectionView.setView}
               expandedActionsId={expandedActionsId}
               onToggleActions={(id) =>
                 setExpandedActionsId((current) => (current === id ? null : id))
@@ -737,6 +748,8 @@ function ProviderConnectionGrid({
   connections,
   branches,
   isLoading,
+  view,
+  onViewChange,
   expandedActionsId,
   onToggleActions,
   onConnect,
@@ -749,6 +762,8 @@ function ProviderConnectionGrid({
   connections: IntegrationConnection[];
   branches: BranchSummary[];
   isLoading: boolean;
+  view: CollectionView;
+  onViewChange: (view: CollectionView) => void;
   expandedActionsId: string | null;
   onToggleActions: (id: string) => void;
   onConnect: (state: ConnectionFormState) => void;
@@ -769,18 +784,36 @@ function ProviderConnectionGrid({
           </p>
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-md border border-app-border bg-app-surface p-1 text-xs font-black text-app-text-muted dark:bg-[rgb(10,25,51)]">
-          <span className="inline-flex min-h-9 items-center gap-2 rounded-md bg-app-primary-soft px-3 text-app-primary">
+          <button
+            type="button"
+            onClick={() => onViewChange("grid")}
+            aria-pressed={view === "grid"}
+            className={`inline-flex min-h-9 items-center gap-2 rounded-md px-3 transition ${
+              view === "grid"
+                ? "bg-app-primary-soft text-app-primary"
+                : "hover:bg-app-surface-muted hover:text-app-text"
+            }`}
+          >
             <BarChart3 className="h-4 w-4" aria-hidden="true" />
             Grid View
-          </span>
-          <span className="hidden min-h-9 items-center gap-2 px-3 sm:inline-flex">
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewChange("list")}
+            aria-pressed={view === "list"}
+            className={`inline-flex min-h-9 items-center gap-2 rounded-md px-3 transition ${
+              view === "list"
+                ? "bg-app-primary-soft text-app-primary"
+                : "hover:bg-app-surface-muted hover:text-app-text"
+            }`}
+          >
             <Table2 className="h-4 w-4" aria-hidden="true" />
             Table View
-          </span>
+          </button>
         </div>
       </div>
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={view === "grid" ? "grid gap-4 md:grid-cols-2" : "grid gap-4"}>
           {BUSINESS_OWNER_VISIBLE_LIVE_PROVIDERS.map((item) => (
             <SkeletonCard key={item.label} />
           ))}
@@ -790,6 +823,17 @@ function ProviderConnectionGrid({
           icon={<CircleOff className="h-6 w-6" aria-hidden="true" />}
           title="No integrations match your filters"
           description="Adjust search, provider, status, or branch filters to see available Live connections."
+        />
+      ) : view === "list" ? (
+        <ProviderConnectionTable
+          providers={providers}
+          connections={connections}
+          branches={branches}
+          onConnect={onConnect}
+          onEdit={onEdit}
+          onAction={onAction}
+          onHistory={onHistory}
+          isMutating={isMutating}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -848,6 +892,260 @@ function ProviderConnectionGrid({
   );
 }
 
+function ProviderConnectionTable({
+  providers,
+  connections,
+  branches,
+  onConnect,
+  onEdit,
+  onAction,
+  onHistory,
+  isMutating
+}: {
+  providers: IntegrationProviderCapability[];
+  connections: IntegrationConnection[];
+  branches: BranchSummary[];
+  onConnect: (state: ConnectionFormState) => void;
+  onEdit: (connection: IntegrationConnection) => void;
+  onAction: (connection: IntegrationConnection, action: ConnectionAction) => void;
+  onHistory: (connection: IntegrationConnection) => void;
+  isMutating: boolean;
+}): JSX.Element {
+  const rows = providers.map((provider) => ({
+    provider,
+    connection:
+      connections.find(
+        (connection) =>
+          connection.provider === provider.provider &&
+          connection.mode === provider.mode &&
+          (provider.provider !== "EMAIL" || connection.liveProviderType === "GMAIL")
+      ) ?? provider.connection
+  }));
+
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-app-border bg-app-surface dark:bg-[rgb(10,25,51)]">
+      <div className="hidden overflow-x-auto md:block">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-app-border bg-app-surface-muted/70 text-xs font-black uppercase tracking-wide text-app-text-muted">
+            <tr>
+              <th className="px-4 py-3">Provider</th>
+              <th className="px-4 py-3">Connection</th>
+              <th className="px-4 py-3">Branch</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Imported</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-app-border">
+            {rows.map(({ provider, connection }) => (
+              <tr key={providerModeKey(provider.provider, provider.mode)}>
+                <td className="px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <ProviderIcon provider={provider.provider} size="sm" />
+                    <p className="font-black">
+                      {provider.provider === "EMAIL"
+                        ? "Gmail"
+                        : providerLabel(provider.provider)}
+                    </p>
+                  </div>
+                </td>
+                <td className="max-w-[15rem] px-4 py-4">
+                  <p className="truncate font-bold">
+                    {connection?.displayName ?? "Not connected"}
+                  </p>
+                  {provider.provider === "EMAIL" ? (
+                    <p className="mt-1 truncate text-xs font-semibold text-app-text-muted">
+                      Label: {connection?.gmailFeedbackLabel ?? "Customer Feedback"}
+                    </p>
+                  ) : null}
+                </td>
+                <td className="px-4 py-4 font-semibold text-app-text-muted">
+                  {connection?.defaultBranch?.name ?? "-"}
+                </td>
+                <td className="px-4 py-4">
+                  <StatusPill status={connection?.status ?? "DISCONNECTED"} />
+                </td>
+                <td className="px-4 py-4 text-right font-black">
+                  {connection?.totalImported ?? 0}
+                </td>
+                <td className="px-4 py-4">
+                  <IntegrationRowActions
+                    provider={provider}
+                    connection={connection}
+                    branches={branches}
+                    onConnect={onConnect}
+                    onEdit={onEdit}
+                    onAction={onAction}
+                    onHistory={onHistory}
+                    isMutating={isMutating}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="divide-y divide-app-border md:hidden">
+        {rows.map(({ provider, connection }) => (
+          <article
+            key={providerModeKey(provider.provider, provider.mode)}
+            className="min-w-0 p-4"
+          >
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <ProviderIcon provider={provider.provider} size="sm" />
+                <div className="min-w-0">
+                  <p className="truncate font-black">
+                    {provider.provider === "EMAIL"
+                      ? "Gmail"
+                      : providerLabel(provider.provider)}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-semibold text-app-text-muted">
+                    {connection?.displayName ?? "Not connected"}
+                  </p>
+                </div>
+              </div>
+              <StatusPill status={connection?.status ?? "DISCONNECTED"} />
+            </div>
+            <dl className="mt-4 grid gap-2 text-sm">
+              <MetaRow
+                label="Branch"
+                value={connection?.defaultBranch?.name ?? "-"}
+                muted={!connection?.defaultBranch}
+              />
+              {provider.provider === "EMAIL" ? (
+                <MetaRow
+                  label="Feedback label"
+                  value={connection?.gmailFeedbackLabel ?? "Customer Feedback"}
+                />
+              ) : null}
+              <MetaRow label="Imported" value={String(connection?.totalImported ?? 0)} />
+            </dl>
+            <div className="mt-4">
+              <IntegrationRowActions
+                provider={provider}
+                connection={connection}
+                branches={branches}
+                onConnect={onConnect}
+                onEdit={onEdit}
+                onAction={onAction}
+                onHistory={onHistory}
+                isMutating={isMutating}
+              />
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IntegrationRowActions({
+  provider,
+  connection,
+  branches,
+  onConnect,
+  onEdit,
+  onAction,
+  onHistory,
+  isMutating
+}: {
+  provider: IntegrationProviderCapability;
+  connection: IntegrationConnection | null;
+  branches: BranchSummary[];
+  onConnect: (state: ConnectionFormState) => void;
+  onEdit: (connection: IntegrationConnection) => void;
+  onAction: (connection: IntegrationConnection, action: ConnectionAction) => void;
+  onHistory: (connection: IntegrationConnection) => void;
+  isMutating: boolean;
+}): JSX.Element {
+  const running = connection?.latestRun ? isRunInProgress(connection.latestRun) : false;
+  const primary = getPrimaryAction(
+    connection?.status ?? "DISCONNECTED",
+    Boolean(connection),
+    running,
+    { liveWebhookDriven: provider.provider === "WHATSAPP" }
+  );
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <SmallButton
+        tone={primary.tone}
+        disabled={
+          isMutating ||
+          Boolean(primary.disabled) ||
+          !provider.liveAvailable ||
+          (!connection && branches.length === 0)
+        }
+        onClick={() =>
+          connection
+            ? onAction(connection, primary.action)
+            : onConnect(createForm(provider, branches, "GMAIL"))
+        }
+      >
+        {primary.icon}
+        {connection
+          ? primary.label
+          : `Connect ${provider.provider === "EMAIL" ? "Gmail" : "WhatsApp"}`}
+      </SmallButton>
+      {connection ? (
+        <>
+          <SmallButton tone="secondary" onClick={() => onHistory(connection)}>
+            <History className="h-4 w-4" aria-hidden="true" />
+            Activity
+          </SmallButton>
+          <details className="relative">
+            <summary className="flex h-10 cursor-pointer list-none items-center justify-center rounded-md border border-app-border px-3 text-xs font-black text-app-text-muted hover:bg-app-surface-muted">
+              More
+            </summary>
+            <div className="mt-2 grid w-48 gap-2 rounded-lg border border-app-border bg-app-surface p-3 shadow-panel dark:bg-[rgb(10,25,51)]">
+              <SmallButton tone="secondary" onClick={() => onEdit(connection)}>
+                <Settings2 className="h-4 w-4" aria-hidden="true" />
+                Edit
+              </SmallButton>
+              <SmallButton
+                tone="secondary"
+                onClick={() => onAction(connection, "test")}
+                disabled={isMutating}
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Test
+              </SmallButton>
+              <SmallButton
+                tone="secondary"
+                onClick={() =>
+                  onAction(
+                    connection,
+                    connection.status === "PAUSED"
+                      ? "resume"
+                      : connection.status === "DISCONNECTED"
+                        ? "reconnect"
+                        : "pause"
+                  )
+                }
+                disabled={isMutating}
+              >
+                {connection.status === "PAUSED"
+                  ? "Resume"
+                  : connection.status === "DISCONNECTED"
+                    ? "Reconnect"
+                    : "Pause"}
+              </SmallButton>
+              <SmallButton
+                tone="secondary"
+                onClick={() => onAction(connection, "disconnect")}
+                disabled={isMutating || connection.status === "DISCONNECTED"}
+              >
+                <Unplug className="h-4 w-4" aria-hidden="true" />
+                Disconnect
+              </SmallButton>
+            </div>
+          </details>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function EmailLiveConnectionCard({
   provider,
   connections,
@@ -901,7 +1199,7 @@ function EmailLiveConnectionCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 grid flex-1 gap-3">
         {providerTypes.map((emailProviderType) => {
           const connection =
             connections.find((item) => item.liveProviderType === emailProviderType) ??
@@ -916,7 +1214,7 @@ function EmailLiveConnectionCard({
           return (
             <div
               key={emailProviderType}
-              className="rounded-lg border border-app-border bg-app-surface-muted/60 p-3 dark:bg-white/5"
+              className="flex min-h-0 flex-col rounded-lg border border-app-border bg-app-surface-muted/60 p-3 dark:bg-white/5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -936,6 +1234,10 @@ function EmailLiveConnectionCard({
                       label="Mailbox"
                       value={connection?.providerAccountLabel ?? "Authorization required"}
                       muted={!connection?.providerAccountLabel}
+                    />
+                    <MetaRow
+                      label="Feedback label"
+                      value={connection?.gmailFeedbackLabel ?? "Customer Feedback"}
                     />
                     <MetaRow
                       label="Last sync"
@@ -967,39 +1269,6 @@ function EmailLiveConnectionCard({
                   {friendlyCode(connection.lastErrorCode)}
                 </p>
               ) : null}
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <SmallButton
-                  tone={primary.tone}
-                  onClick={() => {
-                    if (!connection) {
-                      onConnect(createForm(provider, branches, emailProviderType));
-                      return;
-                    }
-                    onAction(connection, primary.action);
-                  }}
-                  disabled={
-                    isMutating ||
-                    Boolean(primary.disabled) ||
-                    !provider.liveAvailable ||
-                    (!connection && branches.length === 0) ||
-                    (connection?.status === "CONNECTED" &&
-                      primary.action === "sync" &&
-                      running)
-                  }
-                >
-                  {primary.icon}
-                  {!connection
-                    ? `Connect ${emailProviderTypeLabel(emailProviderType)}`
-                    : primary.label}
-                </SmallButton>
-                {connection ? (
-                  <SmallButton tone="secondary" onClick={() => onHistory(connection)}>
-                    <History className="h-4 w-4" aria-hidden="true" />
-                    View Activity
-                  </SmallButton>
-                ) : null}
-              </div>
 
               {expandedActionsId === rowId ? (
                 <div className="mt-3 grid gap-2 rounded-lg border border-app-border bg-app-surface p-3 text-sm dark:bg-[rgb(10,25,51)]">
@@ -1053,20 +1322,65 @@ function EmailLiveConnectionCard({
                     </>
                   ) : (
                     <p className="text-xs font-semibold leading-5 text-app-text-muted">
-                      Connect {emailProviderTypeLabel(emailProviderType)} with OAuth to
-                      import Inbox messages manually.
+                      Connect Gmail with OAuth to import only Inbox messages carrying the
+                      Customer Feedback label.
                     </p>
                   )}
                 </div>
               ) : null}
+
+              <div className="mt-auto border-t border-app-border pt-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricTile label="Imported" value={connection?.totalImported ?? 0} />
+                  <MetricTile
+                    label="Last result"
+                    value={
+                      latestRun?.safeSummary ??
+                      (connection?.lastSuccessfulSyncAt
+                        ? formatDate(connection.lastSuccessfulSyncAt)
+                        : "-")
+                    }
+                  />
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <SmallButton
+                    tone={primary.tone}
+                    onClick={() => {
+                      if (!connection) {
+                        onConnect(createForm(provider, branches, emailProviderType));
+                        return;
+                      }
+                      onAction(connection, primary.action);
+                    }}
+                    disabled={
+                      isMutating ||
+                      Boolean(primary.disabled) ||
+                      !provider.liveAvailable ||
+                      (!connection && branches.length === 0) ||
+                      (connection?.status === "CONNECTED" &&
+                        primary.action === "sync" &&
+                        running)
+                    }
+                  >
+                    {primary.icon}
+                    {!connection
+                      ? `Connect ${emailProviderTypeLabel(emailProviderType)}`
+                      : primary.label}
+                  </SmallButton>
+                  {connection ? (
+                    <SmallButton tone="secondary" onClick={() => onHistory(connection)}>
+                      <History className="h-4 w-4" aria-hidden="true" />
+                      View Activity
+                    </SmallButton>
+                  ) : null}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-auto border-t border-app-border pt-4">
-        <MetricTile label="Imported" value={totalImported} />
-      </div>
+      <span className="sr-only">{totalImported} Gmail feedback records imported</span>
     </article>
   );
 }
@@ -1307,7 +1621,8 @@ function ProviderConnectionCard({
                 {isLiveWebhook ? (
                   <p className="rounded-md bg-app-surface px-3 py-2 text-xs font-semibold leading-5 text-app-text-muted ring-1 ring-app-border dark:bg-white/5">
                     Live {providerLabel(provider.provider)} receives inbound events from
-                    signed Meta webhooks. Sync Now is unavailable for this connection.
+                    signed Meta webhooks. Sync Now refreshes the read-only activity view;
+                    messages continue to arrive automatically through the webhook.
                   </p>
                 ) : null}
                 <SmallButton
@@ -1325,7 +1640,7 @@ function ProviderConnectionCard({
                   ? "Connect Meta WhatsApp Cloud API to import signed inbound text webhooks."
                   : isLiveSocial
                     ? `Connect Live ${providerLabel(provider.provider)} to import signed Meta comment webhooks.`
-                    : "Connect Gmail with OAuth to import Inbox messages manually."}
+                    : "Connect Gmail with OAuth to import labeled customer feedback manually."}
               </p>
             )}
           </div>
@@ -1937,7 +2252,8 @@ function ConnectIntegrationDialog({
                     <p className="rounded-lg border border-app-border bg-app-surface-muted/60 p-3 text-xs font-semibold leading-5 text-app-text-muted dark:bg-white/5">
                       Webhook verification uses the backend verify token and
                       X-Hub-Signature-256 validation with the configured Meta App Secret.
-                      Sync Now is not available for Live WhatsApp.
+                      Sync Now refreshes the read-only webhook activity view. Inbound
+                      messages continue to arrive automatically through signed webhooks.
                     </p>
                   </>
                 ) : isLiveSocial ? (
@@ -2028,10 +2344,26 @@ function ConnectIntegrationDialog({
                     </p>
                   </>
                 ) : (
-                  <p className="rounded-lg border border-app-border bg-app-surface-muted/60 p-3 text-xs font-semibold leading-5 text-app-text-muted dark:bg-white/5">
-                    {liveEmailLabel} Live Email uses the Inbox folder only, imports up to
-                    20 messages per manual run, and stores attachment metadata only.
-                  </p>
+                  <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-3 text-xs font-semibold leading-5 text-app-text-muted dark:bg-white/5">
+                    <label className="block text-sm font-bold text-app-text">
+                      <span>Gmail feedback label</span>
+                      <input
+                        value={state.gmailFeedbackLabel}
+                        onChange={(event) =>
+                          onChange({ ...state, gmailFeedbackLabel: event.target.value })
+                        }
+                        className={`mt-2 ${INPUT_CLASS}`}
+                        maxLength={80}
+                        placeholder="Customer Feedback"
+                      />
+                    </label>
+                    <span className="mt-3 block">
+                      Gmail imports only Inbox messages carrying this label, up to 20
+                      eligible messages per manual run. Automated, bulk, newsletter, and
+                      promotional messages are skipped; attachment metadata only is
+                      stored.
+                    </span>
+                  </div>
                 )}
               </div>
             ) : null}
@@ -2094,7 +2426,13 @@ function ConnectIntegrationDialog({
                       ) : null}
                     </>
                   ) : (
-                    <ReviewRow label="Provider" value={liveEmailLabel} />
+                    <>
+                      <ReviewRow label="Provider" value={liveEmailLabel} />
+                      <ReviewRow
+                        label="Feedback label"
+                        value={state.gmailFeedbackLabel || "Customer Feedback"}
+                      />
+                    </>
                   )}
                 </div>
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-100">
@@ -2717,6 +3055,7 @@ function createForm(
     providerAccountType:
       capability.mode === "LIVE" && capability.provider === "INSTAGRAM" ? "BUSINESS" : "",
     temporaryAccessToken: "",
+    gmailFeedbackLabel: "Customer Feedback",
     displayName: defaultConnectionName(capability, branches, liveEmailProviderType),
     defaultBranchId: branches[0]?.id ?? "",
     liveDisclosureAccepted: false
@@ -2738,6 +3077,7 @@ function editForm(connection: IntegrationConnection): ConnectionFormState {
     providerAccountLabel: connection.providerAccountLabel ?? "",
     providerAccountType: "",
     temporaryAccessToken: "",
+    gmailFeedbackLabel: connection.gmailFeedbackLabel ?? "Customer Feedback",
     displayName: connection.displayName,
     defaultBranchId: connection.defaultBranch?.id ?? "",
     liveDisclosureAccepted: connection.mode === "LIVE"
@@ -2889,7 +3229,7 @@ function getPrimaryAction(
   }
   if (options.liveWebhookDriven && status === "CONNECTED") {
     return {
-      label: "Refresh Activity",
+      label: "Sync Now",
       action: "refresh",
       tone: "primary",
       icon: <RefreshCw className="h-4 w-4" aria-hidden="true" />

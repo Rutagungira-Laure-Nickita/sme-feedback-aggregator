@@ -1,5 +1,11 @@
 # Deployment
 
+## Supported-Channel Correction Deployment Notes
+
+This correction adds no package, Prisma schema change, migration, environment variable, OAuth scope, provider credential, webhook secret, queue, or storage requirement. Deploy backend and frontend together so the server-side supported-provider policy and client options/actions remain aligned. The separate pending migration `20260821120000_final_product_hardening` must still be applied through the normal migration workflow before serving that hardening release; do not reset, db-push, reseed, or delete historical integration rows.
+
+Before Gmail smoke testing, create the configured label (default `Customer Feedback`) in the connected Gmail mailbox and apply it only to intended customer feedback. Verify labeled genuine mail imports, unlabeled/automated mail does not, a missing label returns a safe configuration error, and an incremental rerun remains duplicate-safe. Verify signed WhatsApp webhook ingestion still works and that its visible `Sync Now` action only refreshes stored activity. After rollout, spot-check owner/admin/customer views and downloaded reports for the five supported channels only. No Meta social or Outlook webhook/OAuth configuration should be enabled for normal product use.
+
 ## Final Product Hardening Deployment Notes
 
 Deploy the migration before starting the updated backend, then deploy backend and frontend together:

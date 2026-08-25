@@ -31,6 +31,7 @@ import {
   fetchCustomerFeedbackDetail,
   type CustomerFeedback
 } from "./api.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "../businesses/supportedSources.js";
 
 const statusLabels = {
   NEW: "New",
@@ -38,18 +39,9 @@ const statusLabels = {
   RESOLVED: "Resolved",
   CLOSED: "Closed"
 } as const;
-const channelLabels: Record<string, string> = {
-  MANUAL: "Manual",
-  PUBLIC_FORM: "Public Form",
-  QR_CODE: "QR Code",
-  WHATSAPP: "WhatsApp",
-  EMAIL: "Email",
-  INSTAGRAM: "Instagram",
-  FACEBOOK: "Facebook",
-  GOOGLE_REVIEW: "Google Review",
-  X: "X",
-  OTHER: "Other"
-};
+const channelLabels: Record<string, string> = Object.fromEntries(
+  OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => [option.value, option.label])
+);
 
 export function CustomerDashboardPage({
   section = "dashboard"

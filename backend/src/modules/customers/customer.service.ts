@@ -20,6 +20,7 @@ import {
   type CustomerIdentityInput
 } from "./customer-normalization.js";
 import { normalizeSearchInput } from "../../utils/search-normalization.js";
+import { supportedOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 import { customerMatchingService, toMatchSummary } from "./customer-matching.service.js";
 import type {
   CreateCustomerFromFeedbackInput,
@@ -249,7 +250,8 @@ function buildLinkedFeedbackWhere(
   const branchScope = feedbackBranchWhere(context);
   const where: Prisma.FeedbackWhereInput = {
     businessId: context.businessId,
-    ...branchScope
+    ...branchScope,
+    AND: [supportedOperationalFeedbackWhere()]
   };
 
   if (query.branchId && isBranchIdAllowed(context, query.branchId)) {
@@ -679,7 +681,8 @@ function buildCustomerFeedbackWhere(
   const where: Prisma.FeedbackWhereInput = {
     businessId,
     customerId,
-    ...feedbackBranchWhere(context)
+    ...feedbackBranchWhere(context),
+    AND: [supportedOperationalFeedbackWhere()]
   };
   const search = normalizeSearchInput(query.search, 160);
 
@@ -1165,7 +1168,8 @@ async function loadCustomerAggregates(
   const where = {
     businessId: context.businessId,
     customerId: { in: customerIds },
-    ...feedbackBranchWhere(context)
+    ...feedbackBranchWhere(context),
+    AND: [supportedOperationalFeedbackWhere()]
   } satisfies Prisma.FeedbackWhereInput;
 
   const [overall, branchGroups, channelGroups] = await Promise.all([

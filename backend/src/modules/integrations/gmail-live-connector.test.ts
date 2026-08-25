@@ -24,7 +24,7 @@ const context: IntegrationConnectionContext = {
   liveProviderType: EmailProviderType.GMAIL,
   providerAccountId: "support@example.com",
   providerAccountLabel: "su***@example.com",
-  synchronizationFolder: "INBOX",
+  synchronizationFolder: "Customer Feedback",
   lastProviderCursor: null
 };
 
@@ -69,6 +69,8 @@ test("gmail parser prefers plain text and records attachment metadata only", () 
   assert.equal(item.metadata.liveProviderType, EmailProviderType.GMAIL);
   assert.equal(item.metadata.hasRfcMessageId, true);
   assert.equal(typeof item.metadata.rfcMessageIdHash, "string");
+  assert.equal(item.metadata.feedbackLabel, "Customer Feedback");
+  assert.equal(item.skipReason, undefined);
 });
 
 test("gmail parser converts html-only email to text without embedded script or images", () => {
@@ -126,6 +128,58 @@ test("gmail live connector normalizes parsed messages for the feedback pipeline"
   assert.equal(normalized.metadata?.liveMode, true);
   assert.equal(preview.demoMode, false);
   assert.equal(preview.liveMode, true);
+});
+
+test("gmail eligibility requires both Inbox and configured feedback labels", () => {
+  assert.equal(
+    gmailLiveConnectorTestUtils.hasRequiredGmailLabels(
+      { labelIds: ["INBOX", "Label_42"] },
+      "Label_42"
+    ),
+    true
+  );
+  assert.equal(
+    gmailLiveConnectorTestUtils.hasRequiredGmailLabels(
+      { labelIds: ["INBOX"] },
+      "Label_42"
+    ),
+    false
+  );
+  assert.equal(
+    gmailLiveConnectorTestUtils.hasRequiredGmailLabels(
+      { labelIds: ["Label_42"] },
+      "Label_42"
+    ),
+    false
+  );
+});
+
+test("gmail safeguards skip automated newsletters while allowing genuine senders", () => {
+  const genuine = new Map([
+    ["from", '"Ada Customer" <ada@example.com>'],
+    ["subject", "Service feedback"]
+  ]);
+  const newsletter = new Map([
+    ["from", "news@example.com"],
+    ["list-unsubscribe", "<mailto:unsubscribe@example.com>"],
+    ["precedence", "bulk"]
+  ]);
+
+  assert.equal(
+    gmailLiveConnectorTestUtils.automatedGmailMessageReason(genuine, ["INBOX"]),
+    null
+  );
+  assert.match(
+    gmailLiveConnectorTestUtils.automatedGmailMessageReason(newsletter, [
+      "INBOX",
+      "CATEGORY_PROMOTIONS"
+    ]) ?? "",
+    /skipped/i
+  );
+  assert.equal(
+    gmailLiveConnectorTestUtils.resolveGmailFeedbackLabel(" INBOX "),
+    "Customer Feedback"
+  );
 });
 
 function encodeBody(value: string): string {

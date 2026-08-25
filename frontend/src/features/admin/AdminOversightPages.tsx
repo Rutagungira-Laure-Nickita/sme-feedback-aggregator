@@ -21,6 +21,10 @@ import { AppSelectField } from "../../components/ui/select-field.js";
 import { AdminShell, EmptyState, WorkspacePanel } from "../businesses/components.js";
 import { formatRole } from "../businesses/format.js";
 import {
+  OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS,
+  SUPPORTED_LIVE_INTEGRATION_OPTIONS
+} from "../businesses/supportedSources.js";
+import {
   applyAdminIntegrationAction,
   applyAdminUserAction,
   fetchAdminFeedback,
@@ -52,22 +56,11 @@ import {
 
 const USER_ROLES = ["PLATFORM_ADMIN", "BUSINESS_OWNER", "STAFF", "CUSTOMER"];
 const ACCOUNT_STATUSES = ["ACTIVE", "SUSPENDED", "DISABLED"];
-const CHANNELS = [
-  "MANUAL",
-  "PUBLIC_FORM",
-  "QR_CODE",
-  "WHATSAPP",
-  "EMAIL",
-  "GOOGLE_REVIEW",
-  "FACEBOOK",
-  "INSTAGRAM",
-  "X",
-  "OTHER"
-];
+const CHANNELS = OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => option.value);
 const FEEDBACK_STATUSES = ["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"];
 const PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const SENTIMENTS = ["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"];
-const PROVIDERS = ["GOOGLE_REVIEWS", "WHATSAPP", "EMAIL", "X", "FACEBOOK", "INSTAGRAM"];
+const PROVIDERS = SUPPORTED_LIVE_INTEGRATION_OPTIONS.map((option) => option.value);
 
 export function AdminUsersPage(): JSX.Element {
   const [search, setSearch] = useState("");
@@ -355,12 +348,6 @@ export function AdminIntegrationsPage(): JSX.Element {
           value={filters.provider ?? ""}
           onChange={(value) => update("provider", value)}
           options={PROVIDERS}
-        />
-        <SelectFilter
-          label="Mode"
-          value={filters.mode ?? ""}
-          onChange={(value) => update("mode", value)}
-          options={["LIVE", "DEMO"]}
         />
         <SelectFilter
           label="Status"
@@ -934,7 +921,6 @@ function AdminIntegrationCard({
   view: CollectionView;
 }) {
   const [open, setOpen] = useState(false);
-  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const queryClient = useQueryClient();
   const detail = useQuery({
     queryKey: ["admin", "integrations", item.id, "detail"],
@@ -949,7 +935,6 @@ function AdminIntegrationCard({
       void queryClient.invalidateQueries({
         queryKey: ["admin", "integrations", item.id, "detail"]
       });
-      setConfirmDisconnect(false);
     }
   });
   const lastActivity =
@@ -969,7 +954,9 @@ function AdminIntegrationCard({
         </div>
         <h2 className="mt-3 break-words text-base font-black">
           {formatRole(item.provider)}
-          {item.liveProviderType ? ` · ${formatRole(item.liveProviderType)}` : ""}
+          {item.liveProviderType && item.provider !== "EMAIL"
+            ? ` · ${formatRole(item.liveProviderType)}`
+            : ""}
         </h2>
         <p className="mt-1 break-words text-xs font-semibold text-app-text-muted">
           {item.displayName}
@@ -1033,8 +1020,6 @@ function AdminIntegrationCard({
               detail={detail.data}
               onPause={() => action.mutate("PAUSE")}
               onResume={() => action.mutate("RESUME")}
-              onDisconnect={() => setConfirmDisconnect(true)}
-              isPending={action.isPending}
             />
           ) : null}
           {detail.error || action.error ? (
@@ -1044,15 +1029,6 @@ function AdminIntegrationCard({
           ) : null}
         </AdminDetailModal>
       ) : null}
-      <ConfirmActionModal
-        open={confirmDisconnect}
-        onOpenChange={setConfirmDisconnect}
-        title="Disconnect this Demo connection?"
-        description={`Disconnecting ${item.displayName} stops future Demo synchronization. Existing imported feedback is preserved.`}
-        confirmLabel="Disconnect connection"
-        onConfirm={() => action.mutate("DISCONNECT")}
-        isPending={action.isPending}
-      />
     </article>
   );
 }
@@ -1207,15 +1183,11 @@ function FeedbackModalContent({ detail }: { detail: AdminFeedbackDetail }): JSX.
 function IntegrationModalContent({
   detail,
   onPause,
-  onResume,
-  onDisconnect,
-  isPending
+  onResume
 }: {
   detail: AdminIntegrationDetail;
   onPause: () => void;
   onResume: () => void;
-  onDisconnect: () => void;
-  isPending: boolean;
 }): JSX.Element {
   const lastActivity =
     detail.lastInboundMessageAt ??
@@ -1285,13 +1257,6 @@ function IntegrationModalContent({
           ) : null}
         </div>
       </DetailSection>
-      {detail.mode === "DEMO" && detail.status !== "DISCONNECTED" ? (
-        <DangerZone>
-          <ActionButton danger onClick={onDisconnect}>
-            {isPending ? "Working…" : "Disconnect Demo connection"}
-          </ActionButton>
-        </DangerZone>
-      ) : null}
       <DetailTechnicalSection>
         <DetailField label="Connection ID" value={detail.id} mono copyValue={detail.id} />
         <DetailField
@@ -1339,9 +1304,9 @@ function userConfirmationCopy(
 function humanizeErrorCode(value: string | null | undefined): string {
   if (!value) return "No operational issue reported";
   const known: Record<string, string> = {
-    DEMO_CONNECTION_TEST_FAILED: "Connection test failed"
+    INTEGRATION_PROVIDER_UNSUPPORTED: "Historical provider retained for audit only"
   };
-  return known[value] ?? formatRole(value.replace(/^(DEMO|LIVE)_/, ""));
+  return known[value] ?? formatRole(value.replace(/^LIVE_/, ""));
 }
 
 function processingSectionLabel(value: string): string {

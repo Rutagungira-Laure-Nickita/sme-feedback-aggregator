@@ -182,7 +182,7 @@ test("previous-period owner scope is identical to current except for the date wi
     dateFrom: new Date("2026-08-08T00:00:00.000Z"),
     dateTo: new Date("2026-08-11T23:59:59.999Z"),
     branchId: "branch-1",
-    channel: "INSTAGRAM" as const,
+    channel: "EMAIL" as const,
     status: "NEW" as const,
     sentiment: "POSITIVE" as const,
     comparePreviousPeriod: true

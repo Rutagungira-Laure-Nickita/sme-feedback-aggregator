@@ -1,5 +1,13 @@
 # SME Multi-Channel Customer Feedback Aggregator
 
+## Supported Product Channels and Integration Behavior
+
+The operational product supports exactly five feedback channels: Manual Entry, Public Form, QR Code, Gmail, and WhatsApp. Business integration setup exposes only Live Gmail and Live WhatsApp. Earlier Demo, Outlook, Google Reviews, X, Facebook, and Instagram implementations/records are retained as historical compatibility and audit artifacts, but are excluded from normal owner/customer/admin presentation, filters, dashboards, reports, lifecycle operations, and fresh development seed data.
+
+Gmail synchronizes only messages that are currently in Inbox and carry the configured Gmail label, `Customer Feedback` by default. Common automated, bulk, and newsletter messages are safely skipped. On the Integrations page, Gmail and WhatsApp both present `Sync Now`: Gmail performs real synchronization, while WhatsApp performs a read-only activity refresh because inbound signed webhook delivery is automatic. The collection supports a persisted responsive Grid/Table choice.
+
+Filtered select-all in All Feedback supports per-record exclusions across pages, so the displayed selection state/count and bulk status/category/delete/Remove-all operations use the same actual population. Assignment options show each person's name with their Business role. This correction requires no new migration; the existing pending Final Product Hardening migration remains required. See `NEXT_STEPS.md` for user-run verification.
+
 ## Final Product Hardening + UI/UX Pass
 
 The product now includes professional Owner/Admin feedback management with edit, audited soft-delete, bulk status/category/delete, filtered select-all, strong Remove-all confirmation, and immutable provider/ingestion metadata. Removed feedback is hidden from normal inboxes, dashboards, customer views, AI/automation work, and reports while provider deduplication and history remain preserved.
@@ -72,7 +80,7 @@ System-wide responsive refinement, reusable persisted List/Grid collection views
 
 ## Purpose
 
-This project will centralize customer feedback for SMEs across public forms, QR codes, manual entry, email, Google Reviews, WhatsApp, Instagram, and X.
+This project centralizes customer feedback for SMEs across Manual Entry, Public Form, QR Code, Gmail, and WhatsApp. References below to retired Demo, Outlook, Google Reviews, X, Facebook, or Instagram phases describe historical implementation work and are not current operational product availability.
 
 Phase 1 is complete and manually verified. Phase 2A core email/password authentication, roles, and sessions is complete and manually verified. Phase 2B Google registration, Google login, and secure account linking is complete and manually verified. Phase 2C email verification, forgot password, password reset, and final authentication hardening is complete and manually verified. The Phase 2 login page and remaining Phase 2 authentication/account pages have also been redesigned with premium light/dark theme support and still require manual visual, responsive, and auth-flow verification. The complete public-facing website has been implemented before Phase 3 and manually approved. Phase 3 businesses, branches, staff, invitations, workspace switching, and platform-administrator oversight are implemented and manually verified. Phase 4 standard feedback processing is implemented and manually verified. Phase 5 manual-entry connector backend and frontend are implemented and manually verified. Phase 6 public feedback portal is implemented and manually verified. Phase 7 QR-code feedback submissions are implemented and manually verified.
 

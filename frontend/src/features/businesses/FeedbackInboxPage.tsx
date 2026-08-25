@@ -95,6 +95,8 @@ import {
 } from "./customerApi.js";
 import { CustomerFormModal } from "./CustomerFormModal.js";
 import { fetchMemberships } from "./api/businessApi.js";
+import { formatBusinessRole } from "./format.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "./supportedSources.js";
 import type { BranchSummary, MembershipSummary, MyBusiness } from "./types.js";
 
 type BusinessContext = {
@@ -117,16 +119,7 @@ const PAGE_SIZES = [10, 20, 50];
 
 const CHANNEL_OPTIONS = [
   { value: "", label: "All channels" },
-  { value: "MANUAL", label: "Manual Entry" },
-  { value: "PUBLIC_FORM", label: "Public Form" },
-  { value: "QR_CODE", label: "QR Code" },
-  { value: "GOOGLE_REVIEW", label: "Google Review" },
-  { value: "WHATSAPP", label: "WhatsApp" },
-  { value: "EMAIL", label: "Email" },
-  { value: "X", label: "X" },
-  { value: "FACEBOOK", label: "Facebook" },
-  { value: "INSTAGRAM", label: "Instagram" },
-  { value: "OTHER", label: "Other" }
+  ...OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS
 ] as const;
 
 const ASSIGNEE_OPTIONS = [
@@ -423,7 +416,7 @@ function getChannelLabel(channel: string): string {
     case "GOOGLE_REVIEW":
       return "Google Review";
     case "EMAIL":
-      return "Email";
+      return "Gmail";
     case "FACEBOOK":
       return "Facebook";
     case "OTHER":
@@ -508,7 +501,9 @@ function AssigneeBadge({ assignee }: { assignee: AssigneeInfo | null }): JSX.Ele
       ) : (
         <UserX className="h-3 w-3" aria-hidden="true" />
       )}
-      <span className="truncate max-w-[100px]">{assignee.name}</span>
+      <span className="max-w-[180px] truncate">
+        {assignee.name} — {formatBusinessRole(assignee.role)}
+      </span>
     </span>
   );
 }
@@ -1118,14 +1113,14 @@ function DesktopTable({
   items,
   onSelect,
   canManage,
-  selectedIds,
+  isSelected,
   onToggleSelected,
   onAction
 }: {
   items: FeedbackListItem[];
   onSelect: (id: string) => void;
   canManage: boolean;
-  selectedIds: Set<string>;
+  isSelected: (id: string) => boolean;
   onToggleSelected: (id: string) => void;
   onAction: (action: FeedbackManagementAction, item: FeedbackListItem) => void;
 }): JSX.Element {
@@ -1177,7 +1172,7 @@ function DesktopTable({
                 <td className="py-3 pr-3" onClick={(event) => event.stopPropagation()}>
                   <input
                     type="checkbox"
-                    checked={selectedIds.has(item.id)}
+                    checked={isSelected(item.id)}
                     onChange={() => onToggleSelected(item.id)}
                     className="h-4 w-4 rounded border-app-border text-app-primary focus:ring-app-focus"
                     aria-label={`Select feedback from ${item.customer.name ?? "anonymous"}`}
@@ -1244,7 +1239,7 @@ function MobileCards({
   onSelect,
   view = "list",
   canManage,
-  selectedIds,
+  isSelected,
   onToggleSelected,
   onAction
 }: {
@@ -1252,7 +1247,7 @@ function MobileCards({
   onSelect: (id: string) => void;
   view?: CollectionView;
   canManage: boolean;
-  selectedIds: Set<string>;
+  isSelected: (id: string) => boolean;
   onToggleSelected: (id: string) => void;
   onAction: (action: FeedbackManagementAction, item: FeedbackListItem) => void;
 }): JSX.Element {
@@ -1302,7 +1297,7 @@ function MobileCards({
               {canManage ? (
                 <input
                   type="checkbox"
-                  checked={selectedIds.has(item.id)}
+                  checked={isSelected(item.id)}
                   onChange={() => onToggleSelected(item.id)}
                   className="h-4 w-4 rounded border-app-border text-app-primary"
                   aria-label={`Select feedback from ${item.customer.name ?? "anonymous"}`}
@@ -1902,7 +1897,9 @@ function WorkflowPanel({
             { value: "", label: "Unassigned" },
             ...assignmentOptions.map((assignee) => ({
               value: assignee.membershipId,
-              label: `${assignee.name}${assignee.isAvailable ? "" : " (Unavailable)"}`,
+              label: `${assignee.name} — ${formatBusinessRole(assignee.role)}${
+                assignee.isAvailable ? "" : " (Unavailable)"
+              }`,
               disabled: !assignee.isAvailable
             }))
           ]}
@@ -3090,6 +3087,7 @@ export function FeedbackInboxPage({
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [allMatchingSelected, setAllMatchingSelected] = useState(false);
   const [managementDialog, setManagementDialog] = useState<{
     kind: "edit" | "status" | "category" | "delete" | "deleteAll";
@@ -3341,11 +3339,27 @@ export function FeedbackInboxPage({
     ...selectionFilters
   } = query;
   const selection: FeedbackSelection = allMatchingSelected
-    ? { allMatching: true, filters: selectionFilters }
+    ? {
+        allMatching: true,
+        excludedFeedbackIds: [...excludedIds],
+        filters: selectionFilters
+      }
     : { feedbackIds: [...selectedIds] };
-  const selectedCount = allMatchingSelected ? pagination.totalItems : selectedIds.size;
+  const selectedCount = allMatchingSelected
+    ? Math.max(0, pagination.totalItems - excludedIds.size)
+    : selectedIds.size;
+  const isSelected = (id: string) =>
+    allMatchingSelected ? !excludedIds.has(id) : selectedIds.has(id);
   const toggleSelected = (id: string) => {
-    setAllMatchingSelected(false);
+    if (allMatchingSelected) {
+      setExcludedIds((current) => {
+        const next = new Set(current);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      return;
+    }
     setSelectedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -3355,6 +3369,7 @@ export function FeedbackInboxPage({
   };
   const clearSelection = () => {
     setSelectedIds(new Set());
+    setExcludedIds(new Set());
     setAllMatchingSelected(false);
   };
   const handleManagementAction = (
@@ -3719,6 +3734,7 @@ export function FeedbackInboxPage({
                   type="button"
                   onClick={() => {
                     setAllMatchingSelected(false);
+                    setExcludedIds(new Set());
                     setSelectedIds(new Set(items.map((item) => item.id)));
                   }}
                   className="min-h-9 rounded-md border border-app-border px-3 text-xs font-black hover:bg-app-surface-muted"
@@ -3731,6 +3747,7 @@ export function FeedbackInboxPage({
                     onClick={() => {
                       setAllMatchingSelected(true);
                       setSelectedIds(new Set());
+                      setExcludedIds(new Set());
                     }}
                     className="min-h-9 rounded-md border border-app-border px-3 text-xs font-black hover:bg-app-surface-muted"
                   >
@@ -3855,7 +3872,7 @@ export function FeedbackInboxPage({
                   items={items}
                   onSelect={handleSelectFeedback}
                   canManage={canManage}
-                  selectedIds={selectedIds}
+                  isSelected={isSelected}
                   onToggleSelected={toggleSelected}
                   onAction={handleManagementAction}
                 />
@@ -3868,7 +3885,7 @@ export function FeedbackInboxPage({
                   onSelect={handleSelectFeedback}
                   view={collectionView.view}
                   canManage={canManage}
-                  selectedIds={selectedIds}
+                  isSelected={isSelected}
                   onToggleSelected={toggleSelected}
                   onAction={handleManagementAction}
                 />

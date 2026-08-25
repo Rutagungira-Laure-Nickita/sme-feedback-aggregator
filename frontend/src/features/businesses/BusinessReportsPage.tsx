@@ -24,19 +24,9 @@ import {
   previewBusinessReport,
   type BusinessReportRequest
 } from "./reportsApi.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "./supportedSources.js";
 
-const CHANNELS = [
-  "MANUAL",
-  "PUBLIC_FORM",
-  "QR_CODE",
-  "WHATSAPP",
-  "INSTAGRAM",
-  "X",
-  "GOOGLE_REVIEW",
-  "EMAIL",
-  "FACEBOOK",
-  "OTHER"
-] as const;
+const CHANNELS = OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => option.value);
 
 const STATUSES = ["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"] as const;
 

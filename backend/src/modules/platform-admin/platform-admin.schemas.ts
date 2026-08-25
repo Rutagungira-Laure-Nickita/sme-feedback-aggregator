@@ -132,7 +132,7 @@ export const adminFeedbackQuerySchema = z.object({
   search: optionalSearch,
   businessId: optionalId,
   branchId: optionalId,
-  channel: z.nativeEnum(FeedbackChannel).optional(),
+  channel: z.enum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]).optional(),
   status: z.nativeEnum(FeedbackStatus).optional(),
   priority: z.nativeEnum(FeedbackPriority).optional(),
   categoryId: optionalId,
@@ -146,8 +146,8 @@ export const adminIntegrationsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
   search: optionalSearch,
   businessId: optionalId,
-  provider: z.nativeEnum(IntegrationProvider).optional(),
-  mode: z.nativeEnum(IntegrationMode).optional(),
+  provider: z.enum(["WHATSAPP", "EMAIL"]).optional(),
+  mode: z.literal(IntegrationMode.LIVE).optional(),
   status: z.nativeEnum(IntegrationConnectionStatus).optional(),
   health: z.enum(["HEALTHY", "NEEDS_ATTENTION"]).optional()
 });
@@ -165,10 +165,10 @@ const adminReportBaseSchema = z.object({
   dateTo: z.coerce.date(),
   businessId: optionalId,
   branchId: optionalId,
-  channel: z.nativeEnum(FeedbackChannel).optional(),
+  channel: z.enum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]).optional(),
   status: z.nativeEnum(FeedbackStatus).optional(),
   sentiment: z.nativeEnum(FeedbackAISentiment).optional(),
-  provider: z.nativeEnum(IntegrationProvider).optional(),
+  provider: z.enum(["WHATSAPP", "EMAIL"]).optional(),
   comparePreviousPeriod: z.boolean().default(false)
 });
 

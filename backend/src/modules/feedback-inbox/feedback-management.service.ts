@@ -48,7 +48,9 @@ async function selectionWhere(
       sort: "newest",
       ...selection.filters
     });
-    return buildFeedbackWhereClause(context, filters);
+    const where = buildFeedbackWhereClause(context, filters);
+    const excludedIds = [...new Set(selection.excludedFeedbackIds ?? [])];
+    return excludedIds.length ? { AND: [where, { id: { notIn: excludedIds } }] } : where;
   }
 
   return {

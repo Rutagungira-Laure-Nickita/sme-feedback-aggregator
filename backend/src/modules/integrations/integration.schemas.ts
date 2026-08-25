@@ -85,7 +85,7 @@ export const listSynchronizationRunsQuerySchema = z.object({
 export const createIntegrationConnectionSchema = z
   .object({
     provider: z.nativeEnum(IntegrationProvider),
-    mode: z.nativeEnum(IntegrationMode).default(IntegrationMode.DEMO),
+    mode: z.nativeEnum(IntegrationMode).default(IntegrationMode.LIVE),
     liveProviderType: z.nativeEnum(EmailProviderType).optional(),
     displayName: z.string().trim().min(1).max(120),
     defaultBranchId: z.string().trim().min(1),
@@ -96,6 +96,7 @@ export const createIntegrationConnectionSchema = z
     providerAccountLabel: z.string().trim().min(1).max(255).optional(),
     providerAccountType: z.string().trim().min(1).max(80).optional(),
     temporaryAccessToken: z.string().trim().min(20).max(4096).optional(),
+    gmailFeedbackLabel: z.string().trim().min(1).max(80).optional(),
     demoScenario: z
       .nativeEnum(IntegrationDemoScenario)
       .default(IntegrationDemoScenario.STANDARD_MIXED)
@@ -113,6 +114,7 @@ export const updateIntegrationConnectionSchema = z
     providerAccountLabel: z.string().trim().min(1).max(255).optional(),
     providerAccountType: z.string().trim().min(1).max(80).optional(),
     temporaryAccessToken: z.string().trim().min(20).max(4096).optional(),
+    gmailFeedbackLabel: z.string().trim().min(1).max(80).optional(),
     demoScenario: z.nativeEnum(IntegrationDemoScenario).optional()
   })
   .strict();

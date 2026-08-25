@@ -1,5 +1,19 @@
 # Next Steps
 
+## Supported-Channel Correction — Manual Verification Gate
+
+Implementation and automated verification are complete. After applying the already-pending Final Product Hardening migration described below, run this user-owned browser/provider pass:
+
+1. Integrations cards: at desktop widths confirm Gmail and WhatsApp metrics/actions align vertically and both primary buttons say `Sync Now`. Confirm Gmail creates a real synchronization run; confirm WhatsApp only refreshes connection/webhook activity, creates no synchronization run, and explains that inbound webhook delivery is automatic.
+2. Integrations views: switch Grid/Table, refresh and sign back in to confirm the Business-specific preference persists. Verify the semantic desktop table and stacked mobile rows remain usable without page-level horizontal overflow and preserve all applicable actions.
+3. Supported-provider boundary: owner, customer, Platform Administrator, dashboards, filters, report Preview/PDF/CSV, and fresh development seed should expose only Manual Entry, Public Form, QR Code, Gmail, and WhatsApp. Confirm historical Outlook/social/Google Reviews/Demo records remain retained for audit but cannot be newly created, authorized, resumed, activated, tested, or synchronized.
+4. Gmail label gate: create the configured label (default `Customer Feedback`) in the connected mailbox. Verify a genuine labeled Inbox message imports, an unlabeled Inbox message does not, and a labeled newsletter/automated message is recorded as skipped without feedback creation. Rename/remove the configured label to confirm the safe missing-label error, restore it, and verify a second incremental sync is duplicate-safe.
+5. All-matching selection: apply filters, select all matching results, deselect records on multiple pages, navigate away/back, and confirm checkbox styling/counts retain the exclusions. Run bulk status/category/delete against disposable data and verify only the selected population changes; confirm Remove all uses the same scope and exact confirmation protection.
+6. Assignment labels: verify feedback assignment options and the selected assignee display `Name — Business Owner`, `Name — Business Admin`, `Name — Manager`, or `Name — Staff` as appropriate.
+7. Regression/security: confirm another Business cannot influence filters, selections, integrations, Gmail labels, synchronization, or assignments; repeat core Gmail deduplication and signed WhatsApp webhook ingestion checks.
+
+No new migration is associated with this correction. Do not reset, push, reseed, or delete historical provider rows to test it.
+
 ## Final Product Hardening — Migration and Manual Verification Gate
 
 The exact next unfinished task is to apply migration `20260821120000_final_product_hardening` through the normal Prisma migration workflow, then perform the user-run browser/security pass below. Do not use `migrate reset`, `db push`, or reseeding. Deploy backend and frontend together only after the migration is ready for the target database.

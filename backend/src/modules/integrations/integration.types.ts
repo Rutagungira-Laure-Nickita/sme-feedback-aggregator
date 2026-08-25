@@ -76,6 +76,7 @@ export type ExternalFeedbackItem = {
   attachments?: FeedbackAttachmentInput[];
   metadata: JsonObject;
   invalidReason?: string;
+  skipReason?: string;
 };
 
 export type DemoExternalFeedbackItem = ExternalFeedbackItem;

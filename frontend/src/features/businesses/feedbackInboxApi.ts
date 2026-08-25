@@ -264,6 +264,7 @@ export async function fetchFeedbackDetail(
 
 export type FeedbackSelection = {
   feedbackIds?: string[];
+  excludedFeedbackIds?: string[];
   allMatching?: boolean;
   filters?: Omit<FeedbackInboxQuery, "page" | "pageSize" | "sort">;
 };

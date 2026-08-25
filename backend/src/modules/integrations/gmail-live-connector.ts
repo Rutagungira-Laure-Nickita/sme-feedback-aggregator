@@ -30,6 +30,7 @@ import type {
 } from "./integration.types.js";
 
 export const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+export const DEFAULT_GMAIL_FEEDBACK_LABEL = "Customer Feedback";
 const USER_ID = "me";
 const INBOX_LABEL = "INBOX";
 const MAX_EMAIL_SYNC_ITEMS = 20;
@@ -65,15 +66,21 @@ type GmailProviderClient = {
     codeVerifier: string;
   }): Promise<GmailAuthorizationResult>;
   getAccountIdentity(tokens: GmailTokens): Promise<GmailAccountIdentity>;
-  listInboxMessages(tokens: GmailTokens): Promise<{
+  listInboxMessages(
+    tokens: GmailTokens,
+    feedbackLabel: string
+  ): Promise<{
     messages: Array<{ id: string; threadId?: string | null }>;
+    feedbackLabelId: string;
   }>;
   listHistoryMessages(
     tokens: GmailTokens,
-    cursor: string
+    cursor: string,
+    feedbackLabel: string
   ): Promise<{
     messages: Array<{ id: string; threadId?: string | null }>;
     historyId: string | null;
+    feedbackLabelId: string;
   }>;
   getMessage(tokens: GmailTokens, messageId: string): Promise<gmail_v1.Schema$Message>;
   revoke(tokens: GmailTokens): Promise<void>;
@@ -138,17 +145,19 @@ export class GoogleApisGmailProviderClient implements GmailProviderClient {
     };
   }
 
-  public async listInboxMessages(tokens: GmailTokens) {
+  public async listInboxMessages(tokens: GmailTokens, feedbackLabel: string) {
     const client = this.authorizedClient(tokens);
     const gmail = google.gmail({ version: "v1", auth: client });
+    const feedbackLabelId = await resolveGmailLabelId(gmail, feedbackLabel);
     const result = await gmail.users.messages.list({
       userId: USER_ID,
-      labelIds: [INBOX_LABEL],
+      labelIds: [INBOX_LABEL, feedbackLabelId],
       includeSpamTrash: false,
       maxResults: MAX_EMAIL_SYNC_ITEMS
     });
     await persistRefreshedAccessToken(tokens, client.credentials);
     return {
+      feedbackLabelId,
       messages: (result.data.messages ?? [])
         .filter((message): message is gmail_v1.Schema$Message & { id: string } =>
           Boolean(message.id)
@@ -157,25 +166,36 @@ export class GoogleApisGmailProviderClient implements GmailProviderClient {
     };
   }
 
-  public async listHistoryMessages(tokens: GmailTokens, cursor: string) {
+  public async listHistoryMessages(
+    tokens: GmailTokens,
+    cursor: string,
+    feedbackLabel: string
+  ) {
     const client = this.authorizedClient(tokens);
     const gmail = google.gmail({ version: "v1", auth: client });
+    const feedbackLabelId = await resolveGmailLabelId(gmail, feedbackLabel);
     try {
       const result = await gmail.users.history.list({
         userId: USER_ID,
         startHistoryId: cursor,
-        labelId: INBOX_LABEL,
-        historyTypes: ["messageAdded"],
+        labelId: feedbackLabelId,
+        historyTypes: ["messageAdded", "labelAdded"],
         maxResults: MAX_EMAIL_SYNC_ITEMS
       });
       const messages = (result.data.history ?? [])
-        .flatMap((history) => history.messagesAdded ?? [])
-        .map((entry) => entry.message)
+        .flatMap((history) => [
+          ...(history.messagesAdded ?? []).map((entry) => entry.message),
+          ...(history.labelsAdded ?? []).map((entry) => entry.message)
+        ])
         .filter((message): message is gmail_v1.Schema$Message => Boolean(message?.id))
         .slice(0, MAX_EMAIL_SYNC_ITEMS)
         .map((message) => ({ id: message.id!, threadId: message.threadId }));
       await persistRefreshedAccessToken(tokens, client.credentials);
-      return { messages, historyId: result.data.historyId ?? null };
+      return {
+        messages,
+        historyId: result.data.historyId ?? null,
+        feedbackLabelId
+      };
     } catch (error) {
       if (isGoogleStatus(error, 404)) {
         throw new IntegrationError(
@@ -338,9 +358,14 @@ export class GmailLiveConnector implements ExternalFeedbackConnector {
   ): Promise<ExternalFeedbackItem[]> {
     assertLiveEmailConfigured();
     const tokens = await loadTokens(context.connectionId);
+    const feedbackLabel = resolveGmailFeedbackLabel(context.synchronizationFolder);
     const listed = context.lastProviderCursor
-      ? await providerClient.listHistoryMessages(tokens, context.lastProviderCursor)
-      : await providerClient.listInboxMessages(tokens);
+      ? await providerClient.listHistoryMessages(
+          tokens,
+          context.lastProviderCursor,
+          feedbackLabel
+        )
+      : await providerClient.listInboxMessages(tokens, feedbackLabel);
     const uniqueIds = [
       ...new Map(listed.messages.map((message) => [message.id, message])).values()
     ].slice(0, MAX_EMAIL_SYNC_ITEMS);
@@ -349,7 +374,8 @@ export class GmailLiveConnector implements ExternalFeedbackConnector {
     for (const message of uniqueIds) {
       try {
         const detail = await providerClient.getMessage(tokens, message.id);
-        items.push(toExternalFeedbackItem(context, detail));
+        if (!hasRequiredGmailLabels(detail, listed.feedbackLabelId)) continue;
+        items.push(toExternalFeedbackItem(context, detail, feedbackLabel));
       } catch (error) {
         items.push({
           externalId: gmailExternalId(context.connectionId, message.id),
@@ -399,7 +425,7 @@ export class GmailLiveConnector implements ExternalFeedbackConnector {
       metadata: {
         sourceType: "live-email",
         provider: IntegrationProvider.EMAIL,
-        providerLabel: "Email",
+        providerLabel: "Gmail",
         liveMode: true,
         demoMode: false,
         liveProviderType: EmailProviderType.GMAIL,
@@ -417,7 +443,7 @@ export class GmailLiveConnector implements ExternalFeedbackConnector {
   public getSafePreview(item: ExternalFeedbackItem): SafeExternalItemPreview {
     return {
       provider: IntegrationProvider.EMAIL,
-      providerLabel: "Email",
+      providerLabel: "Gmail",
       sourceType: item.sourceLabel,
       author: item.authorName,
       textPreview: previewText(item.message),
@@ -621,7 +647,8 @@ async function persistRefreshedAccessToken(
 
 function toExternalFeedbackItem(
   context: IntegrationConnectionContext,
-  message: gmail_v1.Schema$Message
+  message: gmail_v1.Schema$Message,
+  feedbackLabel = resolveGmailFeedbackLabel(context.synchronizationFolder)
 ): ExternalFeedbackItem {
   if (!message.id) {
     throw new IntegrationError(
@@ -653,10 +680,11 @@ function toExternalFeedbackItem(
     ? new Date(Number(message.internalDate)).toISOString()
     : new Date().toISOString();
   const rfcMessageId = headers.get("message-id") ?? null;
+  const automatedReason = automatedGmailMessageReason(headers, message.labelIds ?? []);
 
   return {
     externalId: gmailExternalId(context.connectionId, message.id),
-    sourceLabel: "Gmail Inbox message",
+    sourceLabel: "Gmail Customer Feedback message",
     authorName: sender.name ?? sender.email,
     title: subject || `Email from ${maskEmail(sender.email)}`,
     message: truncate(body, MAX_BODY_CHARS),
@@ -676,9 +704,72 @@ function toExternalFeedbackItem(
         ? maskEmail(context.providerAccountLabel)
         : null,
       attachmentCount: parsedBody.attachments.length,
-      inboxFolder: INBOX_LABEL
-    }
+      inboxFolder: INBOX_LABEL,
+      feedbackLabel
+    },
+    ...(automatedReason ? { skipReason: automatedReason } : {})
   };
+}
+
+async function resolveGmailLabelId(
+  gmail: gmail_v1.Gmail,
+  labelName: string
+): Promise<string> {
+  const result = await gmail.users.labels.list({ userId: USER_ID });
+  const normalized = resolveGmailFeedbackLabel(labelName).toLocaleLowerCase();
+  const label = (result.data.labels ?? []).find(
+    (candidate) => candidate.name?.trim().toLocaleLowerCase() === normalized
+  );
+  if (!label?.id) {
+    throw new IntegrationError(
+      `Gmail label “${resolveGmailFeedbackLabel(labelName)}” was not found. Create or select the label, apply it to customer feedback messages, then sync again.`,
+      INTEGRATION_ERRORS.GMAIL_FEEDBACK_LABEL_NOT_FOUND,
+      409
+    );
+  }
+  return label.id;
+}
+
+export function resolveGmailFeedbackLabel(value?: string | null): string {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  return normalized && normalized.toUpperCase() !== INBOX_LABEL
+    ? normalized.slice(0, 80)
+    : DEFAULT_GMAIL_FEEDBACK_LABEL;
+}
+
+export function hasRequiredGmailLabels(
+  message: Pick<gmail_v1.Schema$Message, "labelIds">,
+  feedbackLabelId: string
+): boolean {
+  const labels = new Set(message.labelIds ?? []);
+  return labels.has(INBOX_LABEL) && labels.has(feedbackLabelId);
+}
+
+export function automatedGmailMessageReason(
+  headers: Map<string, string>,
+  labelIds: string[]
+): string | null {
+  const from = headers.get("from")?.toLowerCase() ?? "";
+  const autoSubmitted = headers.get("auto-submitted")?.toLowerCase() ?? "";
+  const precedence = headers.get("precedence")?.toLowerCase() ?? "";
+  const listUnsubscribe = headers.get("list-unsubscribe")?.trim();
+  const listId = headers.get("list-id")?.trim();
+  const automatedSender =
+    /(^|[<._+-])(no-?reply|donotreply|mailer-daemon|notifications?)([>@._+-]|$)/i.test(
+      from
+    );
+  const automatedCategory = labelIds.includes("CATEGORY_PROMOTIONS");
+  if (
+    (autoSubmitted && autoSubmitted !== "no") ||
+    ["bulk", "list", "junk"].includes(precedence) ||
+    listUnsubscribe ||
+    listId ||
+    automatedSender ||
+    (automatedCategory && /newsletter|marketing|campaign/i.test(from))
+  ) {
+    return "Automated, bulk, newsletter, or promotional email was skipped by the customer-feedback safeguard.";
+  }
+  return null;
 }
 
 function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): {
@@ -882,5 +973,8 @@ export async function markLiveConnectionReauthorizationRequired(
 export const gmailLiveConnectorTestUtils = {
   toExternalFeedbackItem,
   extractBody,
-  gmailExternalId
+  gmailExternalId,
+  automatedGmailMessageReason,
+  hasRequiredGmailLabels,
+  resolveGmailFeedbackLabel
 };

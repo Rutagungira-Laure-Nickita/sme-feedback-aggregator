@@ -10,6 +10,10 @@ import { useMemo, useState } from "react";
 import { normalizeApiError } from "../../api/axios.js";
 import { AdminShell, WorkspacePanel } from "../businesses/components.js";
 import { formatRole } from "../businesses/format.js";
+import {
+  OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS,
+  SUPPORTED_LIVE_INTEGRATION_OPTIONS
+} from "../businesses/supportedSources.js";
 import { exportAdminReport, fetchAdminFilterOptions, previewAdminReport } from "./api.js";
 import { getReportComparisonPreview, getReportSectionPreview } from "./report-preview.js";
 import type { AdminReportType, ReportDocument, ReportRequest } from "./types.js";
@@ -156,18 +160,9 @@ export function AdminReportsPage(): JSX.Element {
                 label="Channel"
                 value={request.channel ?? ""}
                 onChange={(value) => update("channel", value || undefined)}
-                options={[
-                  "MANUAL",
-                  "PUBLIC_FORM",
-                  "QR_CODE",
-                  "WHATSAPP",
-                  "EMAIL",
-                  "GOOGLE_REVIEW",
-                  "FACEBOOK",
-                  "INSTAGRAM",
-                  "X",
-                  "OTHER"
-                ].map((value) => ({ value, label: formatRole(value) }))}
+                options={OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => ({
+                  ...option
+                }))}
                 allLabel="All Channels"
               />
             ) : null}
@@ -200,14 +195,9 @@ export function AdminReportsPage(): JSX.Element {
                 label="Provider"
                 value={request.provider ?? ""}
                 onChange={(value) => update("provider", value || undefined)}
-                options={[
-                  "GOOGLE_REVIEWS",
-                  "WHATSAPP",
-                  "EMAIL",
-                  "X",
-                  "FACEBOOK",
-                  "INSTAGRAM"
-                ].map((value) => ({ value, label: formatRole(value) }))}
+                options={SUPPORTED_LIVE_INTEGRATION_OPTIONS.map((option) => ({
+                  ...option
+                }))}
                 allLabel="All Providers"
               />
             ) : null}

@@ -1,8 +1,4 @@
-import {
-  FeedbackAISentiment,
-  FeedbackChannel,
-  FeedbackStatus
-} from "../../lib/prisma-runtime.js";
+import { FeedbackAISentiment, FeedbackStatus } from "../../lib/prisma-runtime.js";
 import { z } from "zod";
 
 const optionalId = z.string().trim().min(1).max(191).optional();
@@ -18,7 +14,7 @@ const businessReportBaseSchema = z
     dateFrom: z.coerce.date(),
     dateTo: z.coerce.date(),
     branchId: optionalId,
-    channel: z.nativeEnum(FeedbackChannel).optional(),
+    channel: z.enum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]).optional(),
     status: z.nativeEnum(FeedbackStatus).optional(),
     sentiment: z.nativeEnum(FeedbackAISentiment).optional(),
     comparePreviousPeriod: z.boolean().default(false)

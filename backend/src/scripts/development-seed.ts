@@ -216,7 +216,7 @@ type FeedbackSeedFixture = {
   }[];
 };
 
-export const DEVELOPMENT_SEED_FEEDBACK_FIXTURES: readonly FeedbackSeedFixture[] = [
+const ALL_LEGACY_DEVELOPMENT_FEEDBACK_FIXTURES: readonly FeedbackSeedFixture[] = [
   {
     id: "dev_seed_feedback_manual_praise",
     ingestionId: "dev_seed_ingestion_manual_praise",
@@ -606,6 +606,21 @@ export const DEVELOPMENT_SEED_FEEDBACK_FIXTURES: readonly FeedbackSeedFixture[] 
   }
 ];
 
+const RETIRED_SEED_FEEDBACK_IDS = new Set([
+  "dev_seed_feedback_whatsapp",
+  "dev_seed_feedback_instagram",
+  "dev_seed_feedback_x",
+  "dev_seed_feedback_google_review",
+  "dev_seed_feedback_email",
+  "dev_seed_feedback_facebook",
+  "dev_seed_feedback_other"
+]);
+
+export const DEVELOPMENT_SEED_FEEDBACK_FIXTURES: readonly FeedbackSeedFixture[] =
+  ALL_LEGACY_DEVELOPMENT_FEEDBACK_FIXTURES.filter(
+    (fixture) => !RETIRED_SEED_FEEDBACK_IDS.has(fixture.id)
+  );
+
 type IntegrationSeedFixture = {
   id: string;
   provider: IntegrationProvider;
@@ -620,86 +635,90 @@ type IntegrationSeedFixture = {
   sourceLabel: string;
 };
 
-export const DEVELOPMENT_SEED_INTEGRATION_FIXTURES: readonly IntegrationSeedFixture[] = [
-  {
-    id: "dev_seed_connection_google_reviews",
-    provider: IntegrationProvider.GOOGLE_REVIEWS,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.CONNECTED,
-    displayName: "Google Reviews Demo",
-    defaultBranchId: PRIMARY_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
-    feedbackId: "dev_seed_feedback_google_review",
-    ingestionId: "dev_seed_ingestion_google_review",
-    externalId: "demo-google-reviews-standard-001",
-    sourceLabel: "5-star review"
-  },
-  {
-    id: "dev_seed_connection_whatsapp",
-    provider: IntegrationProvider.WHATSAPP,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.CONNECTED,
-    displayName: "WhatsApp Demo",
-    defaultBranchId: PRIMARY_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
-    feedbackId: "dev_seed_feedback_whatsapp",
-    ingestionId: "dev_seed_ingestion_whatsapp",
-    externalId: "demo-whatsapp-standard-001",
-    sourceLabel: "Inbound WhatsApp complaint"
-  },
-  {
-    id: "dev_seed_connection_email",
-    provider: IntegrationProvider.EMAIL,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.PAUSED,
-    displayName: "Email Demo",
-    defaultBranchId: PRIMARY_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
-    feedbackId: "dev_seed_feedback_email",
-    ingestionId: "dev_seed_ingestion_email",
-    externalId: "demo-email-standard-001",
-    sourceLabel: "Customer email"
-  },
-  {
-    id: "dev_seed_connection_x",
-    provider: IntegrationProvider.X,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.DISCONNECTED,
-    displayName: "X Demo",
-    defaultBranchId: DOWNTOWN_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
-    feedbackId: "dev_seed_feedback_x",
-    ingestionId: "dev_seed_ingestion_x",
-    externalId: "demo-x-standard-002",
-    sourceLabel: "Simulated reply"
-  },
-  {
-    id: "dev_seed_connection_facebook",
-    provider: IntegrationProvider.FACEBOOK,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.ERROR,
-    displayName: "Facebook Demo",
-    defaultBranchId: DOWNTOWN_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
-    feedbackId: "dev_seed_feedback_facebook",
-    ingestionId: "dev_seed_ingestion_facebook",
-    externalId: "demo-facebook-standard-001",
-    sourceLabel: "Simulated page comment"
-  },
-  {
-    id: "dev_seed_connection_instagram",
-    provider: IntegrationProvider.INSTAGRAM,
-    mode: IntegrationMode.DEMO,
-    status: IntegrationConnectionStatus.CONNECTED,
-    displayName: "Instagram Partial-Failure Demo",
-    defaultBranchId: DOWNTOWN_BRANCH_ID,
-    demoScenario: IntegrationDemoScenario.PARTIAL_FAILURE,
-    feedbackId: "dev_seed_feedback_instagram",
-    ingestionId: "dev_seed_ingestion_instagram",
-    externalId: "demo-instagram-standard-001",
-    sourceLabel: "Simulated comment"
-  }
-];
+export const RETIRED_DEVELOPMENT_SEED_INTEGRATION_FIXTURES: readonly IntegrationSeedFixture[] =
+  [
+    {
+      id: "dev_seed_connection_google_reviews",
+      provider: IntegrationProvider.GOOGLE_REVIEWS,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.CONNECTED,
+      displayName: "Google Reviews Demo",
+      defaultBranchId: PRIMARY_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
+      feedbackId: "dev_seed_feedback_google_review",
+      ingestionId: "dev_seed_ingestion_google_review",
+      externalId: "demo-google-reviews-standard-001",
+      sourceLabel: "5-star review"
+    },
+    {
+      id: "dev_seed_connection_whatsapp",
+      provider: IntegrationProvider.WHATSAPP,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.CONNECTED,
+      displayName: "WhatsApp Demo",
+      defaultBranchId: PRIMARY_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
+      feedbackId: "dev_seed_feedback_whatsapp",
+      ingestionId: "dev_seed_ingestion_whatsapp",
+      externalId: "demo-whatsapp-standard-001",
+      sourceLabel: "Inbound WhatsApp complaint"
+    },
+    {
+      id: "dev_seed_connection_email",
+      provider: IntegrationProvider.EMAIL,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.PAUSED,
+      displayName: "Email Demo",
+      defaultBranchId: PRIMARY_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
+      feedbackId: "dev_seed_feedback_email",
+      ingestionId: "dev_seed_ingestion_email",
+      externalId: "demo-email-standard-001",
+      sourceLabel: "Customer email"
+    },
+    {
+      id: "dev_seed_connection_x",
+      provider: IntegrationProvider.X,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.DISCONNECTED,
+      displayName: "X Demo",
+      defaultBranchId: DOWNTOWN_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
+      feedbackId: "dev_seed_feedback_x",
+      ingestionId: "dev_seed_ingestion_x",
+      externalId: "demo-x-standard-002",
+      sourceLabel: "Simulated reply"
+    },
+    {
+      id: "dev_seed_connection_facebook",
+      provider: IntegrationProvider.FACEBOOK,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.ERROR,
+      displayName: "Facebook Demo",
+      defaultBranchId: DOWNTOWN_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.STANDARD_MIXED,
+      feedbackId: "dev_seed_feedback_facebook",
+      ingestionId: "dev_seed_ingestion_facebook",
+      externalId: "demo-facebook-standard-001",
+      sourceLabel: "Simulated page comment"
+    },
+    {
+      id: "dev_seed_connection_instagram",
+      provider: IntegrationProvider.INSTAGRAM,
+      mode: IntegrationMode.DEMO,
+      status: IntegrationConnectionStatus.CONNECTED,
+      displayName: "Instagram Partial-Failure Demo",
+      defaultBranchId: DOWNTOWN_BRANCH_ID,
+      demoScenario: IntegrationDemoScenario.PARTIAL_FAILURE,
+      feedbackId: "dev_seed_feedback_instagram",
+      ingestionId: "dev_seed_ingestion_instagram",
+      externalId: "demo-instagram-standard-001",
+      sourceLabel: "Simulated comment"
+    }
+  ];
+
+export const DEVELOPMENT_SEED_INTEGRATION_FIXTURES: readonly IntegrationSeedFixture[] =
+  [];
 
 export type DevelopmentSeedSummary = {
   users: number;
@@ -1881,7 +1900,11 @@ async function seedAIAnalyses(prisma: PrismaClient): Promise<void> {
     }
   ] as const;
 
+  const seededFeedbackIds = new Set(
+    DEVELOPMENT_SEED_FEEDBACK_FIXTURES.map((fixture) => fixture.id)
+  );
   for (const analysis of analyses) {
+    if (!seededFeedbackIds.has(analysis.feedbackId)) continue;
     const requestedAt = addMinutes(analysis.completedAt, -2);
     const data = {
       businessId: DEMO_BUSINESS_ID,

@@ -16,20 +16,7 @@ const querySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
   search: z.string().trim().max(160).optional(),
   status: z.enum(["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"]).optional(),
-  channel: z
-    .enum([
-      "MANUAL",
-      "PUBLIC_FORM",
-      "QR_CODE",
-      "WHATSAPP",
-      "INSTAGRAM",
-      "X",
-      "GOOGLE_REVIEW",
-      "EMAIL",
-      "FACEBOOK",
-      "OTHER"
-    ])
-    .optional(),
+  channel: z.enum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]).optional(),
   sort: z.enum(["newest", "oldest"]).default("newest")
 });
 

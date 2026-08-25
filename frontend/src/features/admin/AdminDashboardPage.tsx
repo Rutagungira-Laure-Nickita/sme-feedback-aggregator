@@ -366,13 +366,10 @@ function DashboardContent({ dashboard }: { dashboard: AdminDashboard }): JSX.Ele
 
         <ChartPanel
           title="Integration adoption"
-          description="Connected-provider records across businesses, separated by Live and Demo modes."
+          description="Supported Live Gmail and WhatsApp connections across businesses."
           empty={adoption.length === 0}
           summary={adoption
-            .map(
-              (item) =>
-                `${formatRole(item.provider)} live ${item.LIVE}, demo ${item.DEMO}`
-            )
+            .map((item) => `${formatRole(item.provider)} ${item.LIVE}`)
             .join(", ")}
         >
           <ResponsiveContainer width="100%" height={290}>
@@ -395,9 +392,7 @@ function DashboardContent({ dashboard }: { dashboard: AdminDashboard }): JSX.Ele
                 tick={AXIS_TICK}
               />
               <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Legend />
-              <Bar dataKey="LIVE" stackId="mode" fill="#0f9f7f" radius={[4, 0, 0, 4]} />
-              <Bar dataKey="DEMO" stackId="mode" fill="#818cf8" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="LIVE" fill="#0f9f7f" radius={[4, 4, 4, 4]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartPanel>
@@ -635,14 +630,14 @@ function DashboardSkeleton() {
 }
 
 function combineAdoption(items: AdminDashboard["integrationAdoption"]) {
-  const result = new Map<string, { provider: string; LIVE: number; DEMO: number }>();
+  const result = new Map<string, { provider: string; LIVE: number }>();
   items.forEach((item) => {
+    if (item.mode !== "LIVE") return;
     const current = result.get(item.provider) ?? {
       provider: item.provider,
-      LIVE: 0,
-      DEMO: 0
+      LIVE: 0
     };
-    current[item.mode === "LIVE" ? "LIVE" : "DEMO"] += item.count;
+    current.LIVE += item.count;
     result.set(item.provider, current);
   });
   return [...result.values()];

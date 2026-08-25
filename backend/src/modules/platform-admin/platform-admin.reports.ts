@@ -28,6 +28,10 @@ import type {
   ReportSection
 } from "./platform-admin.types.js";
 import { getPlatformSettings } from "./platform-settings.service.js";
+import {
+  supportedLiveIntegrationWhere,
+  supportedOperationalFeedbackWhere
+} from "../integrations/supported-integration-policy.js";
 
 type ReportInput = Omit<AdminReportRequest, "outputFormat">;
 type CountGroup<T extends Record<string, unknown>> = T & { _count: { _all: number } };
@@ -80,7 +84,6 @@ type ExecutiveScopePlan = {
     customers: string;
     integrations: string;
     liveIntegrations: string;
-    demoIntegrations: string;
     attentionIntegrations: string;
     newUsers: string;
   };
@@ -244,7 +247,8 @@ export function createFeedbackScopePlan(
         filters.from && filters.to ? { gte: filters.from, lte: filters.to } : undefined,
       ...(filters.sentiment
         ? { aiAnalysis: { is: { sentiment: filters.sentiment } } }
-        : {})
+        : {}),
+      AND: [supportedOperationalFeedbackWhere()]
     }
   };
 }
@@ -301,7 +305,8 @@ export function createExecutiveScopePlan(
     customerWhere: { businessId: scopeBusinessId },
     integrationWhere: {
       businessId: scopeBusinessId,
-      defaultBranchId: branchId
+      defaultBranchId: branchId,
+      AND: [supportedLiveIntegrationWhere()]
     },
     membershipCountWhere: membershipBranchScope,
     feedbackRelationWhere: branchId ? { branchId } : undefined,
@@ -334,9 +339,6 @@ export function createExecutiveScopePlan(
       liveIntegrations: branchId
         ? "Live integrations routed to branch"
         : "Live integrations",
-      demoIntegrations: branchId
-        ? "Demo integrations routed to branch"
-        : "Demo integrations",
       attentionIntegrations: branchId
         ? "Routed integrations needing attention"
         : "Integrations needing attention",
@@ -610,10 +612,6 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
     {
       label: scope.labels.liveIntegrations,
       value: connections.filter((item) => item.mode === IntegrationMode.LIVE).length
-    },
-    {
-      label: scope.labels.demoIntegrations,
-      value: connections.filter((item) => item.mode === IntegrationMode.DEMO).length
     },
     { label: scope.labels.attentionIntegrations, value: attention }
   ];
@@ -993,35 +991,46 @@ async function buildOperationsHealthReport(
   const { input, from, to, previousFrom, previousTo, scopeBusinessId } = context;
   const integrationWhere: Prisma.IntegrationConnectionWhereInput = {
     businessId: scopeBusinessId,
-    provider: input.provider
+    provider: input.provider,
+    AND: [supportedLiveIntegrationWhere()]
   };
   const runWhere: Prisma.SynchronizationRunWhereInput = {
     businessId: scopeBusinessId,
     provider: input.provider,
-    requestedAt: { gte: from, lte: to }
+    requestedAt: { gte: from, lte: to },
+    connection: { is: supportedLiveIntegrationWhere() }
   };
   const previousRunWhere: Prisma.SynchronizationRunWhereInput = {
     businessId: scopeBusinessId,
     provider: input.provider,
-    requestedAt: { gte: previousFrom, lte: previousTo }
+    requestedAt: { gte: previousFrom, lte: previousTo },
+    connection: { is: supportedLiveIntegrationWhere() }
   };
   const webhookWhere: Prisma.IntegrationWebhookDeliveryWhereInput = {
     businessId: scopeBusinessId,
-    provider: input.provider,
-    receivedAt: { gte: from, lte: to }
+    receivedAt: { gte: from, lte: to },
+    AND: [
+      { provider: "WHATSAPP" },
+      ...(input.provider ? [{ provider: input.provider }] : [])
+    ]
   };
   const previousWebhookWhere: Prisma.IntegrationWebhookDeliveryWhereInput = {
     businessId: scopeBusinessId,
-    provider: input.provider,
-    receivedAt: { gte: previousFrom, lte: previousTo }
+    receivedAt: { gte: previousFrom, lte: previousTo },
+    AND: [
+      { provider: "WHATSAPP" },
+      ...(input.provider ? [{ provider: input.provider }] : [])
+    ]
   };
   const aiWhere: Prisma.FeedbackAIAnalysisWhereInput = {
     businessId: scopeBusinessId,
-    requestedAt: { gte: from, lte: to }
+    requestedAt: { gte: from, lte: to },
+    feedback: supportedOperationalFeedbackWhere()
   };
   const previousAiWhere: Prisma.FeedbackAIAnalysisWhereInput = {
     businessId: scopeBusinessId,
-    requestedAt: { gte: previousFrom, lte: previousTo }
+    requestedAt: { gte: previousFrom, lte: previousTo },
+    feedback: supportedOperationalFeedbackWhere()
   };
   const automationWhere: Prisma.AutomationExecutionWhereInput = {
     businessId: scopeBusinessId,
@@ -1173,7 +1182,6 @@ async function buildOperationsHealthReport(
   const healthCounts = countValues(health.map((item) => item.health));
   const statusCounts = countValues(connections.map((item) => item.status));
   const live = connections.filter((item) => item.mode === IntegrationMode.LIVE).length;
-  const demo = connections.filter((item) => item.mode === IntegrationMode.DEMO).length;
   const attention = health.filter((item) => item.health !== "HEALTHY").length;
   const aiCounts = countMap(aiStatuses, "status");
   const automationCounts = countMap(automationStatuses, "status");
@@ -1188,7 +1196,6 @@ async function buildOperationsHealthReport(
     },
     { label: "Total integration connections", value: connections.length },
     { label: "Live connections", value: live },
-    { label: "Demo connections", value: demo },
     { label: "Connected", value: statusCounts.CONNECTED ?? 0 },
     { label: "Paused", value: statusCounts.PAUSED ?? 0 },
     { label: "Disconnected", value: statusCounts.DISCONNECTED ?? 0 },
@@ -1217,7 +1224,7 @@ async function buildOperationsHealthReport(
     },
     { label: "Pending businesses", value: businessCounts.PENDING ?? 0 }
   ];
-  report.managementSummary = `${connections.length} integration connection${connections.length === 1 ? " is" : "s are"} in scope: ${live} Live and ${demo} Demo. ${attention} require${attention === 1 ? "s" : ""} administrator attention. During the selected period, ${webhookCount} webhook deliveries, ${aiCount} AI processing records, and ${automationCount} automation executions were recorded. API and database health are based on this successful request and a live database connectivity probe.`;
+  report.managementSummary = `${connections.length} supported Live integration connection${connections.length === 1 ? " is" : "s are"} in scope. ${attention} require${attention === 1 ? "s" : ""} administrator attention. During the selected period, ${webhookCount} webhook deliveries, ${aiCount} AI processing records, and ${automationCount} automation executions were recorded. API and database health are based on this successful request and a live database connectivity probe.`;
   report.sections = [
     {
       title: "Core services",
@@ -1586,6 +1593,8 @@ export async function queryFeedbackTimeSeries(scope: FeedbackScopePlan) {
         ? PrismaRuntime.sql`DATE_SUB(DATE(f.received_at), INTERVAL WEEKDAY(f.received_at) DAY)`
         : PrismaRuntime.sql`DATE(f.received_at)`;
   const conditions = [
+    PrismaRuntime.sql`f.deleted_at IS NULL`,
+    PrismaRuntime.sql`(f.channel IN ('MANUAL', 'PUBLIC_FORM', 'QR_CODE') OR (f.channel = 'WHATSAPP' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true) OR (f.channel = 'EMAIL' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(f.source_metadata, '$.liveProviderType')) = 'GMAIL'))`,
     PrismaRuntime.sql`f.received_at >= ${from}`,
     PrismaRuntime.sql`f.received_at <= ${to}`
   ];
@@ -1813,9 +1822,11 @@ function truncate(value: string, maximum: number) {
 export function providerLabel(
   connection: Pick<IntegrationHealthRecord, "provider" | "liveProviderType">
 ) {
-  return connection.provider === "EMAIL" && connection.liveProviderType
-    ? `Email (${formatReportDisplayValue(connection.liveProviderType)})`
-    : formatReportDisplayValue(connection.provider);
+  return connection.provider === "EMAIL" && connection.liveProviderType === "GMAIL"
+    ? "Gmail"
+    : connection.provider === "EMAIL" && connection.liveProviderType
+      ? `Email (${formatReportDisplayValue(connection.liveProviderType)})`
+      : formatReportDisplayValue(connection.provider);
 }
 
 export function humanReadableIntegrationIssue(

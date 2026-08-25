@@ -36,6 +36,10 @@ import type {
 import type { AdminReportDocument, ReportSection } from "./platform-admin.types.js";
 import { recordPlatformAdminActivity } from "./platform-admin-audit.service.js";
 import { getPlatformSettings } from "./platform-settings.service.js";
+import {
+  supportedLiveIntegrationWhere,
+  supportedOperationalFeedbackWhere
+} from "../integrations/supported-integration-policy.js";
 
 type CountGroup<T extends Record<string, unknown>> = T & { _count: { _all: number } };
 type SqlCountRow = { bucket: Date | string; count: bigint | number };
@@ -54,6 +58,9 @@ export async function getAdminDashboard(period: AdminPeriod) {
   const weekStart = new Date(todayStart);
   weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const operationalFeedback = (where: Prisma.FeedbackWhereInput = {}) => ({
+    AND: [supportedOperationalFeedbackWhere(), where]
+  });
 
   const [
     totalBusinesses,
@@ -102,45 +109,68 @@ export async function getAdminDashboard(period: AdminPeriod) {
     prisma.user.count({
       where: { createdAt: { gte: window.previousStart, lte: window.previousEnd } }
     }),
-    prisma.feedback.count({ where: { deletedAt: null } }),
+    prisma.feedback.count({ where: operationalFeedback({ deletedAt: null }) }),
     prisma.feedback.count({
-      where: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
+      where: operationalFeedback({
+        deletedAt: null,
+        receivedAt: { gte: window.start, lte: window.end }
+      })
     }),
     prisma.feedback.count({
-      where: {
+      where: operationalFeedback({
         deletedAt: null,
         receivedAt: { gte: window.previousStart, lte: window.previousEnd }
-      }
+      })
     }),
     prisma.feedback.count({
-      where: { deletedAt: null, receivedAt: { gte: todayStart, lte: now } }
+      where: operationalFeedback({
+        deletedAt: null,
+        receivedAt: { gte: todayStart, lte: now }
+      })
     }),
     prisma.feedback.count({
-      where: { deletedAt: null, receivedAt: { gte: weekStart, lte: now } }
+      where: operationalFeedback({
+        deletedAt: null,
+        receivedAt: { gte: weekStart, lte: now }
+      })
     }),
     prisma.feedback.count({
-      where: { deletedAt: null, receivedAt: { gte: monthStart, lte: now } }
+      where: operationalFeedback({
+        deletedAt: null,
+        receivedAt: { gte: monthStart, lte: now }
+      })
     }),
     prisma.branch.count(),
     prisma.customer.count(),
     prisma.feedback.count({
-      where: { deletedAt: null, status: { in: ["NEW", "IN_REVIEW"] } }
+      where: operationalFeedback({
+        deletedAt: null,
+        status: { in: ["NEW", "IN_REVIEW"] }
+      })
     }),
     prisma.feedbackAIAnalysis.count({
-      where: { status: FeedbackAIAnalysisStatus.COMPLETED, feedback: { deletedAt: null } }
+      where: {
+        status: FeedbackAIAnalysisStatus.COMPLETED,
+        feedback: operationalFeedback({ deletedAt: null })
+      }
     }),
     prisma.feedbackAIAnalysis.count({
-      where: { status: FeedbackAIAnalysisStatus.FAILED, feedback: { deletedAt: null } }
+      where: {
+        status: FeedbackAIAnalysisStatus.FAILED,
+        feedback: operationalFeedback({ deletedAt: null })
+      }
     }),
     prisma.automationRule.count({ where: { status: AutomationRuleStatus.ACTIVE } }),
     prisma.automationExecution.count({
       where: {
+        feedback: supportedOperationalFeedbackWhere(),
         status: {
           in: [AutomationExecutionStatus.FAILED, AutomationExecutionStatus.PARTIAL]
         }
       }
     }),
     prisma.integrationConnection.findMany({
+      where: supportedLiveIntegrationWhere(),
       select: {
         id: true,
         businessId: true,
@@ -155,7 +185,10 @@ export async function getAdminDashboard(period: AdminPeriod) {
     }),
     prisma.feedback.groupBy({
       by: ["channel"],
-      where: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } },
+      where: operationalFeedback({
+        deletedAt: null,
+        receivedAt: { gte: window.start, lte: window.end }
+      }),
       _count: { _all: true },
       orderBy: { channel: "asc" }
     }),
@@ -163,19 +196,26 @@ export async function getAdminDashboard(period: AdminPeriod) {
       by: ["sentiment"],
       where: {
         status: FeedbackAIAnalysisStatus.COMPLETED,
-        feedback: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
+        feedback: operationalFeedback({
+          deletedAt: null,
+          receivedAt: { gte: window.start, lte: window.end }
+        })
       },
       _count: { _all: true }
     }),
     prisma.feedbackAIAnalysis.groupBy({
       by: ["status"],
       where: {
-        feedback: { deletedAt: null, receivedAt: { gte: window.start, lte: window.end } }
+        feedback: operationalFeedback({
+          deletedAt: null,
+          receivedAt: { gte: window.start, lte: window.end }
+        })
       },
       _count: { _all: true }
     }),
     prisma.integrationConnection.groupBy({
       by: ["provider", "mode"],
+      where: supportedLiveIntegrationWhere(),
       _count: { _all: true },
       orderBy: [{ provider: "asc" }, { mode: "asc" }]
     }),
@@ -510,30 +550,37 @@ export async function applyAdminUserAction(
 
 export async function listAdminFeedback(query: AdminFeedbackQuery) {
   const where: Prisma.FeedbackWhereInput = {
-    deletedAt: null,
-    businessId: query.businessId,
-    branchId: query.branchId,
-    channel: query.channel,
-    status: query.status,
-    priority: query.priority,
-    categoryId: query.categoryId,
-    receivedAt:
-      query.dateFrom || query.dateTo
-        ? {
-            gte: query.dateFrom,
-            lte: query.dateTo ? endOfUtcDay(query.dateTo) : undefined
-          }
-        : undefined,
-    ...(query.sentiment ? { aiAnalysis: { is: { sentiment: query.sentiment } } } : {}),
-    ...(query.search
-      ? {
-          OR: [
-            { title: { contains: query.search } },
-            { message: { contains: query.search } },
-            { customerName: { contains: query.search } }
-          ]
-        }
-      : {})
+    AND: [
+      supportedOperationalFeedbackWhere(),
+      {
+        deletedAt: null,
+        businessId: query.businessId,
+        branchId: query.branchId,
+        channel: query.channel,
+        status: query.status,
+        priority: query.priority,
+        categoryId: query.categoryId,
+        receivedAt:
+          query.dateFrom || query.dateTo
+            ? {
+                gte: query.dateFrom,
+                lte: query.dateTo ? endOfUtcDay(query.dateTo) : undefined
+              }
+            : undefined,
+        ...(query.sentiment
+          ? { aiAnalysis: { is: { sentiment: query.sentiment } } }
+          : {}),
+        ...(query.search
+          ? {
+              OR: [
+                { title: { contains: query.search } },
+                { message: { contains: query.search } },
+                { customerName: { contains: query.search } }
+              ]
+            }
+          : {})
+      }
+    ]
   };
   const [feedback, total] = await Promise.all([
     prisma.feedback.findMany({
@@ -627,18 +674,23 @@ export async function getAdminFeedback(feedbackId: string) {
 
 export async function listAdminIntegrations(query: AdminIntegrationsQuery) {
   const where: Prisma.IntegrationConnectionWhereInput = {
-    businessId: query.businessId,
-    provider: query.provider,
-    mode: query.mode,
-    status: query.status,
-    ...(query.search
-      ? {
-          OR: [
-            { displayName: { contains: query.search } },
-            { business: { name: { contains: query.search } } }
-          ]
-        }
-      : {})
+    AND: [
+      supportedLiveIntegrationWhere(),
+      {
+        businessId: query.businessId,
+        provider: query.provider,
+        mode: query.mode,
+        status: query.status,
+        ...(query.search
+          ? {
+              OR: [
+                { displayName: { contains: query.search } },
+                { business: { name: { contains: query.search } } }
+              ]
+            }
+          : {})
+      }
+    ]
   };
   const connections = await prisma.integrationConnection.findMany({
     where,
@@ -818,14 +870,26 @@ export async function getAdminSystemHealth() {
     prisma.$queryRaw<Array<{ healthy: number }>>(PrismaRuntime.sql`SELECT 1 AS healthy`),
     prisma.feedbackAIAnalysis.groupBy({
       by: ["status"],
-      where: { feedback: { deletedAt: null } },
+      where: {
+        feedback: {
+          AND: [{ deletedAt: null }, supportedOperationalFeedbackWhere()]
+        }
+      },
       _count: { _all: true }
     }),
-    prisma.automationEvent.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.synchronizationRun.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.automationEvent.groupBy({
+      by: ["status"],
+      where: { feedback: supportedOperationalFeedbackWhere() },
+      _count: { _all: true }
+    }),
+    prisma.synchronizationRun.groupBy({
+      by: ["status"],
+      where: { connection: { is: supportedLiveIntegrationWhere() } },
+      _count: { _all: true }
+    }),
     prisma.integrationWebhookDelivery.groupBy({
       by: ["status"],
-      where: { receivedAt: { gte: recent } },
+      where: { provider: "WHATSAPP", receivedAt: { gte: recent } },
       _count: { _all: true }
     })
   ]);
@@ -833,20 +897,24 @@ export async function getAdminSystemHealth() {
     prisma.feedbackAIAnalysis.count({
       where: {
         status: FeedbackAIAnalysisStatus.PROCESSING,
-        feedback: { deletedAt: null },
+        feedback: {
+          AND: [{ deletedAt: null }, supportedOperationalFeedbackWhere()]
+        },
         lockedAt: { lt: staleThreshold }
       }
     }),
     prisma.automationEvent.count({
       where: {
         status: AutomationEventStatus.PROCESSING,
-        lockedAt: { lt: staleThreshold }
+        lockedAt: { lt: staleThreshold },
+        feedback: supportedOperationalFeedbackWhere()
       }
     }),
     prisma.synchronizationRun.count({
       where: {
         status: SynchronizationRunStatus.RUNNING,
-        startedAt: { lt: staleThreshold }
+        startedAt: { lt: staleThreshold },
+        connection: { is: supportedLiveIntegrationWhere() }
       }
     })
   ]);
@@ -901,7 +969,8 @@ export async function buildLegacyAdminReport(
     channel: input.channel,
     status: input.status,
     receivedAt: { gte: from, lte: to },
-    ...(input.sentiment ? { aiAnalysis: { is: { sentiment: input.sentiment } } } : {})
+    ...(input.sentiment ? { aiAnalysis: { is: { sentiment: input.sentiment } } } : {}),
+    AND: [supportedOperationalFeedbackWhere()]
   };
 
   const [business, feedbackTotal, platformSettings] = await Promise.all([
@@ -1039,11 +1108,13 @@ async function addExecutiveSections(
       _count: { _all: true }
     }),
     prisma.integrationConnection.findMany({
+      where: supportedLiveIntegrationWhere(),
       select: integrationHealthSelect,
       orderBy: { updatedAt: "desc" }
     }),
     prisma.integrationConnection.groupBy({
       by: ["provider", "mode"],
+      where: supportedLiveIntegrationWhere(),
       _count: { _all: true }
     }),
     queryTimeSeries("feedback", "received_at", from, to, reportBucket(from, to)),
@@ -1270,7 +1341,6 @@ async function addChannelSections(
       "Feedback",
       "Share",
       "Live connections",
-      "Demo connections",
       "Imported",
       "Duplicates",
       "Skipped",
@@ -1289,8 +1359,6 @@ async function addChannelSections(
         total ? `${((channel._count._all / total) * 100).toFixed(1)}%` : "0%",
         providerConnections.find((item) => item.mode === IntegrationMode.LIVE)?._count
           ._all ?? 0,
-        providerConnections.find((item) => item.mode === IntegrationMode.DEMO)?._count
-          ._all ?? 0,
         providerItems.find((item) => item.status === "IMPORTED")?._count._all ?? 0,
         providerItems.find((item) => item.status === "DUPLICATE")?._count._all ?? 0,
         providerItems.find((item) => item.status === "SKIPPED")?._count._all ?? 0,
@@ -1305,7 +1373,7 @@ async function addIntegrationHealthSections(
   businessId?: string
 ) {
   const connections = await prisma.integrationConnection.findMany({
-    where: { businessId },
+    where: { AND: [{ businessId }, supportedLiveIntegrationWhere()] },
     select: integrationHealthSelect,
     orderBy: { updatedAt: "desc" }
   });
@@ -1498,14 +1566,26 @@ async function getActionRequired() {
     failedAutomation
   ] = await Promise.all([
     prisma.business.count({ where: { status: BusinessStatus.PENDING } }),
-    prisma.integrationConnection.findMany({ select: integrationHealthSelect }),
+    prisma.integrationConnection.findMany({
+      where: supportedLiveIntegrationWhere(),
+      select: integrationHealthSelect
+    }),
     prisma.synchronizationRun.count({
-      where: { status: { in: ATTENTION_RUN_STATUSES }, createdAt: { gte: since } }
+      where: {
+        status: { in: ATTENTION_RUN_STATUSES },
+        createdAt: { gte: since },
+        connection: { is: supportedLiveIntegrationWhere() }
+      }
     }),
     prisma.integrationWebhookDelivery.count({
-      where: { status: "FAILED", receivedAt: { gte: since } }
+      where: { status: "FAILED", provider: "WHATSAPP", receivedAt: { gte: since } }
     }),
-    prisma.feedbackAIAnalysis.count({ where: { status: "FAILED" } }),
+    prisma.feedbackAIAnalysis.count({
+      where: {
+        status: "FAILED",
+        feedback: supportedOperationalFeedbackWhere()
+      }
+    }),
     prisma.automationExecution.count({
       where: { status: { in: ["FAILED", "PARTIAL"] } }
     })
@@ -1574,6 +1654,7 @@ async function getActionRequired() {
 async function getRecentPlatformActivity() {
   const [adminActivities, businesses, integrations, webhooks] = await Promise.all([
     prisma.platformAdminActivity.findMany({
+      where: { targetType: { not: "INTEGRATION" } },
       select: {
         id: true,
         summary: true,
@@ -1592,6 +1673,7 @@ async function getRecentPlatformActivity() {
       take: 6
     }),
     prisma.integrationConnection.findMany({
+      where: supportedLiveIntegrationWhere(),
       select: {
         id: true,
         provider: true,
@@ -1611,7 +1693,7 @@ async function getRecentPlatformActivity() {
         receivedAt: true,
         business: { select: { id: true, name: true } }
       },
-      where: { status: "FAILED" },
+      where: { status: "FAILED", provider: "WHATSAPP" },
       orderBy: { receivedAt: "desc" },
       take: 6
     })
@@ -1681,19 +1763,23 @@ async function getBusinessOverview() {
         select: {
           branches: true,
           memberships: true,
-          feedbacks: { where: { deletedAt: null } }
+          feedbacks: {
+            where: { AND: [{ deletedAt: null }, supportedOperationalFeedbackWhere()] }
+          }
         }
       },
       feedbacks: {
-        where: { deletedAt: null },
+        where: { AND: [{ deletedAt: null }, supportedOperationalFeedbackWhere()] },
         select: { receivedAt: true },
         orderBy: { receivedAt: "desc" },
         take: 1
       },
       integrationConnections: {
         where: {
-          mode: IntegrationMode.LIVE,
-          status: { not: IntegrationConnectionStatus.DISCONNECTED }
+          AND: [
+            supportedLiveIntegrationWhere(),
+            { status: { not: IntegrationConnectionStatus.DISCONNECTED } }
+          ]
         },
         select: {
           provider: true,
@@ -1743,7 +1829,7 @@ export async function queryTimeSeries(
         : PrismaRuntime.sql`DATE(${PrismaRuntime.raw(column)})`;
   const rows = await prisma.$queryRaw<SqlCountRow[]>(
     table === "feedback"
-      ? PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE deleted_at IS NULL AND ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
+      ? PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE deleted_at IS NULL AND (channel IN ('MANUAL', 'PUBLIC_FORM', 'QR_CODE') OR (channel = 'WHATSAPP' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true) OR (channel = 'EMAIL' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(source_metadata, '$.liveProviderType')) = 'GMAIL')) AND ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
       : PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
   );
   return rows.map((row) => ({
@@ -1966,9 +2052,11 @@ function integrationSummarySection(
 function providerLabel(
   connection: Pick<IntegrationHealthRecord, "provider" | "liveProviderType">
 ) {
-  return connection.provider === "EMAIL" && connection.liveProviderType
-    ? `${connection.provider} (${connection.liveProviderType})`
-    : connection.provider;
+  return connection.provider === "EMAIL" && connection.liveProviderType === "GMAIL"
+    ? "Gmail"
+    : connection.provider === "EMAIL" && connection.liveProviderType
+      ? `${connection.provider} (${connection.liveProviderType})`
+      : connection.provider;
 }
 
 function channelToProvider(channel: FeedbackChannel) {

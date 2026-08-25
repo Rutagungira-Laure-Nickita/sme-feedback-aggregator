@@ -146,7 +146,7 @@ test("canonical feedback scope plans keep every filter identical across current 
     reportType: "FEEDBACK_CUSTOMER_EXPERIENCE" as const,
     businessId: "business-1",
     branchId: "branch-1",
-    channel: "INSTAGRAM" as const,
+    channel: "EMAIL" as const,
     status: "NEW" as const,
     sentiment: "POSITIVE" as const
   };
@@ -260,7 +260,13 @@ test("Executive scope plan follows actual business, branch, membership, customer
   assert.deepEqual(branch.feedbackRelationWhere, { branchId: "branch-1" });
   assert.deepEqual(branch.integrationWhere, {
     businessId: "business-1",
-    defaultBranchId: "branch-1"
+    defaultBranchId: "branch-1",
+    AND: [
+      {
+        mode: "LIVE",
+        OR: [{ provider: "WHATSAPP" }, { provider: "EMAIL", liveProviderType: "GMAIL" }]
+      }
+    ]
   });
   assert.deepEqual(branch.userWhere, {
     businessMemberships: {

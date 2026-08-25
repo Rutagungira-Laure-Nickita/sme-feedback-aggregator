@@ -46,6 +46,7 @@ export type IntegrationConnection = {
   providerAccountId: string | null;
   providerAccountLabel: string | null;
   synchronizationFolder: string;
+  gmailFeedbackLabel: string | null;
   lastProviderCursorAt: string | null;
   requiresReauthorization: boolean;
   lastConnectionTestAt: string | null;
@@ -260,6 +261,7 @@ export async function createIntegrationConnection(
     providerAccountLabel?: string;
     providerAccountType?: string;
     temporaryAccessToken?: string;
+    gmailFeedbackLabel?: string;
   }
 ): Promise<IntegrationConnection | IntegrationAuthorizationResponse> {
   const response = await apiClient.post<{
@@ -267,7 +269,7 @@ export async function createIntegrationConnection(
     data: IntegrationConnection | IntegrationAuthorizationResponse;
   }>(`/businesses/${businessId}/integrations`, {
     ...input,
-    mode: input.mode ?? "DEMO"
+    mode: input.mode ?? "LIVE"
   });
   return response.data.data;
 }
@@ -308,6 +310,7 @@ export async function updateIntegrationConnection(
     providerAccountLabel?: string;
     providerAccountType?: string;
     temporaryAccessToken?: string;
+    gmailFeedbackLabel?: string;
   }
 ): Promise<IntegrationConnection> {
   const response = await apiClient.patch<{

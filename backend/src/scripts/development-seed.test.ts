@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FeedbackChannel, IntegrationMode, UserRole } from "../lib/prisma-runtime.js";
+import { FeedbackChannel, UserRole } from "../lib/prisma-runtime.js";
 import {
   DEFAULT_DEVELOPMENT_SEED_PASSWORD,
   DEVELOPMENT_SEED_FEEDBACK_FIXTURES,
@@ -36,32 +36,27 @@ test("development seed login accounts are stable, unique, and cover required rol
   );
 });
 
-test("development feedback fixtures cover every supported channel", () => {
+test("development feedback fixtures use only product-supported operational channels", () => {
   const channels = new Set(
     DEVELOPMENT_SEED_FEEDBACK_FIXTURES.map((fixture) => fixture.channel)
   );
-  assert.deepEqual([...channels].sort(), Object.values(FeedbackChannel).sort());
+  assert.deepEqual(
+    [...channels].sort(),
+    [FeedbackChannel.MANUAL, FeedbackChannel.PUBLIC_FORM, FeedbackChannel.QR_CODE].sort()
+  );
   assert.ok(
     DEVELOPMENT_SEED_FEEDBACK_FIXTURES.every(
       (fixture) =>
         fixture.id.startsWith("dev_seed_") &&
         fixture.ingestionId.startsWith("dev_seed_") &&
         (fixture.externalId.startsWith("dev-seed-") ||
-          fixture.externalId.startsWith("demo-"))
+          fixture.externalId.startsWith("development-seed:"))
     )
   );
 });
 
-test("seeded integration fixtures are Demo Mode records without live credentials", () => {
-  assert.equal(DEVELOPMENT_SEED_INTEGRATION_FIXTURES.length, 6);
-  assert.ok(
-    DEVELOPMENT_SEED_INTEGRATION_FIXTURES.every(
-      (fixture) =>
-        fixture.id.startsWith("dev_seed_connection_") &&
-        fixture.mode === IntegrationMode.DEMO
-    )
-  );
-
+test("development seed creates no integration fixtures", () => {
+  assert.equal(DEVELOPMENT_SEED_INTEGRATION_FIXTURES.length, 0);
   const serialized = JSON.stringify(DEVELOPMENT_SEED_INTEGRATION_FIXTURES).toLowerCase();
   for (const forbidden of [
     "accesstoken",

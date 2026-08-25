@@ -1,5 +1,14 @@
 # Security Notes
 
+## Supported-Channel and Gmail Ingestion Safety
+
+- Backend integration lifecycle authorization is now deny-by-default after the existing membership/role checks: only Live Gmail and Live WhatsApp are operational. Frontend hiding is not relied on for security. Unsupported historical rows may remain available to bounded audit code but cannot be created, authorized, resumed, activated, tested, or synchronized through normal product services.
+- Operational feedback/report/customer/admin queries combine the existing tenant, role, Branch, and soft-delete predicates with the supported-source predicate. External source metadata must prove Live Gmail or Live WhatsApp; an EMAIL enum alone is insufficient.
+- Gmail label resolution uses the authenticated mailbox labels endpoint and exact case-insensitive label-name matching. Import requires both Inbox and the configured label at fetch time, including incremental history candidates. Missing labels fail safely without broadening to the Inbox.
+- `Auto-Submitted`, `Precedence`, `List-Id`, `List-Unsubscribe`, conservative automated-sender patterns, and narrowly combined Promotions/sender signals prevent common newsletters and automated mail from entering Feedback. Skips expose only safe reason codes; bodies, credentials, tokens, raw headers, and provider payloads are not added to logs or client responses.
+- Facebook/Instagram POST webhook ingestion is retired with a controlled response. WhatsApp still requires exact raw-body `X-Hub-Signature-256` verification before processing and retains provider-message deduplication.
+- All-matching bulk exclusions are bounded, schema-validated, and applied server-side within the same authenticated Business/Branch/filter scope; foreign IDs cannot expand selection or mutate another tenant.
+
 ## Final Product Hardening Security Boundaries
 
 - Feedback edit/delete/bulk services require an authenticated active membership in an active Business and allow only `OWNER` or `ADMIN`. Every lookup/update includes route `businessId` and `deletedAt: null`; category and Branch targets must belong to that Business. Provider channel, external IDs, ingestion/source metadata, and original timestamps are outside the accepted edit schema.

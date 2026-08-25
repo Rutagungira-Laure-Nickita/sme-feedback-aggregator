@@ -1,9 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../../utils/api-response.js";
-import {
-  processMetaSocialWebhookDelivery,
-  verifyMetaSocialWebhookChallenge
-} from "./meta-social-live-connector.js";
+import { verifyMetaSocialWebhookChallenge } from "./meta-social-live-connector.js";
 import { verifyMetaWebhookSignature } from "./meta-webhook-security.js";
 import { INTEGRATION_ERRORS, IntegrationError } from "./integration.errors.js";
 import { processWhatsAppWebhookDelivery } from "./whatsapp-live-connector.js";
@@ -43,10 +40,14 @@ export async function receiveMetaWebhookController(
     });
 
     const objectType = readMetaObjectType(rawBody);
-    const result =
-      objectType === "whatsapp_business_account"
-        ? await processWhatsAppWebhookDelivery({ rawBody, signatureHeader })
-        : await processMetaSocialWebhookDelivery({ rawBody, signatureHeader });
+    if (objectType !== "whatsapp_business_account") {
+      throw new IntegrationError(
+        "Only Live WhatsApp webhook events are accepted by this product.",
+        INTEGRATION_ERRORS.PROVIDER_UNSUPPORTED,
+        410
+      );
+    }
+    const result = await processWhatsAppWebhookDelivery({ rawBody, signatureHeader });
 
     sendSuccess(response, "Meta webhook received.", result);
   } catch (error) {

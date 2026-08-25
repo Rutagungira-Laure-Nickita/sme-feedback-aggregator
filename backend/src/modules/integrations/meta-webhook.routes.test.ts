@@ -104,21 +104,14 @@ test("Meta POST webhook continues to enforce X-Hub-Signature-256", async () => {
   assert.equal(body.error.code, "META_WEBHOOK_SIGNATURE_INVALID");
 });
 
-test("signed Facebook and Instagram payloads still use the social webhook processor", async () => {
+test("signed Facebook and Instagram payloads are retired without creating activity", async () => {
   for (const object of ["page", "instagram"]) {
     const rawBody = JSON.stringify({ object, entry: [] });
     const response = await postSignedMetaWebhook(rawBody);
-    const body = (await response.json()) as WebhookSuccessResponse;
+    const body = (await response.json()) as ErrorResponse;
 
-    assert.equal(response.status, 200);
-    assert.equal(body.success, true);
-    assert.deepEqual(body.data, {
-      received: 0,
-      imported: 0,
-      duplicates: 0,
-      skipped: 0,
-      failed: 0
-    });
+    assert.equal(response.status, 410);
+    assert.equal(body.error.code, "INTEGRATION_PROVIDER_UNSUPPORTED");
   }
 });
 

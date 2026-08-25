@@ -1,5 +1,15 @@
 # Architecture
 
+## Supported Product-Channel and Integration Boundary
+
+`supported-integration-policy.ts` is the backend deny-by-default policy for operational feedback and connections. Native Manual Entry/Public Form/QR Code feedback is operational; external feedback is operational only when source metadata identifies Live Gmail or Live WhatsApp. Normal inbox, customer, dashboard, Platform Administrator, and report queries compose that predicate with their existing tenant/role/deletion scope. The database enums, historical rows, and dormant connectors are intentionally retained for backward-compatible audit reads, but normal integration lifecycle APIs accept only Live Gmail and Live WhatsApp. The frontend mirrors labels/options in `supportedSources.ts`; it is a presentation aid, not the authorization boundary.
+
+Gmail synchronization resolves the configured user label (default `Customer Feedback`) through the Gmail labels API and requires both that label and `INBOX`. Initial import uses a bounded dual-label message query; incremental history considers label/message additions and re-fetches each candidate to verify current labels. Standard automated/bulk/list headers and conservative sender patterns produce safe skipped synchronization items rather than Feedback. Eligible messages continue through the existing connector normalization and `FeedbackProcessingService` ingestion/deduplication path.
+
+The integrations collection uses the shared persisted collection-view hook. Grid cards and the semantic desktop table/mobile stacked list consume the same connection/capability/action state. Gmail `Sync Now` invokes synchronization; WhatsApp `Sync Now` only re-fetches persisted connection/webhook activity because webhook ingestion is automatic.
+
+All-matching feedback mutation selection is represented as validated filters plus `excludedFeedbackIds`. The backend rebuilds the authorized Business/Branch/soft-delete/supported-channel predicate and adds `id NOT IN` exclusions inside the same transaction. The frontend preserves exclusions across pages and derives every visible checkbox/count from that population, avoiding a client-only approximation.
+
 ## Final Product Hardening Architecture
 
 Feedback management is layered onto the existing authenticated Business feedback router. `feedback-management.schemas.ts`, controller, and service define the Owner/Admin-only editable contract, transactional bulk operations, optimistic edit concurrency, status-transition reuse, human field-state ownership, and soft deletion. Selection can be explicit IDs or the existing validated inbox filter contract; every mutation still resolves the authenticated membership and fixes `businessId` server-side. Normal reads centralize `deletedAt: null`; physical Feedback, FeedbackIngestion, provider delivery/deduplication, activities, AI analysis, automation, and customer history remain intact.

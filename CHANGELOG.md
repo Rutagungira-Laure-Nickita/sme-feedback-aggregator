@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-25 - Supported Channels and Gmail Feedback-Ingestion Correction
+
+- Established one deny-by-default operational policy: Manual Entry, Public Form, QR Code, Live Gmail, and Live WhatsApp are the only visible/queryable product channels; unsupported/Demo records remain stored for audit but cannot be newly created or operated.
+- Removed unsupported provider rows/options/metrics from owner, customer, Platform Administrator, dashboard, filter, report, and fresh-seed presentation; retired Facebook/Instagram POST webhook ingestion while preserving signed WhatsApp delivery.
+- Added a persisted responsive Grid/Table switch to Business Integrations, aligned Gmail/WhatsApp card actions, and labeled both primary actions `Sync Now` while keeping WhatsApp strictly read-only activity refresh.
+- Added configurable Gmail label scoping (default `Customer Feedback`), Inbox-plus-label checks for initial/history sync, safe missing-label errors, and automated/newsletter header/sender safeguards with explicit skipped run items.
+- Corrected all-matching feedback selection to persist explicit exclusions across pages and apply the exact population to bulk status/category/delete and Remove all.
+- Updated assignee options/labels to `Name — Business Role` and centralized supported source labels/options.
+- Added no schema or migration and mutated no stored data. Passed backend/frontend typecheck and lint, integrations 35/35, hardening 22/22, Platform Administrator 44/44, seed 3/3, Phase 26 34/34, Phase 27 30/30, Phase 28 matrix 136/136, formatting, and production build; the existing non-blocking frontend chunk-size advisory remains and browser/provider verification is user-owned.
+
 ## 2026-08-21 - Final Product Hardening and UI/UX Pass
 
 - Added Owner/Admin feedback edit, single soft-delete, transactional bulk status/category/delete, current-page/all-matching selection, optimistic concurrency, audit activity, and exact typed confirmation for unfiltered Remove all.

@@ -52,9 +52,22 @@ test("account compatibility redirects customers to the new dashboard", () => {
 });
 
 test("WhatsApp refreshes activity without introducing a fake sync", () => {
-  assert.match(integrations, /label: "Refresh Activity"/);
+  assert.match(integrations, /label: "Sync Now"/);
+  assert.match(integrations, /action: "refresh"/);
+  assert.match(integrations, /business-\$\{businessId \?\? "unknown"\}-integrations/);
+  assert.match(integrations, /function ProviderConnectionTable/);
+  assert.match(integrations, /aria-pressed=\{view === "list"\}/);
+  assert.match(integrations, /gmailFeedbackLabel/);
+  assert.match(integrations, /Customer Feedback/);
   assert.match(integrations, /action: "refresh"/);
   assert.match(integrations, /Connection and webhook activity refreshed/);
+});
+
+test("all-matching feedback selection tracks explicit exclusions", () => {
+  assert.match(inbox, /excludedFeedbackIds: \[\.\.\.excludedIds\]/);
+  assert.match(inbox, /allMatchingSelected \? !excludedIds\.has\(id\)/);
+  assert.match(inbox, /pagination\.totalItems - excludedIds\.size/);
+  assert.match(inbox, /formatBusinessRole\(assignee\.role\)/);
 });
 
 test("desktop and mobile navigation use independent bounded scrolling", () => {
