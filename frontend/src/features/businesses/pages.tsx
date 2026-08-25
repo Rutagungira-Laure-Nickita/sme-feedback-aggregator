@@ -14,7 +14,6 @@ import {
   MessageSquarePlus,
   Plus,
   Power,
-  QrCode,
   RefreshCw,
   Search,
   Sparkles,
@@ -99,6 +98,7 @@ import {
 import { formatRole } from "./format.js";
 import { PublicFeedbackSettingsPanel } from "./PublicFeedbackSettingsPanel.js";
 import { previewBusinessReport } from "./reportsApi.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "./supportedSources.js";
 import {
   createCategory,
   fetchBusinessAIStatus,
@@ -219,7 +219,7 @@ export function BusinessIndexPage(): JSX.Element {
   return (
     <StandaloneState
       title="No business access"
-      description="Your account does not currently belong to a business workspace. Ask a business owner or administrator for an invitation."
+      description="Your account does not currently belong to a business workspace. Ask the Business Owner for an invitation."
     />
   );
 }
@@ -526,15 +526,20 @@ function BusinessOverviewContent({
         name: String(row[0] ?? "Not analyzed"),
         value: Number(row[1] ?? 0)
       }));
-  const channels = staffDashboard
+  const channelRows = staffDashboard
     ? staffDashboard.channels.map((item) => ({
-        name: formatRole(item.channel),
+        key: item.channel,
         value: item.count
       }))
     : reportSectionRows(report, "Channel distribution").map((row) => ({
-        name: formatRole(String(row[0] ?? "Other")),
+        key: String(row[0] ?? ""),
         value: Number(row[1] ?? 0)
       }));
+  const channelCounts = new Map(channelRows.map((item) => [item.key, item.value]));
+  const channels = OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => ({
+    name: option.label,
+    value: channelCounts.get(option.value) ?? channelCounts.get(option.label) ?? 0
+  }));
   const importantFeedback = staffDashboard
     ? staffDashboard.recent
         .filter((item) => item.priority === "HIGH" || item.priority === "URGENT")
@@ -673,7 +678,7 @@ function BusinessOverviewContent({
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(250px,0.75fr)_minmax(250px,0.75fr)]">
         <WorkspacePanel>
           <SectionTitle
             title="Feedback volume"
@@ -721,52 +726,20 @@ function BusinessOverviewContent({
             </ResponsiveContainer>
           </div>
         </WorkspacePanel>
-        <WorkspacePanel>
-          <SectionTitle
-            title="Sentiment mix"
-            description="Completed AI analyses in the same period."
-          />
-          <div className="mt-3 h-52" aria-label="Sentiment mix chart">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={sentiment}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={54}
-                  outerRadius={76}
-                  paddingAngle={3}
-                >
-                  {sentiment.map((item, index) => (
-                    <Cell
-                      key={item.name}
-                      fill={dashboardChartColors[index % dashboardChartColors.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={dashboardTooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {sentiment.slice(0, 4).map((item, index) => (
-              <div
-                key={item.name}
-                className="flex min-w-0 items-center gap-2 text-xs font-bold text-app-text-muted"
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{
-                    backgroundColor:
-                      dashboardChartColors[index % dashboardChartColors.length]
-                  }}
-                />
-                <span className="truncate">{formatRole(item.name)}</span>
-                <span className="ml-auto text-app-text">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </WorkspacePanel>
+        <DashboardDonutCard
+          title="Sentiment mix"
+          description="Completed AI analyses in the same period."
+          ariaLabel="Sentiment mix chart"
+          data={sentiment}
+          emptyMessage="No completed sentiment analyses in this period."
+        />
+        <DashboardDonutCard
+          title="Channel distribution"
+          description="Current feedback channels in the same period."
+          ariaLabel="Channel distribution chart"
+          data={channels}
+          emptyMessage="No feedback was received in this period."
+        />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -861,24 +834,6 @@ function BusinessOverviewContent({
               description="Keep customer experience work moving."
             />
             <div className="mt-5 grid gap-2">
-              {permissions.canManageBranches ? (
-                <>
-                  <WorkspaceButton
-                    to={`/business/${business.id}/feedback/qr-codes`}
-                    tone="secondary"
-                  >
-                    <QrCode className="h-4 w-4" />
-                    Manage QR codes
-                  </WorkspaceButton>
-                  <WorkspaceButton
-                    to={`/business/${business.id}/automations`}
-                    tone="secondary"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Review automations
-                  </WorkspaceButton>
-                </>
-              ) : null}
               {permissions.canManageStaff ? (
                 <WorkspaceButton
                   to={`/business/${business.id}/staff/invite`}
@@ -892,33 +847,79 @@ function BusinessOverviewContent({
           </WorkspacePanel>
         </div>
       </div>
-
-      {channels.length ? (
-        <WorkspacePanel className="mt-5">
-          <SectionTitle
-            title="Where feedback comes from"
-            description="Real channel distribution for the selected period."
-          />
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {channels.slice(0, 8).map((item, index) => (
-              <div key={item.name} className="rounded-xl bg-app-surface-muted/75 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-black text-app-text">{item.name}</span>
-                  <span
-                    className="h-3 w-3 rounded-full"
-                    style={{
-                      backgroundColor:
-                        dashboardChartColors[index % dashboardChartColors.length]
-                    }}
-                  />
-                </div>
-                <p className="mt-3 text-2xl font-black text-app-text">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </WorkspacePanel>
-      ) : null}
     </WorkspaceShell>
+  );
+}
+
+function DashboardDonutCard({
+  title,
+  description,
+  ariaLabel,
+  data,
+  emptyMessage
+}: {
+  title: string;
+  description: string;
+  ariaLabel: string;
+  data: Array<{ name: string; value: number }>;
+  emptyMessage: string;
+}) {
+  const chartData = data.filter((item) => item.value > 0);
+
+  return (
+    <WorkspacePanel>
+      <SectionTitle title={title} description={description} />
+      <div className="relative mt-3 h-52" aria-label={ariaLabel}>
+        {chartData.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={54}
+                outerRadius={76}
+                paddingAngle={3}
+              >
+                {chartData.map((item) => (
+                  <Cell
+                    key={item.name}
+                    fill={
+                      dashboardChartColors[
+                        data.findIndex((candidate) => candidate.name === item.name) %
+                          dashboardChartColors.length
+                      ]
+                    }
+                  />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={dashboardTooltipStyle} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm font-semibold text-app-text-muted">
+            {emptyMessage}
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {data.slice(0, 4).map((item, index) => (
+          <div
+            key={item.name}
+            className="flex min-w-0 items-center gap-2 text-xs font-bold text-app-text-muted"
+          >
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{
+                backgroundColor: dashboardChartColors[index % dashboardChartColors.length]
+              }}
+            />
+            <span className="truncate">{formatRole(item.name)}</span>
+            <span className="ml-auto text-app-text">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </WorkspacePanel>
   );
 }
 
@@ -2122,11 +2123,9 @@ function StaffListContent({ context }: { context: LoadedBusinessContext }): JSX.
           detail="Active members"
         />
         <StatCard
-          label="Admins and managers"
-          value={
-            memberships.filter((m) => m.role === "ADMIN" || m.role === "MANAGER").length
-          }
-          detail="Elevated business access"
+          label="Managers"
+          value={memberships.filter((m) => m.role === "MANAGER").length}
+          detail="Team coordination"
         />
         <StatCard
           label="Suspended"
@@ -2287,8 +2286,8 @@ function StaffDetailsContent({
                     roleMutation.mutate(value as BusinessMemberRole)
                   }
                   options={[
-                    ...(permissions.canAssignAdmin
-                      ? [{ value: "ADMIN", label: "Business Admin" }]
+                    ...(membership.role === "ADMIN"
+                      ? [{ value: "ADMIN", label: "Business Owner" }]
                       : []),
                     { value: "MANAGER", label: "Manager" },
                     { value: "STAFF", label: "Staff" }
@@ -2397,7 +2396,7 @@ function BranchAssignmentContent({
       ) : membership.role === "OWNER" || membership.role === "ADMIN" ? (
         <EmptyState
           title="All branches enforced"
-          description="Owner and admin memberships always have all-branch access."
+          description="Business-wide owner access always includes all branches."
         />
       ) : (
         <form
@@ -2504,7 +2503,7 @@ function InviteStaffContent({
       >
         <EmptyState
           title="Permission denied"
-          description="Only owners and admins can invite staff."
+          description="Only the Business Owner can invite staff."
         />
       </WorkspaceShell>
     );
@@ -2546,9 +2545,6 @@ function InviteStaffContent({
                   onBlur={field.onBlur}
                   name={field.name}
                   options={[
-                    ...(permissions.canAssignAdmin
-                      ? [{ value: "ADMIN", label: "Business Admin" }]
-                      : []),
                     { value: "MANAGER", label: "Manager" },
                     { value: "STAFF", label: "Staff" }
                   ]}

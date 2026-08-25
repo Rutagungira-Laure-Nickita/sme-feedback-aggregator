@@ -90,7 +90,7 @@ export const branchFormSchema = z.object({
 export const inviteStaffSchema = z
   .object({
     invitedEmail: z.string().trim().email("Enter a valid email.").max(255),
-    role: z.enum(["ADMIN", "MANAGER", "STAFF"]),
+    role: z.enum(["MANAGER", "STAFF"]),
     allBranchesAccess: z.boolean(),
     branchIds: z.array(z.string()).default([])
   })

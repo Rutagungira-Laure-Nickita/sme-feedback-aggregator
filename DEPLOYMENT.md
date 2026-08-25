@@ -1,10 +1,16 @@
 # Deployment
 
+## Focused Operational Correction Deployment Notes
+
+This correction adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook setting, queue, worker, or storage requirement. Deploy backend and frontend together so the shared active-feedback predicate, four-channel request schemas, role choices, dashboard donut, and hidden navigation remain aligned. Do not clean up historical deleted/QR/provider rows: they are intentionally retained for audit and deduplication. Do not reseed merely to remove an older administrator persona; existing `ADMIN` records are compatibility data and display as Business Owner.
+
+The separate migration `20260821120000_final_product_hardening` remains pending and must be applied through the normal migration workflow before serving soft-delete-dependent code. After rollout, clear stale frontend assets and execute the focused checklist in `NEXT_STEPS.md`, including count agreement after each delete mode, four-channel report agreement, Gmail duplicate-safe synchronization, and signed WhatsApp webhook regression.
+
 ## Supported-Channel Correction Deployment Notes
 
 This correction adds no package, Prisma schema change, migration, environment variable, OAuth scope, provider credential, webhook secret, queue, or storage requirement. Deploy backend and frontend together so the server-side supported-provider policy and client options/actions remain aligned. The separate pending migration `20260821120000_final_product_hardening` must still be applied through the normal migration workflow before serving that hardening release; do not reset, db-push, reseed, or delete historical integration rows.
 
-Before Gmail smoke testing, create the configured label (default `Customer Feedback`) in the connected Gmail mailbox and apply it only to intended customer feedback. Verify labeled genuine mail imports, unlabeled/automated mail does not, a missing label returns a safe configuration error, and an incremental rerun remains duplicate-safe. Verify signed WhatsApp webhook ingestion still works and that its visible `Sync Now` action only refreshes stored activity. After rollout, spot-check owner/admin/customer views and downloaded reports for the five supported channels only. No Meta social or Outlook webhook/OAuth configuration should be enabled for normal product use.
+Before Gmail smoke testing, create the configured label (default `Customer Feedback`) in the connected Gmail mailbox and apply it only to intended customer feedback. Verify labeled genuine mail imports, unlabeled/automated mail does not, a missing label returns a safe configuration error, and an incremental rerun remains duplicate-safe. Verify signed WhatsApp webhook ingestion still works and that its visible `Sync Now` action only refreshes stored activity. After rollout, spot-check owner/admin/customer views and downloaded reports for exactly Gmail, WhatsApp, Manual Entry, and Public Form. No Meta social or Outlook webhook/OAuth configuration should be enabled for normal product use.
 
 ## Final Product Hardening Deployment Notes
 

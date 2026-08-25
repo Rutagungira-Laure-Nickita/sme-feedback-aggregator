@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-25 - Operational Count Integrity and Product-Surface Correction
+
+- Added one canonical active-feedback query predicate so soft-deleted and non-visible-source rows cannot contribute to inbox summaries, customer/category aggregates, staff/owner/platform dashboards, analytics, or owner/platform reports while audit and provider deduplication records remain stored.
+- Narrowed normal product channels to exactly Gmail, WhatsApp, Manual Entry, and Public Form; normalized report `EMAIL` labels to Gmail and added the Business Owner Channel distribution donut with fixed four-item legend and zero state.
+- Normalized visible roles to Platform Administrator, Business Owner, Manager, Staff, and Customer. Preserved the internal `ADMIN` enum/data and permissions, mapped it to Business Owner, prevented new normal ADMIN invitations/role changes, omitted it from assignee choices, and removed the duplicate administrator from future development seeds.
+- Removed QR and Automations from normal navigation, quick actions, marketing, filters, summaries, charts, and reports while preserving routes, components, endpoints, services, database data, and tests.
+- Added no schema/migration, dependency, provider configuration, credential, or stored-data mutation. Focused hardening 29/29, connectors 36/36, seed 3/3, Platform Administrator 44/44, Phase 26 34/34, Phase 27 30/30, Phase 28 matrix 136/136, typecheck, lint, Prisma validation, formatting, production build, and diff validation pass; browser verification remains user-owned.
+
 ## 2026-08-25 - Supported Channels and Gmail Feedback-Ingestion Correction
 
 - Established one deny-by-default operational policy: Manual Entry, Public Form, QR Code, Live Gmail, and Live WhatsApp are the only visible/queryable product channels; unsupported/Demo records remain stored for audit but cannot be newly created or operated.

@@ -5,6 +5,7 @@ import {
 import type { BusinessMembership } from "@prisma/client";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
+import { activeOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 import { FEEDBACK_CATEGORY_ERRORS } from "./feedback-categories.errors.js";
 import type {
   FeedbackCategoryResponse,
@@ -56,7 +57,7 @@ function requireOwnerOrAdmin(membership: MembershipContext["membership"]): void 
     membership.role !== BusinessMemberRole.ADMIN
   ) {
     throw new AppError(
-      "Only owners and admins can manage categories.",
+      "Only the Business Owner can manage categories.",
       "BUSINESS_ROLE_REQUIRED",
       403
     );
@@ -102,7 +103,9 @@ export async function listCategories(
   const categories = await prisma.feedbackCategory.findMany({
     where: { businessId, ...(canSeeInactive ? {} : { isActive: true }) },
     orderBy: { name: "asc" },
-    include: { _count: { select: { feedback: true } } }
+    include: {
+      _count: { select: { feedback: { where: activeOperationalFeedbackWhere() } } }
+    }
   });
 
   return categories.map(toCategoryResponse);
@@ -120,7 +123,9 @@ export async function getCategory(
       businessId,
       ...(canManageCategories(context.membership) ? {} : { isActive: true })
     },
-    include: { _count: { select: { feedback: true } } }
+    include: {
+      _count: { select: { feedback: { where: activeOperationalFeedbackWhere() } } }
+    }
   });
 
   if (!category) {
@@ -157,7 +162,9 @@ export async function createCategory(
       description: input.description ?? null,
       colorKey: input.colorKey ?? "indigo"
     },
-    include: { _count: { select: { feedback: true } } }
+    include: {
+      _count: { select: { feedback: { where: activeOperationalFeedbackWhere() } } }
+    }
   });
 
   return toCategoryResponse(category);
@@ -204,7 +211,9 @@ export async function updateCategory(
         : {}),
       ...(input.colorKey !== undefined ? { colorKey: input.colorKey } : {})
     },
-    include: { _count: { select: { feedback: true } } }
+    include: {
+      _count: { select: { feedback: { where: activeOperationalFeedbackWhere() } } }
+    }
   });
 
   return toCategoryResponse(updated);
@@ -230,7 +239,9 @@ export async function updateCategoryActivation(
   const updated = await prisma.feedbackCategory.update({
     where: { id: categoryId },
     data: { isActive: input.isActive },
-    include: { _count: { select: { feedback: true } } }
+    include: {
+      _count: { select: { feedback: { where: activeOperationalFeedbackWhere() } } }
+    }
   });
 
   return toCategoryResponse(updated);

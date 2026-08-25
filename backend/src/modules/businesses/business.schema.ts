@@ -132,8 +132,13 @@ export const membershipListQuerySchema = paginationQuerySchema.extend({
   branchId: idSchema.optional()
 });
 
+const managedStaffRoleSchema = z.enum([
+  BusinessMemberRole.MANAGER,
+  BusinessMemberRole.STAFF
+]);
+
 export const updateMembershipRoleSchema = z.object({
-  role: z.nativeEnum(BusinessMemberRole)
+  role: managedStaffRoleSchema
 });
 
 export const updateMembershipBranchAccessSchema = z
@@ -152,13 +157,9 @@ export const invitationListQuerySchema = paginationQuerySchema.extend({
 export const createStaffInvitationSchema = z
   .object({
     invitedEmail: emailSchema,
-    role: z.nativeEnum(BusinessMemberRole),
+    role: managedStaffRoleSchema,
     allBranchesAccess: z.boolean(),
     branchIds: z.array(idSchema).max(100).default([])
-  })
-  .refine((value) => value.role !== BusinessMemberRole.OWNER, {
-    message: "Owner invitations are not supported.",
-    path: ["role"]
   })
   .refine((value) => value.allBranchesAccess || value.branchIds.length > 0, {
     message: "Choose all branches or at least one branch.",

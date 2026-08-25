@@ -92,7 +92,7 @@ export function LoginPage(): JSX.Element {
             {[
               {
                 title: "All channels in one place",
-                description: "Public forms, QR codes, Gmail, WhatsApp and manual entry."
+                description: "Gmail, WhatsApp, manual entry and public forms."
               },
               {
                 title: "AI-powered insights",

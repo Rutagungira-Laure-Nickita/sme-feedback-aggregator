@@ -21,7 +21,7 @@ const steps = [
     icon: Link2,
     title: "Open your collection points",
     description:
-      "Use a public portal, QR code, manual entry, Gmail or WhatsApp to capture feedback in context."
+      "Use Gmail, WhatsApp, manual entry or a public form to capture feedback in context."
   },
   {
     number: "02",
@@ -42,7 +42,7 @@ const steps = [
     icon: Workflow,
     title: "Coordinate the response",
     description:
-      "Set priority, assign ownership, update status and use automation for repeatable actions."
+      "Set priority, assign ownership and update status with a clear activity history."
   },
   {
     number: "05",

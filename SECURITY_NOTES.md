@@ -1,5 +1,12 @@
 # Security Notes
 
+## Focused Operational Visibility and Role Safety
+
+- The active operational predicate is enforced server-side and always includes both `deletedAt: null` and the exact visible-source allowlist. Frontend filtering is not the security or count-integrity boundary.
+- Soft deletion remains non-destructive so provider deduplication, ingestion traceability, audit activity, and related AI/automation history cannot be bypassed by removing a visible item.
+- Tenant, Business-state, Branch, customer ownership, and role checks are unchanged. Legacy internal `ADMIN` memberships retain their established permissions but are normalized to Business Owner in presentation; new invitation/role schemas prevent creation of another normal Business Admin persona.
+- Hiding QR and Automation navigation does not authorize deletion or bypass their existing guarded routes. Gmail OAuth/label rules, encrypted credentials, incremental cursor/deduplication behavior, WhatsApp signature verification, and safe webhook activity are unchanged.
+
 ## Supported-Channel and Gmail Ingestion Safety
 
 - Backend integration lifecycle authorization is now deny-by-default after the existing membership/role checks: only Live Gmail and Live WhatsApp are operational. Frontend hiding is not relied on for security. Unsupported historical rows may remain available to bounded audit code but cannot be created, authorized, resumed, activated, tested, or synchronized through normal product services.

@@ -8,22 +8,22 @@ A full-stack, multi-tenant platform that helps small and medium-sized businesses
 
 ## Overview
 
-Customer feedback often arrives through disconnected channels: email, WhatsApp, staff-entered notes, public forms, and QR codes. This makes it difficult for an SME to see the full customer experience, avoid duplicate work, assign ownership, and follow issues through to resolution.
+Customer feedback often arrives through disconnected channels: Gmail, WhatsApp, staff-entered notes, and public forms. This makes it difficult for an SME to see the full customer experience, avoid duplicate work, assign ownership, and follow issues through to resolution.
 
-The SME Multi-Channel Customer Feedback Aggregator brings those sources into a unified, tenant-isolated inbox. It combines feedback capture, workflow management, customer profiles, categorization, AI-assisted analysis, automation, dashboards, and reporting in one responsive application.
+The SME Multi-Channel Customer Feedback Aggregator brings those sources into a unified, tenant-isolated inbox. It combines feedback capture, workflow management, customer profiles, categorization, AI-assisted analysis, dashboards, and reporting in one responsive application.
 
 ## Key Features
 
 - Unified feedback inbox with search, filters, List/Grid or Grid/Table views, and persisted manual view preferences
 - Feedback details, status workflow, internal notes, activity history, priorities, categories, and staff assignment
-- Owner/Admin editing of allowed feedback fields with protected imported-provider metadata
+- Business Owner editing of allowed feedback fields with protected imported-provider metadata
 - Audited soft deletion and transactional bulk status, category, and delete operations
 - Selection of visible feedback or all feedback matching the active filters
 - Customer profiles and feedback history
 - Dedicated customer workspace at /customer for customer-owned feedback and account workflows
 - AI-assisted sentiment analysis, summaries, and category suggestions
-- Business-owned feedback categories and configurable automation rules
-- Public feedback forms and branch-aware QR-code submissions
+- Business-owned feedback categories
+- Public feedback forms
 - Business Owner and Platform Administrator dashboards and PDF/CSV reporting
 - Business, branch, staff, invitation, and approval workflows
 - Responsive light/dark/system UI using a fixed blue/indigo design system
@@ -31,12 +31,13 @@ The SME Multi-Channel Customer Feedback Aggregator brings those sources into a u
 
 ## User Roles
 
-| Role | Primary responsibilities |
-| --- | --- |
-| Platform Administrator | Oversees businesses, users, integrations, platform settings, health, and platform-level reports. |
-| Business Owner | Manages an active business across all its branches, feedback, staff, customers, integrations, automations, and business reports. |
-| Staff | Works only with the branches assigned to the staff membership. Branch restrictions are enforced by the backend. |
-| Customer | Uses the dedicated /customer workspace to access their own feedback and account-related functionality. |
+| Role                   | Primary responsibilities                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Platform Administrator | Oversees businesses, users, integrations, platform settings, health, and platform-level reports.                    |
+| Business Owner         | Manages an active business across all its branches, feedback, staff, customers, integrations, and business reports. |
+| Manager                | Coordinates feedback work within assigned branches.                                                                 |
+| Staff                  | Works only with the branches assigned to the staff membership. Branch restrictions are enforced by the backend.     |
+| Customer               | Uses the dedicated /customer workspace to access their own feedback and account-related functionality.              |
 
 Business Owners remain business-wide only inside their own tenant. Staff access is restricted server-side to assigned branches; the frontend is not treated as an authorization boundary.
 
@@ -44,13 +45,12 @@ Business Owners remain business-wide only inside their own tenant. Staff access 
 
 The currently supported product sources are:
 
-| Source | Intake behavior |
-| --- | --- |
-| Gmail | Live OAuth integration with manual synchronization of eligible labeled mail |
-| WhatsApp | Live inbound Meta WhatsApp Cloud API webhook |
-| Manual Entry | Authenticated feedback entry by authorized business users |
-| Public Form | Public, business-specific feedback portal |
-| QR Code | Public feedback flow opened from business-wide or branch-specific QR codes |
+| Source       | Intake behavior                                                             |
+| ------------ | --------------------------------------------------------------------------- |
+| Gmail        | Live OAuth integration with manual synchronization of eligible labeled mail |
+| WhatsApp     | Live inbound Meta WhatsApp Cloud API webhook                                |
+| Manual Entry | Authenticated feedback entry by authorized business users                   |
+| Public Form  | Public, business-specific feedback portal                                   |
 
 Only Gmail and WhatsApp are currently implemented as live external integrations.
 
@@ -86,7 +86,6 @@ Webhook processing remains the ingestion path; Sync Now does not fetch or manufa
     WhatsApp Cloud API webhook ────┤
     Manual Entry ──────────────────┤
     Public Form ───────────────────┼─> Source adapters
-    QR Code ───────────────────────┘
                                           |
                                           v
                                 NormalizedFeedbackInput
@@ -257,7 +256,7 @@ Manual verification remains important, especially for:
 - Role, tenant, and branch authorization boundaries
 - Gmail OAuth, Customer Feedback label filtering, and duplicate-safe repeat synchronization
 - WhatsApp webhook verification, signature validation, and duplicate delivery handling
-- Public Form and QR Code submissions
+- Public Form submissions
 - Feedback edit, bulk, assignment, and soft-delete workflows
 - Customer workspace ownership boundaries
 - PDF/CSV downloads
@@ -282,11 +281,11 @@ For the complete security model, see [SECURITY_NOTES.md](SECURITY_NOTES.md).
 
 ## Production Deployment
 
-| Component | Platform | URL |
-| --- | --- | --- |
-| Frontend | Vercel | https://sme-feedback-aggregator-frontend-blue.vercel.app |
-| Backend | Railway | https://backend-production-ec52.up.railway.app |
-| Backend health | Railway | https://backend-production-ec52.up.railway.app/health |
+| Component      | Platform | URL                                                      |
+| -------------- | -------- | -------------------------------------------------------- |
+| Frontend       | Vercel   | https://sme-feedback-aggregator-frontend-blue.vercel.app |
+| Backend        | Railway  | https://backend-production-ec52.up.railway.app           |
+| Backend health | Railway  | https://backend-production-ec52.up.railway.app/health    |
 
 The frontend is a Vite single-page application hosted on Vercel. The backend is built and hosted on Railway with MySQL and production environment values managed outside the repository.
 
@@ -305,6 +304,6 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for environment and provider-specific deploym
 
 ## Current Status
 
-The current full-stack product scope is implemented and deployed. The active product supports Gmail, WhatsApp, Manual Entry, Public Form, and QR Code feedback, with Gmail and WhatsApp as the only live external integrations.
+The current full-stack product scope is implemented and deployed. The active product supports Gmail, WhatsApp, Manual Entry, and Public Form feedback, with Gmail and WhatsApp as the only live external integrations. Historical QR and other dormant provider records remain preserved for backward compatibility, audit, and deduplication but are not part of normal product navigation, filters, dashboards, or reports.
 
 Automated and static regression scripts cover the current implementation, while the latest hardening work still requires user-led browser, authorization, tenant-isolation, responsive, integration, and regression verification. Historical implementation details and dated changes are intentionally kept outside this landing page in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) and [CHANGELOG.md](CHANGELOG.md).

@@ -50,8 +50,8 @@ export const customerListQuerySchema = z.object({
     .string()
     .optional()
     .transform((value) =>
-      ["MANUAL", "PUBLIC_FORM", "QR_CODE"].includes(value ?? "")
-        ? (value as "MANUAL" | "PUBLIC_FORM" | "QR_CODE")
+      ["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"].includes(value ?? "")
+        ? (value as "EMAIL" | "WHATSAPP" | "MANUAL" | "PUBLIC_FORM")
         : undefined
     ),
   ratingMin: z.coerce.number().int().min(1).max(5).optional().catch(undefined),
@@ -77,8 +77,8 @@ export const customerFeedbackQuerySchema = z.object({
     .string()
     .optional()
     .transform((value) =>
-      ["MANUAL", "PUBLIC_FORM", "QR_CODE"].includes(value ?? "")
-        ? (value as "MANUAL" | "PUBLIC_FORM" | "QR_CODE")
+      ["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"].includes(value ?? "")
+        ? (value as "EMAIL" | "WHATSAPP" | "MANUAL" | "PUBLIC_FORM")
         : undefined
     ),
   status: z.enum(["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"]).optional().catch(undefined),

@@ -1,15 +1,29 @@
 # Next Steps
 
+## Focused Correction — Manual Verification Gate
+
+Implementation and automated verification are complete. After applying the already-pending Final Product Hardening migration through the normal workflow, perform this user-owned browser pass:
+
+1. Delete disposable feedback individually, in bulk, and with exact-confirmed Remove all. After each action, confirm the inbox list and Total/Gmail/WhatsApp/Manual Entry/Public Form cards refresh immediately and agree; then confirm Business Owner Overview, Staff Overview, customer totals, Platform Administrator dashboards, analytics, and Preview/PDF/CSV reports exclude the removed rows.
+2. Re-submit or synchronize a previously deleted provider item in a disposable environment and confirm provider deduplication still prevents a duplicate even though the row remains hidden. Do not physically delete ingestion, provider, activity, AI, or automation history.
+3. Confirm every normal source filter, legend, summary, and report exposes exactly Gmail, WhatsApp, Manual Entry, and Public Form. Confirm QR, Demo, Outlook, social, Google Reviews, X, and Other do not contribute even when historical rows exist.
+4. Confirm the Business Owner Overview Channel distribution donut matches the active business/date scope, uses the same visual treatment as Sentiment mix, shows all four legend counts, handles zero data cleanly, and responds at phone/tablet/desktop widths.
+5. Confirm visible roles read Platform Administrator, Business Owner, Manager, Staff, and Customer. Existing legacy `ADMIN` data must display as Business Owner; new invitations and role changes must offer only Manager and Staff; assignment controls must not show a duplicate Business Admin persona.
+6. Confirm QR Codes and Automations are absent from normal navigation, dashboard quick actions, marketing, filters, and reports. Direct retained routes may still load for backward compatibility, and backend services/data must remain intact.
+7. Regression/security: repeat cross-Business and restricted-Staff checks, Gmail labeled incremental synchronization/deduplication, WhatsApp signed webhook ingestion/activity refresh, customer-owned feedback access, and edit/delete/bulk authorization.
+
+No migration, reset, db push, reseed, historical cleanup, credential change, or provider reconfiguration belongs to this correction. Do not mark it manually verified until this checklist passes.
+
 ## Supported-Channel Correction — Manual Verification Gate
 
 Implementation and automated verification are complete. After applying the already-pending Final Product Hardening migration described below, run this user-owned browser/provider pass:
 
 1. Integrations cards: at desktop widths confirm Gmail and WhatsApp metrics/actions align vertically and both primary buttons say `Sync Now`. Confirm Gmail creates a real synchronization run; confirm WhatsApp only refreshes connection/webhook activity, creates no synchronization run, and explains that inbound webhook delivery is automatic.
 2. Integrations views: switch Grid/Table, refresh and sign back in to confirm the Business-specific preference persists. Verify the semantic desktop table and stacked mobile rows remain usable without page-level horizontal overflow and preserve all applicable actions.
-3. Supported-provider boundary: owner, customer, Platform Administrator, dashboards, filters, report Preview/PDF/CSV, and fresh development seed should expose only Manual Entry, Public Form, QR Code, Gmail, and WhatsApp. Confirm historical Outlook/social/Google Reviews/Demo records remain retained for audit but cannot be newly created, authorized, resumed, activated, tested, or synchronized.
+3. Supported-provider boundary: this earlier five-channel expectation is superseded by the focused four-channel gate above; QR is now hidden from normal product presentation while its data and routes remain preserved.
 4. Gmail label gate: create the configured label (default `Customer Feedback`) in the connected mailbox. Verify a genuine labeled Inbox message imports, an unlabeled Inbox message does not, and a labeled newsletter/automated message is recorded as skipped without feedback creation. Rename/remove the configured label to confirm the safe missing-label error, restore it, and verify a second incremental sync is duplicate-safe.
 5. All-matching selection: apply filters, select all matching results, deselect records on multiple pages, navigate away/back, and confirm checkbox styling/counts retain the exclusions. Run bulk status/category/delete against disposable data and verify only the selected population changes; confirm Remove all uses the same scope and exact confirmation protection.
-6. Assignment labels: verify feedback assignment options and the selected assignee display `Name — Business Owner`, `Name — Business Admin`, `Name — Manager`, or `Name — Staff` as appropriate.
+6. Assignment labels: verify feedback assignment options and the selected assignee display `Name — Business Owner`, `Name — Manager`, or `Name — Staff`; no separate Business Admin label should appear.
 7. Regression/security: confirm another Business cannot influence filters, selections, integrations, Gmail labels, synchronization, or assignments; repeat core Gmail deduplication and signed WhatsApp webhook ingestion checks.
 
 No new migration is associated with this correction. Do not reset, push, reseed, or delete historical provider rows to test it.

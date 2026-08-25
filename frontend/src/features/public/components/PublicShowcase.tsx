@@ -4,7 +4,6 @@ import {
   Inbox,
   Mail,
   MessageCircle,
-  QrCode,
   Send,
   ShieldCheck,
   Sparkles,
@@ -23,7 +22,7 @@ export function ProductWorkspacePreview(): JSX.Element {
     {
       icon: Workflow,
       label: "Coordinated action",
-      detail: "Ownership, priority and automation"
+      detail: "Ownership, priority and workflow"
     }
   ];
 
@@ -79,14 +78,13 @@ export function ProductWorkspacePreview(): JSX.Element {
 export function ChannelStrip(): JSX.Element {
   const channels = [
     { label: "Public forms", icon: Send },
-    { label: "QR feedback", icon: QrCode },
     { label: "Gmail", icon: Mail },
     { label: "WhatsApp", icon: MessageCircle },
     { label: "Manual entry", icon: Inbox }
   ];
 
   return (
-    <div className="grid gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
       {channels.map(({ label, icon: Icon }) => (
         <div
           key={label}

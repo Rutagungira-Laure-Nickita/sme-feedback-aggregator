@@ -29,8 +29,8 @@ import type {
 } from "./platform-admin.types.js";
 import { getPlatformSettings } from "./platform-settings.service.js";
 import {
-  supportedLiveIntegrationWhere,
-  supportedOperationalFeedbackWhere
+  activeOperationalFeedbackWhere,
+  supportedLiveIntegrationWhere
 } from "../integrations/supported-integration-policy.js";
 
 type ReportInput = Omit<AdminReportRequest, "outputFormat">;
@@ -237,8 +237,7 @@ export function createFeedbackScopePlan(
   };
   return {
     filters,
-    where: {
-      deletedAt: null,
+    where: activeOperationalFeedbackWhere({
       businessId: filters.businessId,
       branchId: filters.branchId,
       channel: filters.channel,
@@ -247,9 +246,8 @@ export function createFeedbackScopePlan(
         filters.from && filters.to ? { gte: filters.from, lte: filters.to } : undefined,
       ...(filters.sentiment
         ? { aiAnalysis: { is: { sentiment: filters.sentiment } } }
-        : {}),
-      AND: [supportedOperationalFeedbackWhere()]
-    }
+        : {})
+    })
   };
 }
 
@@ -309,7 +307,7 @@ export function createExecutiveScopePlan(
       AND: [supportedLiveIntegrationWhere()]
     },
     membershipCountWhere: membershipBranchScope,
-    feedbackRelationWhere: branchId ? { branchId } : undefined,
+    feedbackRelationWhere: activeOperationalFeedbackWhere(branchId ? { branchId } : {}),
     integrationRelationWhere: {
       status: { not: IntegrationConnectionStatus.DISCONNECTED },
       defaultBranchId: branchId
@@ -1025,12 +1023,12 @@ async function buildOperationsHealthReport(
   const aiWhere: Prisma.FeedbackAIAnalysisWhereInput = {
     businessId: scopeBusinessId,
     requestedAt: { gte: from, lte: to },
-    feedback: supportedOperationalFeedbackWhere()
+    feedback: activeOperationalFeedbackWhere()
   };
   const previousAiWhere: Prisma.FeedbackAIAnalysisWhereInput = {
     businessId: scopeBusinessId,
     requestedAt: { gte: previousFrom, lte: previousTo },
-    feedback: supportedOperationalFeedbackWhere()
+    feedback: activeOperationalFeedbackWhere()
   };
   const automationWhere: Prisma.AutomationExecutionWhereInput = {
     businessId: scopeBusinessId,
@@ -1594,7 +1592,7 @@ export async function queryFeedbackTimeSeries(scope: FeedbackScopePlan) {
         : PrismaRuntime.sql`DATE(f.received_at)`;
   const conditions = [
     PrismaRuntime.sql`f.deleted_at IS NULL`,
-    PrismaRuntime.sql`(f.channel IN ('MANUAL', 'PUBLIC_FORM', 'QR_CODE') OR (f.channel = 'WHATSAPP' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true) OR (f.channel = 'EMAIL' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(f.source_metadata, '$.liveProviderType')) = 'GMAIL'))`,
+    PrismaRuntime.sql`(f.channel IN ('MANUAL', 'PUBLIC_FORM') OR (f.channel = 'WHATSAPP' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true) OR (f.channel = 'EMAIL' AND JSON_EXTRACT(f.source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(f.source_metadata, '$.liveProviderType')) = 'GMAIL'))`,
     PrismaRuntime.sql`f.received_at >= ${from}`,
     PrismaRuntime.sql`f.received_at <= ${to}`
   ];

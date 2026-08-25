@@ -3,9 +3,11 @@ import type { AdminReportDocument } from "./platform-admin.types.js";
 const REPORT_DISPLAY_LABELS: Readonly<Record<string, string>> = {
   AI: "AI",
   API: "API",
-  BUSINESS_ADMIN: "Business Administrator",
+  ADMIN: "Business Owner",
+  BUSINESS_ADMIN: "Business Owner",
   BUSINESS_OWNER: "Business Owner",
   COMPLETED_WITH_ERRORS: "Completed with errors",
+  EMAIL: "Gmail",
   GMAIL: "Gmail",
   GOOGLE_REVIEW: "Google Review",
   GOOGLE_REVIEWS: "Google Reviews",

@@ -34,9 +34,16 @@ test("development seed login accounts are stable, unique, and cover required rol
   assert.ok(
     DEVELOPMENT_SEED_LOGIN_ACCOUNTS.some((account) => account.role === UserRole.CUSTOMER)
   );
+  assert.equal(
+    DEVELOPMENT_SEED_LOGIN_ACCOUNTS.some(
+      (account) =>
+        account.id === "dev_seed_user_admin" || account.email === "admin@demo.sme.test"
+    ),
+    false
+  );
 });
 
-test("development feedback fixtures use only product-supported operational channels", () => {
+test("development feedback fixtures retain deterministic historical native intake", () => {
   const channels = new Set(
     DEVELOPMENT_SEED_FEEDBACK_FIXTURES.map((fixture) => fixture.channel)
   );

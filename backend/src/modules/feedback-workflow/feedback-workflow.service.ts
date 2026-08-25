@@ -963,7 +963,8 @@ export async function getEligibleAssignees(
   const memberships = await prisma.businessMembership.findMany({
     where: {
       businessId,
-      status: BusinessMembershipStatus.ACTIVE
+      status: BusinessMembershipStatus.ACTIVE,
+      role: { not: BusinessMemberRole.ADMIN }
     },
     include: {
       user: { select: { firstName: true, lastName: true } },
@@ -1003,9 +1004,8 @@ export async function getEligibleAssignees(
   }
 
   return result.sort((a, b) => {
-    const roleOrder = [
+    const roleOrder: BusinessMemberRole[] = [
       BusinessMemberRole.OWNER,
-      BusinessMemberRole.ADMIN,
       BusinessMemberRole.MANAGER,
       BusinessMemberRole.STAFF
     ];

@@ -4,13 +4,11 @@ import {
   FileDown,
   Inbox,
   MessageCircle,
-  QrCode,
   Search,
   Tags,
   UserRound,
   Users,
-  Workflow,
-  Zap
+  Workflow
 } from "lucide-react";
 import { FeatureCard, IconCard, SurfacePanel } from "../components/PublicCards.js";
 import { PublicLayout } from "../components/PublicLayout.js";
@@ -45,11 +43,6 @@ const featureItems = [
     description: "Assign feedback, update status and retain a clear activity history."
   },
   {
-    icon: Zap,
-    title: "Automation rules",
-    description: "Build readable When, If and Then rules and inspect execution outcomes."
-  },
-  {
     icon: UserRound,
     title: "Customer profiles",
     description: "Connect feedback history, contact context and relationship activity."
@@ -69,11 +62,6 @@ const featureItems = [
     icon: FileDown,
     title: "PDF and CSV reporting",
     description: "Preview and export a complete Business Performance report."
-  },
-  {
-    icon: QrCode,
-    title: "QR collection",
-    description: "Create professional branch-aware QR codes for customer touchpoints."
   },
   {
     icon: MessageCircle,
@@ -164,7 +152,7 @@ export function FeaturesPage(): JSX.Element {
                 [
                   "01",
                   "Collect",
-                  "Public portals, QR codes, manual entry and approved Live channels feed one processing pipeline."
+                  "Gmail, WhatsApp, manual entry and public forms feed one processing pipeline."
                 ],
                 [
                   "02",
@@ -174,7 +162,7 @@ export function FeaturesPage(): JSX.Element {
                 [
                   "03",
                   "Act and learn",
-                  "Workflow, automation, dashboards and reports keep improvement measurable."
+                  "Workflow, dashboards and reports keep improvement measurable."
                 ]
               ].map(([number, title, text]) => (
                 <div key={number} className="rounded-2xl bg-app-surface-muted p-5">

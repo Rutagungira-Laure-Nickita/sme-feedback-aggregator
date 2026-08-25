@@ -38,6 +38,7 @@ import {
 } from "./customerApi.js";
 import type { MyBusiness } from "./types.js";
 import { CustomerFormModal } from "./CustomerFormModal.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "./supportedSources.js";
 import {
   getChannelLabel,
   getPriorityLabel,
@@ -375,9 +376,7 @@ export function CustomerDetailPage(): JSX.Element {
               }
               options={[
                 { value: "", label: "All channels" },
-                { value: "MANUAL", label: "Manual Entry" },
-                { value: "PUBLIC_FORM", label: "Public Form" },
-                { value: "QR_CODE", label: "QR Code" }
+                ...OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS
               ]}
               ariaLabel="Filter feedback history by channel"
             />
@@ -507,7 +506,7 @@ export function CustomerDetailPage(): JSX.Element {
             <h2 className="text-lg font-black text-app-text">Activity</h2>
             {!permissions.canViewActivity ? (
               <p className="mt-3 text-sm font-semibold text-app-text-muted">
-                Activity is available to owners and admins.
+                Activity is available to the Business Owner.
               </p>
             ) : activityQuery.isLoading ? (
               <ListSkeleton />

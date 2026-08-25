@@ -16,14 +16,12 @@ import {
   Menu,
   MessageSquarePlus,
   PlugZap,
-  QrCode,
   Settings,
   Shield,
   UserRound,
   UserRoundPlus,
   UserCog,
   Users,
-  Zap,
   X,
   type LucideIcon
 } from "lucide-react";
@@ -75,12 +73,10 @@ const navItems: WorkspaceNavItem[] = [
     icon: ClipboardList,
     children: [
       { label: "Add Feedback", path: "feedback/manual", icon: MessageSquarePlus },
-      { label: "QR Codes", path: "feedback/qr-codes", icon: QrCode, staffHidden: true },
       { label: "All Feedback", path: "feedback", icon: Inbox, disabled: false }
     ]
   },
   { label: "Customers", path: "customers", icon: UserRound },
-  { label: "Automations", path: "automations", icon: Zap, ownerAdminOnly: true },
   { label: "Integrations", path: "integrations", icon: PlugZap, ownerAdminOnly: true },
   { label: "Reports", path: "reports", icon: FileText, ownerOnly: true },
   { label: "Branches", path: "branches", icon: MapPin },

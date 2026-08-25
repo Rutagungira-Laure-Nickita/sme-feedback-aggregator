@@ -1,9 +1,8 @@
 export const OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS = [
-  { value: "MANUAL", label: "Manual Entry" },
-  { value: "PUBLIC_FORM", label: "Public Form" },
-  { value: "QR_CODE", label: "QR Code" },
+  { value: "EMAIL", label: "Gmail" },
   { value: "WHATSAPP", label: "WhatsApp" },
-  { value: "EMAIL", label: "Gmail" }
+  { value: "MANUAL", label: "Manual Entry" },
+  { value: "PUBLIC_FORM", label: "Public Form" }
 ] as const;
 
 export const SUPPORTED_LIVE_INTEGRATION_OPTIONS = [

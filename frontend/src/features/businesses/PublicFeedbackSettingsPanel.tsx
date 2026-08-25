@@ -266,8 +266,8 @@ function PanelHeader(): JSX.Element {
           Share a secure public feedback link
         </h2>
         <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-app-text-muted">
-          This link is stable for QR codes and customer sharing until you regenerate it.
-          Disabling the portal makes the public page unavailable immediately.
+          This link remains stable for customer sharing until you regenerate it. Disabling
+          the portal makes the public page unavailable immediately.
         </p>
       </div>
       <div className="inline-flex items-center gap-2 rounded-md bg-app-primary-soft px-3 py-2 text-xs font-black text-app-primary">

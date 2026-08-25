@@ -27,7 +27,10 @@ import type {
   FeedbackListResponse,
   FeedbackAttachmentResponse
 } from "./feedback-inbox.types.js";
-import { supportedOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
+import {
+  activeOperationalFeedbackWhere,
+  supportedOperationalFeedbackWhere
+} from "../integrations/supported-integration-policy.js";
 
 export type FeedbackActor = {
   userId: string;
@@ -41,8 +44,6 @@ export type FeedbackMembershipContext = {
 };
 
 const MESSAGE_PREVIEW_LENGTH = 180;
-const EXTERNAL_FEEDBACK_CHANNELS: FeedbackChannel[] = ["WHATSAPP", "EMAIL"];
-
 const FEEDBACK_SELECT_LIST = {
   id: true,
   title: true,
@@ -602,29 +603,28 @@ async function getSummaryCounts(
   context: FeedbackMembershipContext
 ): Promise<FeedbackSummary> {
   const accessibleBranchIds = getFeedbackAccessibleBranchIds(context.membership);
-  const baseWhere: Prisma.FeedbackWhereInput = {
+  const baseWhere = activeOperationalFeedbackWhere({
     businessId: context.businessId,
-    deletedAt: null,
     ...(accessibleBranchIds ? { branchId: { in: accessibleBranchIds } } : {})
-  };
+  });
 
-  const [total, manual, publicForm, qrCode, external] = await Promise.all([
+  const [total, gmail, whatsapp, manual, publicForm] = await Promise.all([
     prisma.feedback.count({ where: baseWhere }),
     prisma.feedback.count({
-      where: { ...baseWhere, channel: "MANUAL" }
+      where: { AND: [baseWhere, { channel: "EMAIL" }] }
     }),
     prisma.feedback.count({
-      where: { ...baseWhere, channel: "PUBLIC_FORM" }
+      where: { AND: [baseWhere, { channel: "WHATSAPP" }] }
     }),
     prisma.feedback.count({
-      where: { ...baseWhere, channel: "QR_CODE" }
+      where: { AND: [baseWhere, { channel: "MANUAL" }] }
     }),
     prisma.feedback.count({
-      where: { ...baseWhere, channel: { in: EXTERNAL_FEEDBACK_CHANNELS } }
+      where: { AND: [baseWhere, { channel: "PUBLIC_FORM" }] }
     })
   ]);
 
-  return { total, manual, publicForm, qrCode, external };
+  return { total, gmail, whatsapp, manual, publicForm };
 }
 
 function resolveSourceLabel(channel: FeedbackChannel): string {
@@ -844,12 +844,11 @@ export async function getFeedbackDashboard(actor: FeedbackActor, businessId: str
   const from = new Date();
   from.setDate(from.getDate() - 29);
   from.setHours(0, 0, 0, 0);
-  const where: Prisma.FeedbackWhereInput = {
+  const where = activeOperationalFeedbackWhere({
     businessId,
-    deletedAt: null,
     receivedAt: { gte: from },
     ...(branchIds ? { branchId: { in: branchIds } } : {})
-  };
+  });
   const [total, attentionCount, statuses, channels, sentiments, rating, recent] =
     await Promise.all([
       prisma.feedback.count({ where }),

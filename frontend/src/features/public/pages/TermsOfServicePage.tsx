@@ -32,7 +32,7 @@ const termsSections: LegalSectionItem[] = [
     content: [
       "Users are responsible for maintaining the confidentiality of their account credentials and for activity that occurs under their account.",
       "The application supports email/password accounts, Google authentication when configured, email verification, password reset, session listing, session revocation, logout, and logout-all.",
-      "Platform administrator accounts are created only through the controlled seed process. Staff account invitation workflows are implemented for active business owners and admins."
+      "Platform Administrator accounts are created only through the controlled seed process. Staff account invitation workflows are implemented for active Business Owners."
     ]
   },
   {

@@ -18,6 +18,14 @@ const customerDashboard = read(
   "backend/src/modules/customer-dashboard/customer-dashboard.service.ts"
 );
 const routes = read("backend/src/modules/feedback-inbox/feedback-inbox.routes.ts");
+const sourcePolicy = read(
+  "backend/src/modules/integrations/supported-integration-policy.ts"
+);
+const businessSchemas = read("backend/src/modules/businesses/business.schema.ts");
+const workflow = read(
+  "backend/src/modules/feedback-workflow/feedback-workflow.service.ts"
+);
+const seed = read("backend/src/scripts/development-seed.ts");
 const migration = read(
   "backend/prisma/migrations/20260821120000_final_product_hardening/migration.sql"
 );
@@ -96,11 +104,37 @@ test("staff dashboard queries use authenticated membership branch scope", () => 
   assert.match(inbox, /deletedAt: null/);
 });
 
+test("all visible feedback totals share the active four-channel policy", () => {
+  assert.match(sourcePolicy, /activeOperationalFeedbackWhere/);
+  assert.match(sourcePolicy, /deletedAt: null/);
+  assert.doesNotMatch(
+    sourcePolicy.slice(
+      sourcePolicy.indexOf("export const PRODUCT_FEEDBACK_CHANNELS"),
+      sourcePolicy.indexOf("export const PRODUCT_LIVE_CONNECTIONS")
+    ),
+    /QR_CODE/
+  );
+  assert.match(inbox, /activeOperationalFeedbackWhere/);
+  assert.match(customers, /activeOperationalFeedbackWhere/);
+});
+
+test("new staff management exposes Manager and Staff while preserving legacy role data", () => {
+  const managedRoleContract = businessSchemas.slice(
+    businessSchemas.indexOf("const managedStaffRoleSchema"),
+    businessSchemas.indexOf("export const updateMembershipBranchAccessSchema")
+  );
+  assert.match(managedRoleContract, /BusinessMemberRole\.MANAGER/);
+  assert.match(managedRoleContract, /BusinessMemberRole\.STAFF/);
+  assert.doesNotMatch(managedRoleContract, /BusinessMemberRole\.ADMIN/);
+  assert.match(workflow, /role: \{ not: BusinessMemberRole\.ADMIN \}/);
+  assert.doesNotMatch(seed, /dev_seed_user_admin|dev_seed_membership_admin/);
+});
+
 test("customer data is email-owned, customer-role-only, and hides deleted feedback", () => {
   assert.match(customerDashboard, /actor\.role !== UserRole\.CUSTOMER/);
   assert.match(customerDashboard, /customerEmail: email/);
   assert.match(customerDashboard, /normalizedEmail/);
-  assert.match(customerDashboard, /deletedAt: null/);
+  assert.match(customerDashboard, /activeOperationalFeedbackWhere/);
   assert.doesNotMatch(
     customerDashboard,
     /aiAnalysis|assignedTo|sourceMetadata|FeedbackActivity/

@@ -2,13 +2,7 @@ import { z } from "zod";
 
 const feedbackStatusSchema = z.enum(["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"]);
 const feedbackPrioritySchema = z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]);
-const feedbackChannelSchema = z.enum([
-  "MANUAL",
-  "PUBLIC_FORM",
-  "QR_CODE",
-  "WHATSAPP",
-  "EMAIL"
-]);
+const feedbackChannelSchema = z.enum(["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"]);
 
 export const feedbackEditSchema = z
   .object({

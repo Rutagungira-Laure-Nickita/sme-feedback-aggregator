@@ -33,6 +33,7 @@ import {
   type CustomerSummary
 } from "./customerApi.js";
 import type { MyBusiness } from "./types.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "./supportedSources.js";
 
 function formatDate(value: string | null): string {
   if (!value) return "No feedback yet";
@@ -339,9 +340,7 @@ export function CustomersPage(): JSX.Element {
                         }
                         options={[
                           { value: "", label: "All channels" },
-                          { value: "MANUAL", label: "Manual Entry" },
-                          { value: "PUBLIC_FORM", label: "Public Form" },
-                          { value: "QR_CODE", label: "QR Code" }
+                          ...OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS
                         ]}
                         ariaLabel="Filter customers by feedback channel"
                       />

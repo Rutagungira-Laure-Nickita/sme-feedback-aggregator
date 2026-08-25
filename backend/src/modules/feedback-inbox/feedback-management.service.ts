@@ -30,7 +30,7 @@ function requireFeedbackManager(context: FeedbackMembershipContext) {
     context.membership.role !== BusinessMemberRole.ADMIN
   ) {
     throw new AppError(
-      "Only Business Owners and administrators can manage feedback content.",
+      "Only the Business Owner can manage feedback content.",
       "FEEDBACK_MANAGEMENT_FORBIDDEN",
       403
     );

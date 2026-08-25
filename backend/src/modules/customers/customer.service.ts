@@ -20,7 +20,7 @@ import {
   type CustomerIdentityInput
 } from "./customer-normalization.js";
 import { normalizeSearchInput } from "../../utils/search-normalization.js";
-import { supportedOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
+import { activeOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 import { customerMatchingService, toMatchSummary } from "./customer-matching.service.js";
 import type {
   CreateCustomerFromFeedbackInput,
@@ -114,7 +114,7 @@ function getAccessibleBranchIds(context: MembershipContext): string[] | null {
 
 function feedbackBranchWhere(context: MembershipContext): Prisma.FeedbackWhereInput {
   const branchIds = getAccessibleBranchIds(context);
-  return { deletedAt: null, ...(branchIds ? { branchId: { in: branchIds } } : {}) };
+  return activeOperationalFeedbackWhere(branchIds ? { branchId: { in: branchIds } } : {});
 }
 
 function customerVisibilityWhere(context: MembershipContext): Prisma.CustomerWhereInput {
@@ -129,11 +129,10 @@ function customerVisibilityWhere(context: MembershipContext): Prisma.CustomerWhe
 
   return {
     feedback: {
-      some: {
+      some: activeOperationalFeedbackWhere({
         businessId: context.businessId,
-        deletedAt: null,
         ...(branchIds ? { branchId: { in: branchIds } } : {})
-      }
+      })
     }
   };
 }
@@ -156,7 +155,7 @@ function permissionsFor(context: MembershipContext): CustomerPermissions {
 function requireOwnerOrAdmin(context: MembershipContext): void {
   if (!hasFullBusinessAccess(context.membership)) {
     throw new AppError(
-      "Only owners and admins can manage customer profiles.",
+      "Only the Business Owner can manage customer profiles.",
       "BUSINESS_ROLE_REQUIRED",
       403
     );
@@ -250,8 +249,7 @@ function buildLinkedFeedbackWhere(
   const branchScope = feedbackBranchWhere(context);
   const where: Prisma.FeedbackWhereInput = {
     businessId: context.businessId,
-    ...branchScope,
-    AND: [supportedOperationalFeedbackWhere()]
+    ...branchScope
   };
 
   if (query.branchId && isBranchIdAllowed(context, query.branchId)) {
@@ -681,8 +679,7 @@ function buildCustomerFeedbackWhere(
   const where: Prisma.FeedbackWhereInput = {
     businessId,
     customerId,
-    ...feedbackBranchWhere(context),
-    AND: [supportedOperationalFeedbackWhere()]
+    ...feedbackBranchWhere(context)
   };
   const search = normalizeSearchInput(query.search, 160);
 
@@ -1168,8 +1165,7 @@ async function loadCustomerAggregates(
   const where = {
     businessId: context.businessId,
     customerId: { in: customerIds },
-    ...feedbackBranchWhere(context),
-    AND: [supportedOperationalFeedbackWhere()]
+    ...feedbackBranchWhere(context)
   } satisfies Prisma.FeedbackWhereInput;
 
   const [overall, branchGroups, channelGroups] = await Promise.all([

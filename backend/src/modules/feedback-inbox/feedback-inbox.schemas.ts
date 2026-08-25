@@ -66,7 +66,7 @@ export const feedbackInboxQuerySchema = z
       .optional()
       .transform((val) => normalizeOptionalSearch(val, 200)),
     branchId: z.string().optional(),
-    channel: optionalEnum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]),
+    channel: optionalEnum(["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"]),
     status: optionalEnum(["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"]),
     sentiment: optionalEnum(["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"]),
     aiStatus: optionalEnum(["PENDING", "PROCESSING", "COMPLETED", "FAILED", "SKIPPED"]),

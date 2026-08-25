@@ -168,11 +168,10 @@ export type FeedbackInboxPagination = {
 
 export type FeedbackSummary = {
   total: number;
-  attentionCount: number;
+  gmail: number;
+  whatsapp: number;
   manual: number;
   publicForm: number;
-  qrCode: number;
-  external: number;
 };
 
 export type FeedbackListResponse = {

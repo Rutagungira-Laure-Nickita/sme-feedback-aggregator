@@ -49,7 +49,6 @@ const VERIFIED_AT = new Date("2026-08-01T07:00:00.000Z");
 export const DEMO_BUSINESS_ID = "dev_seed_business_kigali_harvest";
 const ISOLATION_BUSINESS_ID = "dev_seed_business_isolation";
 const OWNER_MEMBERSHIP_ID = "dev_seed_membership_owner";
-const ADMIN_MEMBERSHIP_ID = "dev_seed_membership_admin";
 const MANAGER_MEMBERSHIP_ID = "dev_seed_membership_manager";
 const SUPPORT_MEMBERSHIP_ID = "dev_seed_membership_support";
 const OPERATIONS_MEMBERSHIP_ID = "dev_seed_membership_operations";
@@ -80,14 +79,6 @@ export const DEVELOPMENT_SEED_LOGIN_ACCOUNTS: readonly SeedAccount[] = [
     firstName: "Amina",
     lastName: "Uwase",
     role: UserRole.BUSINESS_OWNER
-  },
-  {
-    id: "dev_seed_user_admin",
-    label: "Demo business administrator",
-    email: "admin@demo.sme.test",
-    firstName: "Patrick",
-    lastName: "Nshimiyimana",
-    role: UserRole.STAFF
   },
   {
     id: "dev_seed_user_manager",
@@ -475,8 +466,8 @@ const ALL_LEGACY_DEVELOPMENT_FEEDBACK_FIXTURES: readonly FeedbackSeedFixture[] =
     rating: 3,
     status: FeedbackStatus.IN_REVIEW,
     priority: FeedbackPriority.HIGH,
-    assignedToMembershipId: ADMIN_MEMBERSHIP_ID,
-    assignedToLabel: "Patrick Nshimiyimana",
+    assignedToMembershipId: OWNER_MEMBERSHIP_ID,
+    assignedToLabel: "Amina Uwase",
     categoryId: categoryIds.billing,
     categoryLabel: "Billing & Payments",
     customerId: customerIds.alice,
@@ -1007,14 +998,6 @@ async function seedMemberships(prisma: PrismaClient): Promise<void> {
       invitedByUserId: null
     },
     {
-      id: ADMIN_MEMBERSHIP_ID,
-      businessId: DEMO_BUSINESS_ID,
-      userId: "dev_seed_user_admin",
-      role: BusinessMemberRole.ADMIN,
-      allBranchesAccess: true,
-      invitedByUserId: "dev_seed_user_owner"
-    },
-    {
       id: MANAGER_MEMBERSHIP_ID,
       businessId: DEMO_BUSINESS_ID,
       userId: "dev_seed_user_manager",
@@ -1028,7 +1011,7 @@ async function seedMemberships(prisma: PrismaClient): Promise<void> {
       userId: "dev_seed_user_support",
       role: BusinessMemberRole.STAFF,
       allBranchesAccess: false,
-      invitedByUserId: "dev_seed_user_admin"
+      invitedByUserId: "dev_seed_user_owner"
     },
     {
       id: OPERATIONS_MEMBERSHIP_ID,
@@ -1036,7 +1019,7 @@ async function seedMemberships(prisma: PrismaClient): Promise<void> {
       userId: "dev_seed_user_operations",
       role: BusinessMemberRole.STAFF,
       allBranchesAccess: false,
-      invitedByUserId: "dev_seed_user_admin"
+      invitedByUserId: "dev_seed_user_owner"
     },
     {
       id: ISOLATION_OWNER_MEMBERSHIP_ID,
@@ -1219,7 +1202,7 @@ async function seedCustomers(prisma: PrismaClient): Promise<void> {
       status: customer.status,
       archivedAt: customer.archivedAt,
       createdByMembershipId: OWNER_MEMBERSHIP_ID,
-      updatedByMembershipId: ADMIN_MEMBERSHIP_ID,
+      updatedByMembershipId: OWNER_MEMBERSHIP_ID,
       updatedAt: SEED_AT
     };
     await prisma.customer.upsert({
@@ -1247,7 +1230,7 @@ async function seedAutomationRules(prisma: PrismaClient): Promise<void> {
       position: 1,
       version: 1,
       createdByMembershipId: OWNER_MEMBERSHIP_ID,
-      updatedByMembershipId: ADMIN_MEMBERSHIP_ID,
+      updatedByMembershipId: OWNER_MEMBERSHIP_ID,
       lastTriggeredAt: new Date("2026-08-02T12:13:00.000Z"),
       executionCount: 1,
       createdAt: SEED_AT,
@@ -1266,7 +1249,7 @@ async function seedAutomationRules(prisma: PrismaClient): Promise<void> {
       position: 1,
       version: 1,
       createdByMembershipId: OWNER_MEMBERSHIP_ID,
-      updatedByMembershipId: ADMIN_MEMBERSHIP_ID,
+      updatedByMembershipId: OWNER_MEMBERSHIP_ID,
       archivedAt: null,
       lastTriggeredAt: new Date("2026-08-02T12:13:00.000Z"),
       executionCount: 1,
@@ -1791,7 +1774,7 @@ async function seedCustomerActivities(prisma: PrismaClient): Promise<void> {
         businessId: DEMO_BUSINESS_ID,
         customerId,
         type: CustomerActivityType.ARCHIVED,
-        actorMembershipId: ADMIN_MEMBERSHIP_ID,
+        actorMembershipId: OWNER_MEMBERSHIP_ID,
         feedbackId: null,
         fieldName: "status",
         fromValue: CustomerStatus.ACTIVE,
@@ -2149,7 +2132,7 @@ async function seedDemoIntegrations(prisma: PrismaClient): Promise<void> {
         lastWebhookVerifiedAt: null,
         lastInboundMessageAt: null,
         createdByMembershipId: OWNER_MEMBERSHIP_ID,
-        updatedByMembershipId: ADMIN_MEMBERSHIP_ID,
+        updatedByMembershipId: OWNER_MEMBERSHIP_ID,
         connectedAt: SEED_AT,
         pausedAt,
         disconnectedAt,
@@ -2188,7 +2171,7 @@ async function seedDemoIntegrations(prisma: PrismaClient): Promise<void> {
         lastWebhookVerifiedAt: null,
         lastInboundMessageAt: null,
         createdByMembershipId: OWNER_MEMBERSHIP_ID,
-        updatedByMembershipId: ADMIN_MEMBERSHIP_ID,
+        updatedByMembershipId: OWNER_MEMBERSHIP_ID,
         connectedAt: SEED_AT,
         pausedAt,
         disconnectedAt,

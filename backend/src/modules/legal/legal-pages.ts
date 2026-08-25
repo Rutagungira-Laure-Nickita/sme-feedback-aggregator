@@ -218,7 +218,7 @@ export const privacyPolicyPage = renderLegalPage({
     },
     {
       heading: "2. Information collected",
-      content: `<p>The platform may collect information provided directly by account holders, business administrators, staff members, customers, and authorized third-party services. It may also record limited technical and operational information needed for authentication, security, troubleshooting, synchronization, and service delivery.</p>`
+      content: `<p>The platform may collect information provided directly by account holders, Business Owners, staff members, customers, and authorized third-party services. It may also record limited technical and operational information needed for authentication, security, troubleshooting, synchronization, and service delivery.</p>`
     },
     {
       heading: "3. Business and account information",
@@ -230,7 +230,7 @@ export const privacyPolicyPage = renderLegalPage({
     },
     {
       heading: "5. Connected integration and provider information",
-      content: `<p>The platform may connect to supported third-party services when a Business Administrator explicitly authorizes an integration. Depending on the integration, the platform may process provider account identifiers, mailbox or page labels, message or comment identifiers, timestamps, safe source previews, connection status, and synchronization or webhook activity.</p><p>Where the application stores provider credentials or tokens, they are stored encrypted and remain backend-only. They are not included in public pages or ordinary feedback responses.</p>`
+      content: `<p>The platform may connect to supported third-party services when a Business Owner explicitly authorizes an integration. Depending on the integration, the platform may process provider account identifiers, mailbox or page labels, message or comment identifiers, timestamps, safe source previews, connection status, and synchronization or webhook activity.</p><p>Where the application stores provider credentials or tokens, they are stored encrypted and remain backend-only. They are not included in public pages or ordinary feedback responses.</p>`
     },
     {
       heading: "6. How information is used",
@@ -242,7 +242,7 @@ export const privacyPolicyPage = renderLegalPage({
     },
     {
       heading: "8. Automation and workflow processing",
-      content: `<p>Authorized business administrators may configure workflow rules that evaluate feedback and take limited actions such as setting status, priority, category, or assignment. Automation activity is recorded for accountability, and the platform is designed to protect human-controlled workflow values from unintended automated replacement.</p>`
+      content: `<p>Authorized Business Owners may configure workflow rules that evaluate feedback and take limited actions such as setting status, priority, category, or assignment. Automation activity is recorded for accountability, and the platform is designed to protect human-controlled workflow values from unintended automated replacement.</p>`
     },
     {
       heading: "9. Data sharing and service providers",
@@ -293,12 +293,12 @@ export const termsOfServicePage = renderLegalPage({
       content: `<p>You may use SME Feedback Aggregator only for lawful business feedback collection, management, analysis, and related internal workflows. Access is limited to the roles, businesses, branches, and information for which you have permission.</p>`
     },
     {
-      heading: "3. Business Administrator responsibility",
-      content: `<p>Business Administrators are responsible for configuring workspace access, assigning appropriate staff roles, selecting branches, authorizing integrations, providing required notices, and ensuring their collection and use of customer information is lawful. Administrators must promptly remove access that is no longer appropriate.</p>`
+      heading: "3. Business Owner responsibility",
+      content: `<p>Business Owners are responsible for configuring workspace access, assigning appropriate staff roles, selecting branches, authorizing integrations, providing required notices, and ensuring their collection and use of customer information is lawful. Business Owners must promptly remove access that is no longer appropriate.</p>`
     },
     {
       heading: "4. Connected third-party services",
-      content: `<p>The platform may connect to supported third-party services only when an authorized Business Administrator enables and configures the connection. You must comply with the provider's terms, permissions, and policies and may connect only accounts and data you are authorized to access. Provider availability, approvals, and API behavior are outside the platform's control.</p><p>SME Feedback Aggregator is not affiliated with or endorsed by Meta, Google, Microsoft, or other providers merely because a connection is supported.</p>`
+      content: `<p>The platform may connect to supported third-party services only when an authorized Business Owner enables and configures the connection. You must comply with the provider's terms, permissions, and policies and may connect only accounts and data you are authorized to access. Provider availability, approvals, and API behavior are outside the platform's control.</p><p>SME Feedback Aggregator is not affiliated with or endorsed by Meta, Google, Microsoft, or other providers merely because a connection is supported.</p>`
     },
     {
       heading: "5. Acceptable use",
@@ -322,7 +322,7 @@ export const termsOfServicePage = renderLegalPage({
     },
     {
       heading: "10. Termination and disconnection",
-      content: `<p>Access may be suspended or terminated for material misuse, security risk, unlawful activity, or violation of these terms. A Business Administrator may pause or disconnect supported integrations and remove staff access. Disconnection does not automatically delete feedback already imported or records that must be retained for legitimate security, audit, transaction-integrity, or legal reasons.</p>`
+      content: `<p>Access may be suspended or terminated for material misuse, security risk, unlawful activity, or violation of these terms. A Business Owner may pause or disconnect supported integrations and remove staff access. Disconnection does not automatically delete feedback already imported or records that must be retained for legitimate security, audit, transaction-integrity, or legal reasons.</p>`
     },
     {
       heading: "11. Changes to these terms",

@@ -120,8 +120,8 @@ export function HomePage(): JSX.Element {
               </h2>
               <p className="mt-5 text-sm font-medium leading-7 text-slate-300">
                 Business owners get a clear cross-channel picture while branches and staff
-                retain the context they need. Customer profiles, workflow history,
-                automation and reports stay connected to the original feedback.
+                retain the context they need. Customer profiles, workflow history, status
+                changes and reports stay connected to the original feedback.
               </p>
               <div className="mt-7">
                 <MarketingButton

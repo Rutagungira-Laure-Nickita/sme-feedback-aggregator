@@ -43,6 +43,7 @@ import type {
   UpdateMembershipBranchAccessInput
 } from "./business.schema.js";
 import { recordPlatformAdminActivity } from "../platform-admin/platform-admin-audit.service.js";
+import { activeOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 import { buildStaffInvitationEmail } from "./staff-invitation-email.templates.js";
 import {
   createStaffInvitationToken,
@@ -658,7 +659,7 @@ export async function updateMembershipBranchAccess(
     target.role === BusinessMemberRole.ADMIN
   ) {
     throw new AppError(
-      "Owner and admin memberships always have all branch access.",
+      "Business-wide owner access always includes all branches.",
       "ROLE_CHANGE_FORBIDDEN",
       409
     );
@@ -1190,7 +1191,7 @@ export async function getAdminBusiness(businessId: string) {
     prisma.business.findUnique({ where: { id: businessId }, include: BUSINESS_INCLUDE }),
     prisma.feedback.groupBy({
       by: ["status"],
-      where: { businessId, deletedAt: null },
+      where: activeOperationalFeedbackWhere({ businessId }),
       _count: { _all: true }
     }),
     prisma.integrationConnection.findMany({
@@ -1206,7 +1207,7 @@ export async function getAdminBusiness(businessId: string) {
       orderBy: { updatedAt: "desc" }
     }),
     prisma.feedback.findMany({
-      where: { businessId, deletedAt: null },
+      where: activeOperationalFeedbackWhere({ businessId }),
       select: {
         id: true,
         channel: true,
@@ -1698,7 +1699,7 @@ function assertCanInviteRole(
     actorMembership.role !== BusinessMemberRole.OWNER
   ) {
     throw new AppError(
-      "Only the owner can assign business administrators.",
+      "Only the Business Owner can change legacy business-wide access.",
       "ROLE_CHANGE_FORBIDDEN",
       403
     );
@@ -1752,7 +1753,7 @@ function assertCanManageMembership(
     targetMembership.role === BusinessMemberRole.ADMIN
   ) {
     throw new AppError(
-      "Only the owner can modify administrators.",
+      "Only the Business Owner can modify legacy business-wide access.",
       "ROLE_CHANGE_FORBIDDEN",
       403
     );

@@ -1,10 +1,14 @@
 # Database Notes
 
+## Focused Operational Correction
+
+No Prisma schema or migration was required and no stored row was mutated. `Feedback.deletedAt` remains the reversible visibility boundary; feedback, ingestion/provider identifiers, source metadata, workflow activity, AI analysis, automation history, and customer links remain available for audit and deduplication. QR and unsupported-provider rows also remain stored but are excluded by query policy. The internal `BusinessMemberRole.ADMIN` enum and existing memberships remain intact for compatibility; only normal creation/update choices and display labels changed. Future deterministic seeds no longer create `dev_seed_user_admin` or `dev_seed_membership_admin`, and existing seed references now use the Business Owner membership.
+
 ## Supported-Channel Correction Database Impact
 
 No Prisma schema, migration, enum, column, index, or stored production/development row was changed. Historical Demo, Outlook, Google Reviews, X, Facebook, and Instagram connections, synchronization runs, webhook deliveries, and feedback remain physically retained for audit and compatibility; operational queries exclude them through application predicates. Do not delete or rewrite these rows as part of rollout.
 
-The existing nullable `IntegrationConnection.synchronizationFolder` field stores the configured Gmail label, defaulting in service behavior to `Customer Feedback`; this is non-secret configuration and requires no migration. Changing it clears the Gmail cursor through existing fields. Fresh development seed now creates no integration fixtures and only native Manual Entry/Public Form/QR Code feedback fixtures; existing historical rows are not cleaned up when seed logic is inspected or rerun. The previously created `20260821120000_final_product_hardening` migration remains pending and immutable; this correction neither applies nor edits it.
+The existing nullable `IntegrationConnection.synchronizationFolder` field stores the configured Gmail label, defaulting in service behavior to `Customer Feedback`; this is non-secret configuration and requires no migration. Changing it clears the Gmail cursor through existing fields. Fresh development seed creates no integration fixtures; deterministic historical native fixtures may still include QR for compatibility, but normal product queries hide them. Existing historical rows are not cleaned up when seed logic is inspected or rerun. The previously created `20260821120000_final_product_hardening` migration remains pending and immutable; this correction neither applies nor edits it.
 
 ## Final Product Hardening Database Impact
 

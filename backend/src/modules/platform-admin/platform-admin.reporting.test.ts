@@ -257,7 +257,12 @@ test("Executive scope plan follows actual business, branch, membership, customer
     businessId: "business-1",
     id: "branch-1"
   });
-  assert.deepEqual(branch.feedbackRelationWhere, { branchId: "branch-1" });
+  assert.ok(branch.feedbackRelationWhere);
+  assert.equal(branch.feedbackRelationWhere.branchId, "branch-1");
+  const feedbackRelationScope = JSON.stringify(branch.feedbackRelationWhere);
+  assert.match(feedbackRelationScope, /"deletedAt":null/);
+  assert.match(feedbackRelationScope, /"GMAIL"/);
+  assert.doesNotMatch(feedbackRelationScope, /QR_CODE/);
   assert.deepEqual(branch.integrationWhere, {
     businessId: "business-1",
     defaultBranchId: "branch-1",
@@ -344,16 +349,16 @@ test("Feedback Management Summary handles clear leaders, deterministic ties, and
   });
   assert.match(
     twoWayTie,
-    /Email and WhatsApp were tied as the leading channels with 4 feedback records each/
+    /Gmail and WhatsApp were tied as the leading channels with 4 feedback records each/
   );
 
   const fourWayTie = buildFeedbackManagementSummary({
     periodTotal: 4,
     channels: [
-      { channel: "X", _count: { _all: 1 } },
-      { channel: "FACEBOOK", _count: { _all: 1 } },
-      { channel: "QR_CODE", _count: { _all: 1 } },
-      { channel: "INSTAGRAM", _count: { _all: 1 } }
+      { channel: "EMAIL", _count: { _all: 1 } },
+      { channel: "MANUAL", _count: { _all: 1 } },
+      { channel: "PUBLIC_FORM", _count: { _all: 1 } },
+      { channel: "WHATSAPP", _count: { _all: 1 } }
     ],
     open: 2,
     unassigned: 2,
@@ -361,7 +366,7 @@ test("Feedback Management Summary handles clear leaders, deterministic ties, and
   });
   assert.match(
     fourWayTie,
-    /Facebook, Instagram, QR Code, and X were tied as the leading channels with 1 feedback record each/
+    /Gmail, Manual, Public Form, and WhatsApp were tied as the leading channels with 1 feedback record each/
   );
   assert.equal(
     buildFeedbackManagementSummary({
@@ -406,6 +411,7 @@ test("Important feedback prefers normalized message content and uses safe fallba
 });
 
 test("shared report humanization preserves known initialisms and established labels", () => {
+  assert.equal(formatReportDisplayValue("EMAIL"), "Gmail");
   assert.equal(formatReportDisplayValue("QR_CODE"), "QR Code");
   assert.equal(formatReportDisplayValue("AI_ANALYSIS"), "AI Analysis");
   assert.equal(formatReportDisplayValue("API_ERROR"), "API Error");
@@ -434,25 +440,22 @@ test("shared report humanization preserves known initialisms and established lab
   assert.equal(formatReportDisplayValue("opaque_record_id"), "opaque_record_id");
 });
 
-test("Executive Management Summary uses QR Code consistently in Preview, PDF, and CSV", async () => {
+test("Executive Management Summary uses Gmail consistently in Preview, PDF, and CSV", async () => {
   const report = fixtureReport("EXECUTIVE_PLATFORM", "Executive Platform Report");
   report.managementSummary = buildExecutiveManagementSummary({
     periodFeedback: 4,
-    leadingChannel: "QR_CODE",
+    leadingChannel: "EMAIL",
     activeBusinesses: 1,
     pendingBusinesses: 0,
     liveIntegrations: 0,
     attentionIntegrations: 2
   });
   const preview = formatReportDocument(report);
-  assert.match(preview.managementSummary, /QR Code was the leading source/);
-  assert.doesNotMatch(preview.managementSummary, /Qr Code/);
+  assert.match(preview.managementSummary, /Gmail was the leading source/);
   const csv = renderReportCsv(report).toString("utf8");
-  assert.match(csv, /QR Code was the leading source/);
-  assert.doesNotMatch(csv, /Qr Code/);
+  assert.match(csv, /Gmail was the leading source/);
   const pdfText = inspectPdfPages(await renderReportPdf(report)).join(" ");
-  assert.match(pdfText, /QR Code was the leading source/);
-  assert.doesNotMatch(pdfText, /Qr Code/);
+  assert.match(pdfText, /Gmail was the leading source/);
 });
 
 test("consolidated builders retain required Executive, feedback, and operations data", () => {

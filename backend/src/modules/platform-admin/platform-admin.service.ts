@@ -37,6 +37,7 @@ import type { AdminReportDocument, ReportSection } from "./platform-admin.types.
 import { recordPlatformAdminActivity } from "./platform-admin-audit.service.js";
 import { getPlatformSettings } from "./platform-settings.service.js";
 import {
+  activeOperationalFeedbackWhere,
   supportedLiveIntegrationWhere,
   supportedOperationalFeedbackWhere
 } from "../integrations/supported-integration-policy.js";
@@ -59,7 +60,7 @@ export async function getAdminDashboard(period: AdminPeriod) {
   weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const operationalFeedback = (where: Prisma.FeedbackWhereInput = {}) => ({
-    AND: [supportedOperationalFeedbackWhere(), where]
+    ...activeOperationalFeedbackWhere(where)
   });
 
   const [
@@ -163,7 +164,7 @@ export async function getAdminDashboard(period: AdminPeriod) {
     prisma.automationRule.count({ where: { status: AutomationRuleStatus.ACTIVE } }),
     prisma.automationExecution.count({
       where: {
-        feedback: supportedOperationalFeedbackWhere(),
+        feedback: activeOperationalFeedbackWhere(),
         status: {
           in: [AutomationExecutionStatus.FAILED, AutomationExecutionStatus.PARTIAL]
         }
@@ -879,7 +880,7 @@ export async function getAdminSystemHealth() {
     }),
     prisma.automationEvent.groupBy({
       by: ["status"],
-      where: { feedback: supportedOperationalFeedbackWhere() },
+      where: { feedback: activeOperationalFeedbackWhere() },
       _count: { _all: true }
     }),
     prisma.synchronizationRun.groupBy({
@@ -907,7 +908,7 @@ export async function getAdminSystemHealth() {
       where: {
         status: AutomationEventStatus.PROCESSING,
         lockedAt: { lt: staleThreshold },
-        feedback: supportedOperationalFeedbackWhere()
+        feedback: activeOperationalFeedbackWhere()
       }
     }),
     prisma.synchronizationRun.count({
@@ -1169,7 +1170,7 @@ async function addBusinessAdoptionSections(
         select: {
           branches: true,
           memberships: true,
-          feedbacks: { where: { deletedAt: null } }
+          feedbacks: { where: activeOperationalFeedbackWhere() }
         }
       },
       integrationConnections: {
@@ -1177,7 +1178,7 @@ async function addBusinessAdoptionSections(
         select: { provider: true, mode: true }
       },
       feedbacks: {
-        where: { deletedAt: null },
+        where: activeOperationalFeedbackWhere(),
         select: { receivedAt: true },
         orderBy: { receivedAt: "desc" },
         take: 1
@@ -1583,7 +1584,7 @@ async function getActionRequired() {
     prisma.feedbackAIAnalysis.count({
       where: {
         status: "FAILED",
-        feedback: supportedOperationalFeedbackWhere()
+        feedback: activeOperationalFeedbackWhere()
       }
     }),
     prisma.automationExecution.count({
@@ -1829,7 +1830,7 @@ export async function queryTimeSeries(
         : PrismaRuntime.sql`DATE(${PrismaRuntime.raw(column)})`;
   const rows = await prisma.$queryRaw<SqlCountRow[]>(
     table === "feedback"
-      ? PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE deleted_at IS NULL AND (channel IN ('MANUAL', 'PUBLIC_FORM', 'QR_CODE') OR (channel = 'WHATSAPP' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true) OR (channel = 'EMAIL' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(source_metadata, '$.liveProviderType')) = 'GMAIL')) AND ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
+      ? PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE deleted_at IS NULL AND (channel IN ('MANUAL', 'PUBLIC_FORM') OR (channel = 'WHATSAPP' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true) OR (channel = 'EMAIL' AND JSON_EXTRACT(source_metadata, '$.liveMode') = true AND JSON_UNQUOTE(JSON_EXTRACT(source_metadata, '$.liveProviderType')) = 'GMAIL')) AND ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
       : PrismaRuntime.sql`SELECT ${bucketSql} AS bucket, COUNT(*) AS count FROM ${PrismaRuntime.raw(table)} WHERE ${PrismaRuntime.raw(column)} >= ${start} AND ${PrismaRuntime.raw(column)} <= ${end} GROUP BY bucket ORDER BY bucket ASC`
   );
   return rows.map((row) => ({

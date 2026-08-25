@@ -3327,10 +3327,10 @@ export function FeedbackInboxPage({
   };
   const summary = data?.summary ?? {
     total: 0,
+    gmail: 0,
+    whatsapp: 0,
     manual: 0,
-    publicForm: 0,
-    qrCode: 0,
-    external: 0
+    publicForm: 0
   };
   const {
     page: _selectionPage,
@@ -3628,24 +3628,24 @@ export function FeedbackInboxPage({
               color="text-app-text"
             />
             <SummaryCard
-              label="Manual Entry"
-              value={summary.manual}
+              label="Gmail"
+              value={summary.gmail}
               color="text-indigo-500 dark:text-indigo-400"
             />
             <SummaryCard
-              label="Public Portal"
+              label="WhatsApp"
+              value={summary.whatsapp}
+              color="text-sky-500 dark:text-sky-400"
+            />
+            <SummaryCard
+              label="Manual Entry"
+              value={summary.manual}
+              color="text-violet-500 dark:text-violet-400"
+            />
+            <SummaryCard
+              label="Public Form"
               value={summary.publicForm}
               color="text-emerald-500 dark:text-emerald-400"
-            />
-            <SummaryCard
-              label="QR Codes"
-              value={summary.qrCode}
-              color="text-amber-500 dark:text-amber-400"
-            />
-            <SummaryCard
-              label="External Channels"
-              value={summary.external}
-              color="text-sky-500 dark:text-sky-400"
             />
           </div>
         )}
@@ -3834,7 +3834,7 @@ export function FeedbackInboxPage({
             <EmptyState
               icon={<Inbox className="h-6 w-6" aria-hidden="true" />}
               title="No feedback has been received yet."
-              description="Manual, public, QR, and connected-channel feedback will appear here when available."
+              description="Gmail, WhatsApp, manual-entry, and public-form feedback will appear here when available."
               action={
                 <WorkspaceButton
                   to={`/business/${businessContext.businessId}/feedback/manual`}

@@ -7,11 +7,10 @@ import {
 } from "../../lib/prisma-runtime.js";
 
 export const PRODUCT_FEEDBACK_CHANNELS = [
-  FeedbackChannel.MANUAL,
-  FeedbackChannel.PUBLIC_FORM,
-  FeedbackChannel.QR_CODE,
+  FeedbackChannel.EMAIL,
   FeedbackChannel.WHATSAPP,
-  FeedbackChannel.EMAIL
+  FeedbackChannel.MANUAL,
+  FeedbackChannel.PUBLIC_FORM
 ] as const;
 
 export const PRODUCT_LIVE_INTEGRATION_PROVIDERS = [
@@ -37,11 +36,7 @@ export function supportedOperationalFeedbackWhere(): Prisma.FeedbackWhereInput {
     OR: [
       {
         channel: {
-          in: [
-            FeedbackChannel.MANUAL,
-            FeedbackChannel.PUBLIC_FORM,
-            FeedbackChannel.QR_CODE
-          ]
+          in: [FeedbackChannel.MANUAL, FeedbackChannel.PUBLIC_FORM]
         }
       },
       {
@@ -61,6 +56,31 @@ export function supportedOperationalFeedbackWhere(): Prisma.FeedbackWhereInput {
         ]
       }
     ]
+  };
+}
+
+/**
+ * Canonical scope for normal product reads and aggregates. Historical or
+ * soft-deleted feedback remains stored for audit and provider deduplication,
+ * but it cannot contribute to operational lists, totals, charts, or reports.
+ */
+export function activeOperationalFeedbackWhere(
+  where: Prisma.FeedbackWhereInput = {}
+): Prisma.FeedbackWhereInput {
+  const existingAnd = where.AND;
+  const andFilters: Prisma.FeedbackWhereInput[] = [
+    { deletedAt: null },
+    supportedOperationalFeedbackWhere()
+  ];
+  if (Array.isArray(existingAnd)) {
+    andFilters.push(...existingAnd);
+  } else if (existingAnd) {
+    andFilters.push(existingAnd);
+  }
+
+  return {
+    ...where,
+    AND: andFilters
   };
 }
 

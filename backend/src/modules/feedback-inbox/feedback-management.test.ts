@@ -59,6 +59,23 @@ test("selection rejects an empty request and accepts explicit or all-matching sc
   );
 });
 
+test("bulk filtering accepts only the four visible product channels", () => {
+  for (const channel of ["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"]) {
+    assert.equal(
+      feedbackSelectionSchema.safeParse({ allMatching: true, filters: { channel } })
+        .success,
+      true
+    );
+  }
+  assert.equal(
+    feedbackSelectionSchema.safeParse({
+      allMatching: true,
+      filters: { channel: "QR_CODE" }
+    }).success,
+    false
+  );
+});
+
 test("bulk status validation follows the established workflow transition graph", () => {
   assert.equal(transitionsAreValid(["NEW", "IN_REVIEW"], "IN_REVIEW"), true);
   assert.equal(transitionsAreValid(["NEW", "RESOLVED"], "CLOSED"), false);

@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { UserRole } from "../../lib/prisma-runtime.js";
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
-import { supportedOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
+import { activeOperationalFeedbackWhere } from "../integrations/supported-integration-policy.js";
 
 type Actor = { userId: string; role: UserRole };
 type CustomerFeedbackQuery = {
@@ -10,7 +10,7 @@ type CustomerFeedbackQuery = {
   pageSize: number;
   search?: string;
   status?: "NEW" | "IN_REVIEW" | "RESOLVED" | "CLOSED";
-  channel?: "MANUAL" | "PUBLIC_FORM" | "QR_CODE" | "WHATSAPP" | "EMAIL";
+  channel?: "EMAIL" | "WHATSAPP" | "MANUAL" | "PUBLIC_FORM";
   sort: "newest" | "oldest";
 };
 
@@ -32,11 +32,9 @@ function ownershipWhere(
 ): Prisma.FeedbackWhereInput {
   return {
     AND: [
-      supportedOperationalFeedbackWhere(),
-      {
-        deletedAt: null,
+      activeOperationalFeedbackWhere({
         OR: [{ customerEmail: email }, { customer: { is: { normalizedEmail } } }]
-      }
+      })
     ]
   };
 }

@@ -329,7 +329,7 @@ test("Integration Adoption aggregates already Live-scoped connections by provide
   );
   assert.deepEqual(
     rows.map(([provider]) => provider),
-    ["Email", "Facebook", "Google Reviews", "Instagram", "WhatsApp", "X"]
+    ["Facebook", "Gmail", "Google Reviews", "Instagram", "WhatsApp", "X"]
   );
   assert.doesNotMatch(serviceSource, /by:\s*\["provider",\s*"mode"\]/);
 });

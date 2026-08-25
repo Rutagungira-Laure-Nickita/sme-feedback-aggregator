@@ -1,5 +1,12 @@
 # API Notes
 
+## Focused Count and Presentation Contract
+
+- Normal feedback list, summary, customer, dashboard, analytics, and report queries accept exactly `EMAIL`, `WHATSAPP`, `MANUAL`, and `PUBLIC_FORM` as channel filters and compose the shared active-operational predicate. `EMAIL` is presented as Gmail.
+- Soft-delete endpoints remain unchanged and preserve records, ingestion identifiers, source metadata, and activity. Their frontend completion path invalidates inbox, owner/staff dashboard, and customer query families.
+- Staff invitation and membership-role update payloads accept only `MANAGER` or `STAFF`. Existing internal `ADMIN` memberships remain readable/authorized and are presented as Business Owner; eligible-assignee responses omit legacy `ADMIN` memberships from normal choices.
+- QR and Automation routes/endpoints were not deleted or disabled. This correction changes discoverability and operational reporting only, not their dormant contracts.
+
 ## Supported-Channel and Gmail Label Contracts
 
 - Normal integration provider/connection lists and lifecycle operations now support only Live `EMAIL` with `liveProviderType=GMAIL` and Live `WHATSAPP`. Attempts to create or operate Demo, Outlook, Google Reviews, X, Facebook, or Instagram connections return controlled unsupported-provider errors. Historical records remain database-auditable.

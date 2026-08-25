@@ -14,7 +14,7 @@ const businessReportBaseSchema = z
     dateFrom: z.coerce.date(),
     dateTo: z.coerce.date(),
     branchId: optionalId,
-    channel: z.enum(["MANUAL", "PUBLIC_FORM", "QR_CODE", "WHATSAPP", "EMAIL"]).optional(),
+    channel: z.enum(["EMAIL", "WHATSAPP", "MANUAL", "PUBLIC_FORM"]).optional(),
     status: z.nativeEnum(FeedbackStatus).optional(),
     sentiment: z.nativeEnum(FeedbackAISentiment).optional(),
     comparePreviousPeriod: z.boolean().default(false)

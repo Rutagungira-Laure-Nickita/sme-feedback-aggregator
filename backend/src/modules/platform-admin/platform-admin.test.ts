@@ -263,7 +263,7 @@ test("CSV and PDF exports generate correct structures without secret fields", as
   const csv = renderReportCsv(report).toString("utf8");
   assert.match(csv, /Metric,Value/);
   assert.match(csv, /Channel,Count/);
-  assert.match(csv, /Email,4/);
+  assert.match(csv, /Gmail,4/);
   const pdf = await renderReportPdf(report);
   assert.equal(pdf.subarray(0, 4).toString("ascii"), "%PDF");
   assert.ok(pdf.length > 1_000);
