@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-31 - Owner/Admin Reporting Quality and Detailed Feedback Consistency
+
+- Standardized `Detailed Feedback Records` across Business Owner and all three Platform Administrator reports; Admin rows add Business and Branch while both use original message and received date.
+- Extracted one shared sender-resolution/section builder for Gmail, WhatsApp, Manual Entry, Public Form, and `Unknown customer` fallback without exposing internal IDs or source metadata.
+- Made report detail rows and `Feedback in selected period` originate from the same canonical active operational scope, including soft-delete, supported-source, tenant/Branch, date, channel, workflow-status, and sentiment rules where accepted.
+- Renamed the persisted-link-only customer metric to `Linked customer profiles represented by feedback (period)` instead of implying all named senders are Customer profiles.
+- Removed automation queries, highlights, summaries, comparisons, and sections from normal Owner/Admin Preview, PDF, and CSV while preserving automation workers, APIs, services, routes, models, records, and non-report behavior.
+- Added responsive Administrator detail Preview, eight-column wrapped/page-safe PDF rendering, all-row PDF/CSV regressions, repeated-header coverage, sender/filter/source/soft-delete/security assertions, and automation-absence tests. No schema, migration, seed, dependency, integration, auth, security-rule, or deployment change was made.
+
 ## 2026-08-31 - Business Owner Detailed Feedback Records
 
 - Added a final `Detailed Feedback Records` section to the existing Business Owner report with Customer / Sender, original Feedback, visible Channel, received Date, Category, and Status.

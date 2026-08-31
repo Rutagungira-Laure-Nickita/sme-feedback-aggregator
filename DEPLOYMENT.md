@@ -1,5 +1,9 @@
 # Deployment
 
+## Owner/Admin Reporting Quality Deployment Notes
+
+This reporting-only pass adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook configuration, worker, queue, storage, Vercel setting, or Railway setting. Deploy backend and frontend together so the expanded Administrator documents, shared sender policy, responsive previews, and six/eight-column PDF behavior remain aligned. Existing report concurrency/memory guidance applies because every matching detail row is materialized for export. Do not delete hidden/deleted/provider or automation history. After rollout, clear stale frontend assets and complete the focused checklist in `NEXT_STEPS.md`.
+
 ## Business Owner Detailed Feedback Report Deployment Notes
 
 This focused report enhancement adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook configuration, worker, queue, storage, or deployment-setting requirement. Deploy backend and frontend together so the expanded report document, responsive Preview, and full PDF/CSV behavior remain aligned. Existing report concurrency/memory guidance still applies because every matching detail row is materialized for export. After rollout, clear stale frontend assets and perform the focused checklist in `NEXT_STEPS.md`; do not reset, db-push, reseed, or clean up hidden/deleted provider rows.

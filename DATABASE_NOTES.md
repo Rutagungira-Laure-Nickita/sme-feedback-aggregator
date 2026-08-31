@@ -1,5 +1,9 @@
 # Database Notes
 
+## Owner/Admin Reporting Quality Database Impact
+
+No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. Reports read existing feedback snapshots, original messages, received timestamps, category/status relations, and Administrator Business/Branch names through the canonical active operational predicate. Soft-deleted and unsupported-source rows remain stored for audit and provider deduplication but are excluded from totals and details. The customer representation metric counts existing non-null `Feedback.customerId` links and is labeled accordingly; no Customer rows are fabricated. Automation records remain stored and operational but are no longer queried for normal report output. Reports and generated files remain unpersisted.
+
 ## Business Owner Detailed Feedback Report Database Impact
 
 No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. The detailed report reads existing `Feedback` customer snapshot fields, message, channel, `receivedAt`, category relation, and status through the same active operational predicate as the report aggregates. Soft-deleted and unsupported-source rows remain stored for audit/deduplication but are excluded from both totals and detail rows. Reports remain generated on demand and are not persisted.

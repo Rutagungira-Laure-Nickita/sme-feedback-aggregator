@@ -1,5 +1,13 @@
 # Security Notes
 
+## Owner/Admin Reporting Quality Safety
+
+- Business Owner report access still requires an authenticated platform `BUSINESS_OWNER`, active membership in the route Business, an active Business, and a validated optional Branch. Administrator reports remain protected by `PLATFORM_ADMIN`; no frontend-only security filter was introduced.
+- Detailed rows reuse the same server-authorized Business/Branch/date/channel/status/sentiment and active operational predicate as report totals. `deletedAt: null` plus the deny-by-default four-source policy prevents deleted, QR, Demo, Outlook, social, Google Reviews, X, and unsupported rows from leaking.
+- The shared projection includes only sender fallback snapshots required by the report, original message, channel, received timestamp, category/status, and Admin Business/Branch names. It excludes internal IDs, source metadata, provider identifiers, notes, attachments, credentials, tokens, signatures, payloads, and AI summaries.
+- Sender/message/category/Business/Branch values remain untrusted text. Existing React escaping, in-memory export, no-store/nosniff headers, CSV escaping/formula neutralization, and PDF text rendering remain unchanged.
+- Removing automation from report documents does not weaken, delete, or bypass automation authorization, workers, APIs, models, activity, or audit history.
+
 ## Business Owner Detailed Feedback Report Safety
 
 - Existing report endpoints still require an authenticated platform `BUSINESS_OWNER`, active membership in the route Business, an active Business, and a server-validated optional Branch. The detail query reuses the same authorized `businessId` and canonical feedback predicate as every report total.

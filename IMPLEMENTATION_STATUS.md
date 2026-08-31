@@ -1,5 +1,15 @@
 # Implementation Status
 
+## Business Owner and Platform Administrator Reporting Quality Pass
+
+Implementation and automated verification are complete; user-run browser/PDF/CSV verification remains pending. Business Owner and all three normal Platform Administrator report documents now end with `Detailed Feedback Records`. Owner rows contain Customer / Sender, original Feedback, Channel, Date, Category, and Status; Administrator rows add Business and Branch. A shared backend formatter applies the same Gmail, WhatsApp, Manual Entry, Public Form, and `Unknown customer` sender fallbacks to both report families.
+
+Each detailed query uses the report's canonical active operational feedback predicate, including `deletedAt = null`, the four-channel supported-source policy, server-authorized Business/Branch scope, date range, and Channel/Workflow Status/Sentiment filters where accepted. `Feedback in selected period` is derived from the detailed population for the owner, Executive, Feedback & Customer Experience, and Operations reports, so totals and full exports reconcile. The persisted-profile-only metric is now consistently labeled `Linked customer profiles represented by feedback (period)`.
+
+Automation report queries, highlights, summaries, comparison rows, and sections were removed from normal Owner/Admin Preview, PDF, and CSV output without changing automation workers, APIs, services, routes, models, records, or non-report tests. CSV retains every full original message and ISO received timestamp. PDF exports all matching rows, wraps a bounded message excerpt, uses eight-column Administrator geometry where required, repeats table headers, and avoids horizontal clipping. No schema, migration, seed, dependency, integration, authentication, security-rule, credential, or deployment-configuration change was made.
+
+Verification passes: Phase 26 reporting 39/39, Phase 25.4 reporting 53/53, hardening/tenant authorization 29/29, backend/frontend typecheck and lint, Prisma validation, touched-file formatting, and backend/frontend production builds. The first sandboxed hardening runner was blocked before discovery by Windows `spawn EPERM`; the approved rerun passed. Prisma validation initially hit the restricted proxy and passed on the approved retry. The existing non-blocking Vite chunk-size advisory remains. Manual requirements are in `NEXT_STEPS.md`; do not mark this pass manually verified until they pass.
+
 ## Business Owner Detailed Feedback Records Report Improvement
 
 Implementation and automated verification are complete; user-run browser/PDF/CSV verification remains pending. The existing tenant-scoped Business Owner report now ends with `Detailed Feedback Records`, containing Customer / Sender, original Feedback, Channel, received Date, Category, and Status for every record in the report's canonical filtered feedback population. Sender identity uses the stored submitted/imported snapshot: Gmail display name then email, WhatsApp profile name then phone, Manual Entry/Public Form name then email then phone, and `Unknown customer` when none is usable.

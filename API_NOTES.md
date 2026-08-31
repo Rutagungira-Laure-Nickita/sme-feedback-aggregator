@@ -1,5 +1,13 @@
 # API Notes
 
+## Owner/Admin Reporting Quality Contract
+
+Existing Owner and Platform Administrator preview/export endpoints, request schemas, response envelopes, content types, and authorization are unchanged. Every generated normal report document now contains a final `Detailed Feedback Records` section. Owner columns are `Customer / Sender`, `Feedback`, `Channel`, `Date`, `Category`, and `Status`; Administrator columns additionally include `Business` and `Branch`.
+
+Rows use original stored feedback messages and `Feedback.receivedAt`, and come from the same server-side active operational scope as `Feedback in selected period`. The supported channels are exactly Gmail, WhatsApp, Manual Entry, and Public Form. Preview samples up to 12 rows; PDF/CSV exports contain all matching rows. The represented-customer metric is exposed as `Linked customer profiles represented by feedback (period)` because it counts non-null persisted Customer links, not all distinct snapshot senders.
+
+Normal report documents no longer contain automation highlights, summaries, comparisons, or sections. No automation API contract, route, worker, service, or data contract changed. Existing no-store/nosniff download headers, strict Owner tenant authorization, and `PLATFORM_ADMIN` report guards remain authoritative.
+
 ## Business Owner Detailed Feedback Report Contract
 
 The existing `POST /api/businesses/:businessId/reports/preview` and `/export` paths, request schemas, response envelope, content types, and authorization are unchanged. Business Owner report documents now include a final section titled `Detailed Feedback Records` with exactly these columns: `Customer / Sender`, `Feedback`, `Channel`, `Date`, `Category`, and `Status`.

@@ -468,8 +468,6 @@ test("service source always scopes tenant queries by the authorized Business", (
     /prisma\.synchronizationRun\.groupBy\(\{\s*by: \["status"\],\s*where: runWhere/,
     /prisma\.integrationWebhookDelivery\.count\(\{ where: webhookWhere \}\)/,
     /prisma\.feedbackAIAnalysis\.count\(\{ where: aiWhere \}\)/,
-    /prisma\.automationExecution\.count\(\{ where: automationWhere \}\)/,
-    /prisma\.automationRule\.groupBy\(\{\s*by: \["status"\],\s*where: \{ businessId \}/,
     /prisma\.customer\.count\(\{ where: \{ businessId \} \}\)/,
     /prisma\.branch\.findMany\(\{\s*where: \{ businessId \}/
   ]) {
@@ -477,6 +475,11 @@ test("service source always scopes tenant queries by the authorized Business", (
   }
   assert.match(serviceSource, /buildDetailedFeedbackSection\(detailedFeedback\)/);
   assert.match(serviceSource, /const periodTotal = detailedFeedback\.length;/);
+  assert.match(
+    serviceSource,
+    /Linked customer profiles represented by feedback \(period\)/
+  );
+  assert.doesNotMatch(serviceSource, /automation|Automation/);
   assert.match(
     serviceSource,
     /customerPhone: true,[\s\S]*?orderBy: \[\{ receivedAt: "desc" \}, \{ id: "asc" \}\]\s*\}\),\s*queryFeedbackTimeSeries/

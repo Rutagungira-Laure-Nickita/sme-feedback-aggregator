@@ -50,6 +50,36 @@ test("non-trend Preview sections retain their established first-row sampling", (
   assert.deepEqual(preview.rows, rows.slice(0, 12));
 });
 
+test("admin Detailed Feedback Records Preview samples rows without changing export data", () => {
+  const rows = Array.from({ length: 18 }, (_, index) => [
+    `Customer ${index + 1}`,
+    `Original feedback ${index + 1}`,
+    "Gmail",
+    `2026-08-${String(index + 1).padStart(2, "0")}T14:54:00.000Z`,
+    "Service Quality",
+    "New",
+    "Kigali Waffle Cuisine",
+    "Remera"
+  ]);
+  const preview = getReportSectionPreview({
+    title: "Detailed Feedback Records",
+    headers: [
+      "Customer / Sender",
+      "Feedback",
+      "Channel",
+      "Date",
+      "Category",
+      "Status",
+      "Business",
+      "Branch"
+    ],
+    rows
+  });
+  assert.deepEqual(preview.rows, rows.slice(0, 12));
+  assert.match(preview.message ?? "", /Previewing 12 of 18 rows/i);
+  assert.match(preview.message ?? "", /Exports contain the full dataset/i);
+});
+
 test("Operations Preview reuses the report document comparison in the required table", () => {
   const report = {
     comparison: [

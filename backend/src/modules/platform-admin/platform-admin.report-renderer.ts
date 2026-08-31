@@ -548,8 +548,10 @@ function isTrendSection(section: ReportSection) {
 function isDetailedFeedbackSection(section: ReportSection) {
   return (
     section.title === "Detailed Feedback Records" &&
-    section.headers.join("|") ===
-      "Customer / Sender|Feedback|Channel|Date|Category|Status"
+    (section.headers.join("|") ===
+      "Customer / Sender|Feedback|Channel|Date|Category|Status" ||
+      section.headers.join("|") ===
+        "Customer / Sender|Feedback|Channel|Date|Category|Status|Business|Branch")
   );
 }
 
@@ -565,6 +567,7 @@ function tableColumnWidths(table: PreparedReportPdfTable, contentWidth: number) 
 
 export function prepareReportPdfTable(section: ReportSection): PreparedReportPdfTable {
   if (isDetailedFeedbackSection(section)) {
+    const includeBusinessContext = section.headers.length === 8;
     return {
       headers: section.headers,
       rows: section.rows.map((row) =>
@@ -575,8 +578,10 @@ export function prepareReportPdfTable(section: ReportSection): PreparedReportPdf
           return index === 3 ? formatReportPdfTimestamp(cell) : cell;
         })
       ),
-      columnProportions: [0.17, 0.35, 0.1, 0.15, 0.13, 0.1],
-      fontSize: 6.7,
+      columnProportions: includeBusinessContext
+        ? [0.13, 0.27, 0.08, 0.13, 0.1, 0.08, 0.11, 0.1]
+        : [0.17, 0.35, 0.1, 0.15, 0.13, 0.1],
+      fontSize: includeBusinessContext ? 6.2 : 6.7,
       wrapRows: true,
       semanticColumnIndex: 5
     };

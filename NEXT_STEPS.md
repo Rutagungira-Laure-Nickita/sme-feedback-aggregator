@@ -1,5 +1,21 @@
 # Next Steps
 
+## Owner/Admin Reporting Quality Pass — Manual Verification Gate
+
+Implementation and automated verification are complete. The next task is the user-owned browser/download pass:
+
+1. Preview the Business Owner report and each Platform Administrator report. Confirm `Detailed Feedback Records` appears last, Owner columns are Customer / Sender, Feedback, Channel, Date, Category, Status, and Admin adds Business and Branch.
+2. Confirm Gmail prefers display name then email, WhatsApp prefers profile/customer name then phone, Manual Entry/Public Form prefer name then email then phone, and missing identity displays `Unknown customer` without internal IDs or source metadata.
+3. Apply every available Business, Branch, date, Channel, Workflow Status, and Sentiment filter individually and in combinations. Confirm every detail row matches and `Feedback in selected period` equals the full detail count; for Operations, Provider continues to scope integration sections while feedback details use the documented Business/date operational-feedback scope.
+4. Confirm only Gmail, WhatsApp, Manual Entry, and Public Form appear. Soft-deleted, QR, Demo, Outlook, Facebook, Instagram, X, Google Reviews, and unsupported records must not appear or contribute to totals.
+5. Confirm `Linked customer profiles represented by feedback (period)` is used consistently and is understood as persisted linked profiles, not all named senders.
+6. Confirm no Automation highlights, comparisons, summaries, sections, or CSV/PDF rows appear, while the retained Automation routes/services continue to pass regression checks.
+7. At desktop/tablet/mobile widths, confirm the Preview table/card layouts wrap long names/messages/categories and Admin Business/Branch values without page-level horizontal overflow. Preview may show 12 rows and must state that exports contain the full dataset.
+8. Download Owner and Admin PDF/CSV files. Confirm all matching rows are present; CSV retains full original messages and ISO dates; PDF uses readable wrapped excerpts, clear dates, repeated headers, clean page breaks, and no clipped columns.
+9. Repeat with another Owner and foreign Business/Branch attempts. Confirm Owner tenant isolation and existing Platform Administrator-only report authorization remain enforced.
+
+No migration, reset, db push, reseed, provider reconfiguration, or deployment-setting change belongs to this pass. Do not mark it manually verified until this checklist passes.
+
 ## Business Owner Detailed Feedback Records — Manual Verification Gate
 
 Implementation and focused automated verification are complete. The next task for this report improvement is the user-owned browser/download pass:

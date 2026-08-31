@@ -676,21 +676,20 @@ function formatPreviewCell(
   value: string | number | null,
   cellIndex: number
 ) {
-  if (
-    (isImportantFeedbackCell(section, cellIndex) ||
-      (isDetailedFeedbackSection(section) &&
-        section.headers[cellIndex] === "Feedback")) &&
-    typeof value === "string"
-  ) {
-    const maximum = isDetailedFeedbackSection(section) ? 480 : 320;
-    return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
+  if (isDetailedFeedbackSection(section)) {
+    if (section.headers[cellIndex] === "Feedback" && typeof value === "string") {
+      const maximum = 480;
+      return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
+    }
+    if (section.headers[cellIndex] === "Date" && typeof value === "string") {
+      return formatDateTime(value);
+    }
+    if (value === null) return "Not set";
+    return typeof value === "number" ? new Intl.NumberFormat().format(value) : value;
   }
-  if (
-    isDetailedFeedbackSection(section) &&
-    section.headers[cellIndex] === "Date" &&
-    typeof value === "string"
-  ) {
-    return formatDateTime(value);
+  if (isImportantFeedbackCell(section, cellIndex) && typeof value === "string") {
+    const maximum = 320;
+    return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
   }
   if (value === null) return "Not set";
   if (typeof value === "number") return new Intl.NumberFormat().format(value);

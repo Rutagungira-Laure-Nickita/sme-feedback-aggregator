@@ -1,7 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import {
   AccountStatus,
-  AutomationRuleStatus,
   FeedbackAIAnalysisStatus,
   FeedbackAISentiment,
   FeedbackPriority,
@@ -32,6 +31,7 @@ import {
   activeOperationalFeedbackWhere,
   supportedLiveIntegrationWhere
 } from "../integrations/supported-integration-policy.js";
+import { buildDetailedFeedbackSection } from "./feedback-report-records.js";
 
 type ReportInput = Omit<AdminReportRequest, "outputFormat">;
 type CountGroup<T extends Record<string, unknown>> = T & { _count: { _all: number } };
@@ -386,7 +386,7 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
     previousUsers,
     customers,
     totalFeedback,
-    periodFeedback,
+    detailedFeedback,
     previousFeedback,
     feedbackToday,
     feedbackWeek,
@@ -425,7 +425,22 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
     }),
     prisma.customer.count({ where: customerWhere }),
     prisma.feedback.count({ where: lifetimeFeedbackWhere }),
-    prisma.feedback.count({ where: periodFeedbackWhere }),
+    prisma.feedback.findMany({
+      where: periodFeedbackWhere,
+      select: {
+        channel: true,
+        message: true,
+        receivedAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        category: { select: { name: true } },
+        status: true,
+        business: { select: { name: true } },
+        branch: { select: { name: true } }
+      },
+      orderBy: [{ receivedAt: "desc" }, { id: "asc" }]
+    }),
     prisma.feedback.count({ where: previousFeedbackWhere }),
     prisma.feedback.count({
       where: { ...lifetimeFeedbackWhere, receivedAt: { gte: today, lte: now } }
@@ -518,6 +533,7 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
     queryFeedbackTimeSeries(periodFeedbackScope)
   ]);
 
+  const periodFeedback = detailedFeedback.length;
   const businessCounts = countMap(businessStatuses, "status");
   const userCounts = countMap(userStatuses, "status");
   const healthCounts = countValues(connections.map(classifyIntegrationHealth));
@@ -732,7 +748,8 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
       rows: businessStatuses.map((item) => [item.status, item._count._all]),
       semantic: "HEALTH",
       emptyMessage: "No businesses matched the selected scope."
-    }
+    },
+    buildDetailedFeedbackSection(detailedFeedback, { includeBusinessContext: true })
   ];
   if (input.comparePreviousPeriod) {
     report.comparison = [
@@ -761,7 +778,7 @@ async function buildFeedbackExperienceReport(
   const previousWhere = previousScope.where;
   const [
     lifetimeTotal,
-    periodTotal,
+    detailedFeedback,
     previousTotal,
     previousStatuses,
     assignmentGroups,
@@ -780,7 +797,22 @@ async function buildFeedbackExperienceReport(
     trend
   ] = await Promise.all([
     prisma.feedback.count({ where: lifetimeWhere }),
-    prisma.feedback.count({ where }),
+    prisma.feedback.findMany({
+      where,
+      select: {
+        channel: true,
+        message: true,
+        receivedAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        category: { select: { name: true } },
+        status: true,
+        business: { select: { name: true } },
+        branch: { select: { name: true } }
+      },
+      orderBy: [{ receivedAt: "desc" }, { id: "asc" }]
+    }),
     prisma.feedback.count({ where: previousWhere }),
     prisma.feedback.groupBy({
       by: ["status"],
@@ -851,6 +883,7 @@ async function buildFeedbackExperienceReport(
     queryFeedbackTimeSeries(periodScope)
   ]);
 
+  const periodTotal = detailedFeedback.length;
   const { open, completed } = summarizeFeedbackWorkflow(statuses);
   const { open: previousOpen, completed: previousCompleted } =
     summarizeFeedbackWorkflow(previousStatuses);
@@ -866,7 +899,10 @@ async function buildFeedbackExperienceReport(
     { label: "High or urgent priority (period)", value: highPriority },
     { label: "AI analyzed (period)", value: aiCompleted },
     { label: "AI not analyzed (period)", value: Math.max(0, periodTotal - aiCompleted) },
-    { label: "Customer profiles represented (period)", value: customers.length }
+    {
+      label: "Linked customer profiles represented by feedback (period)",
+      value: customers.length
+    }
   ];
   report.managementSummary = buildFeedbackManagementSummary({
     periodTotal,
@@ -971,7 +1007,8 @@ async function buildFeedbackExperienceReport(
       emptyMessage: periodTotal
         ? "No high-priority or negative feedback requires attention in this scope."
         : "No feedback matched the selected period and filters."
-    }
+    },
+    buildDetailedFeedbackSection(detailedFeedback, { includeBusinessContext: true })
   ];
   if (input.comparePreviousPeriod) {
     report.comparison = [
@@ -1030,14 +1067,11 @@ async function buildOperationsHealthReport(
     requestedAt: { gte: previousFrom, lte: previousTo },
     feedback: activeOperationalFeedbackWhere()
   };
-  const automationWhere: Prisma.AutomationExecutionWhereInput = {
-    businessId: scopeBusinessId,
-    createdAt: { gte: from, lte: to }
-  };
-  const previousAutomationWhere: Prisma.AutomationExecutionWhereInput = {
-    businessId: scopeBusinessId,
-    createdAt: { gte: previousFrom, lte: previousTo }
-  };
+  const feedbackScope = createFeedbackScopePlan(
+    { ...input, businessId: scopeBusinessId },
+    from,
+    to
+  );
   const staleThreshold = new Date(Date.now() - 15 * 60_000);
 
   const [
@@ -1056,11 +1090,7 @@ async function buildOperationsHealthReport(
     aiCount,
     previousAiCount,
     staleAi,
-    automationStatuses,
-    automationCount,
-    previousAutomationCount,
-    automationRules,
-    recentAutomation,
+    detailedFeedback,
     businessStatuses
   ] = await Promise.all([
     prisma.$queryRaw<Array<{ healthy: number }>>(PrismaRuntime.sql`SELECT 1 AS healthy`),
@@ -1138,33 +1168,21 @@ async function buildOperationsHealthReport(
         lockedAt: { lt: staleThreshold }
       }
     }),
-    prisma.automationExecution.groupBy({
-      by: ["status"],
-      where: automationWhere,
-      _count: { _all: true }
-    }),
-    prisma.automationExecution.count({ where: automationWhere }),
-    prisma.automationExecution.count({ where: previousAutomationWhere }),
-    prisma.automationRule.groupBy({
-      by: ["status"],
-      where: { businessId: scopeBusinessId },
-      _count: { _all: true }
-    }),
-    prisma.automationExecution.findMany({
-      where: automationWhere,
+    prisma.feedback.findMany({
+      where: feedbackScope.where,
       select: {
-        createdAt: true,
-        completedAt: true,
+        channel: true,
+        message: true,
+        receivedAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        category: { select: { name: true } },
         status: true,
-        matched: true,
-        actionsSucceeded: true,
-        actionsSkipped: true,
-        actionsFailed: true,
         business: { select: { name: true } },
-        rule: { select: { name: true } }
+        branch: { select: { name: true } }
       },
-      orderBy: { createdAt: "desc" },
-      take: 25
+      orderBy: [{ receivedAt: "desc" }, { id: "asc" }]
     }),
     prisma.business.groupBy({
       by: ["status"],
@@ -1182,8 +1200,6 @@ async function buildOperationsHealthReport(
   const live = connections.filter((item) => item.mode === IntegrationMode.LIVE).length;
   const attention = health.filter((item) => item.health !== "HEALTHY").length;
   const aiCounts = countMap(aiStatuses, "status");
-  const automationCounts = countMap(automationStatuses, "status");
-  const ruleCounts = countMap(automationRules, "status");
   const businessCounts = countMap(businessStatuses, "status");
 
   report.highlights = [
@@ -1204,25 +1220,10 @@ async function buildOperationsHealthReport(
     { label: "AI completed (period)", value: aiCounts.COMPLETED ?? 0 },
     { label: "AI failed (period)", value: aiCounts.FAILED ?? 0 },
     { label: "Stale AI processing", value: staleAi },
-    {
-      label: "Successful automation executions (period)",
-      value: automationCounts.SUCCESS ?? 0
-    },
-    {
-      label: "Automation failed/partial (period)",
-      value: (automationCounts.FAILED ?? 0) + (automationCounts.PARTIAL ?? 0)
-    },
-    {
-      label: "Active automation rules",
-      value: ruleCounts[AutomationRuleStatus.ACTIVE] ?? 0
-    },
-    {
-      label: "Draft automation rules",
-      value: ruleCounts[AutomationRuleStatus.DRAFT] ?? 0
-    },
+    { label: "Feedback in selected period", value: detailedFeedback.length },
     { label: "Pending businesses", value: businessCounts.PENDING ?? 0 }
   ];
-  report.managementSummary = `${connections.length} supported Live integration connection${connections.length === 1 ? " is" : "s are"} in scope. ${attention} require${attention === 1 ? "s" : ""} administrator attention. During the selected period, ${webhookCount} webhook deliveries, ${aiCount} AI processing records, and ${automationCount} automation executions were recorded. API and database health are based on this successful request and a live database connectivity probe.`;
+  report.managementSummary = `${connections.length} supported Live integration connection${connections.length === 1 ? " is" : "s are"} in scope. ${attention} require${attention === 1 ? "s" : ""} administrator attention. During the selected period, ${webhookCount} webhook deliveries and ${aiCount} AI processing records were recorded. API and database health are based on this successful request and a live database connectivity probe.`;
   report.sections = [
     {
       title: "Core services",
@@ -1360,65 +1361,20 @@ async function buildOperationsHealthReport(
       rows: [["Processing records older than 15 minutes", staleAi]],
       semantic: "HEALTH"
     },
-    groupSection(
-      "Automation execution outcomes",
-      "Execution state",
-      automationStatuses,
-      "status",
-      automationCount,
-      "HEALTH"
-    ),
-    groupSection(
-      "Automation rule state",
-      "Rule state",
-      automationRules,
-      "status",
-      undefined,
-      "HEALTH"
-    ),
-    {
-      title: "Recent automation execution state",
-      headers: [
-        "Created",
-        "Business",
-        "Rule",
-        "Status",
-        "Matched",
-        "Actions completed",
-        "Actions skipped",
-        "Actions failed"
-      ],
-      rows: recentAutomation.map((item) => [
-        item.createdAt.toISOString(),
-        item.business.name,
-        item.rule?.name ?? "Deleted or unavailable rule",
-        item.status,
-        item.matched ? "Yes" : "No",
-        item.actionsSucceeded,
-        item.actionsSkipped,
-        item.actionsFailed
-      ]),
-      semantic: "HEALTH",
-      emptyMessage: "No automation executions matched the selected period and filters."
-    },
     {
       title: "Business approval and platform workload",
       headers: ["Business state", "Count"],
       rows: businessStatuses.map((item) => [item.status, item._count._all]),
       semantic: "HEALTH",
       emptyMessage: "No businesses matched the selected scope."
-    }
+    },
+    buildDetailedFeedbackSection(detailedFeedback, { includeBusinessContext: true })
   ];
   if (input.comparePreviousPeriod) {
     report.comparison = [
       createReportComparison("Synchronization runs", runCount, previousRunCount),
       createReportComparison("Webhook deliveries", webhookCount, previousWebhookCount),
-      createReportComparison("AI processing records", aiCount, previousAiCount),
-      createReportComparison(
-        "Automation executions",
-        automationCount,
-        previousAutomationCount
-      )
+      createReportComparison("AI processing records", aiCount, previousAiCount)
     ];
   }
 }

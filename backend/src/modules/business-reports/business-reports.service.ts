@@ -4,7 +4,6 @@ import {
   BusinessStatus,
   FeedbackAIAnalysisStatus,
   FeedbackAISentiment,
-  FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus,
   IntegrationMode,
@@ -42,6 +41,7 @@ import {
   type IntegrationHealthRecord
 } from "../platform-admin/platform-admin.reports.js";
 import { getPlatformSettings } from "../platform-admin/platform-settings.service.js";
+import { buildDetailedFeedbackSection } from "../platform-admin/feedback-report-records.js";
 import type {
   AdminReportDocument,
   ReportSection
@@ -70,16 +70,10 @@ type OwnerReportContext = {
   previousTo: Date;
 };
 
-type DetailedFeedbackRecord = {
-  channel: FeedbackChannel;
-  message: string;
-  receivedAt: Date;
-  customerName: string | null;
-  customerEmail: string | null;
-  customerPhone: string | null;
-  category: { name: string } | null;
-  status: FeedbackStatus;
-};
+export {
+  buildDetailedFeedbackSection,
+  resolveDetailedFeedbackIdentity
+} from "../platform-admin/feedback-report-records.js";
 
 export const OWNER_REPORT_EXACTLY_ONE_CATALOG = [
   {
@@ -286,16 +280,6 @@ async function buildOwnerReportSections(
     requestedAt: { gte: previousFrom, lte: previousTo },
     ...branchFeedbackRelation
   };
-  const automationWhere: Prisma.AutomationExecutionWhereInput = {
-    businessId,
-    createdAt: { gte: from, lte: to },
-    ...branchFeedbackRelation
-  };
-  const previousAutomationWhere: Prisma.AutomationExecutionWhereInput = {
-    businessId,
-    createdAt: { gte: previousFrom, lte: previousTo },
-    ...branchFeedbackRelation
-  };
   const staleThreshold = new Date(Date.now() - 15 * 60_000);
 
   const now = new Date();
@@ -356,12 +340,7 @@ async function buildOwnerReportSections(
     aiStatuses,
     aiCount,
     previousAiCount,
-    staleAi,
-    automationStatuses,
-    automationCount,
-    previousAutomationCount,
-    automationRules,
-    recentAutomation
+    staleAi
   ] = await Promise.all([
     prisma.branch.groupBy({
       by: ["status"],
@@ -565,32 +544,6 @@ async function buildOwnerReportSections(
         lockedAt: { lt: staleThreshold },
         ...branchFeedbackRelation
       }
-    }),
-    prisma.automationExecution.groupBy({
-      by: ["status"],
-      where: automationWhere,
-      _count: { _all: true }
-    }),
-    prisma.automationExecution.count({ where: automationWhere }),
-    prisma.automationExecution.count({ where: previousAutomationWhere }),
-    prisma.automationRule.groupBy({
-      by: ["status"],
-      where: { businessId },
-      _count: { _all: true }
-    }),
-    prisma.automationExecution.findMany({
-      where: automationWhere,
-      select: {
-        createdAt: true,
-        status: true,
-        matched: true,
-        actionsSucceeded: true,
-        actionsSkipped: true,
-        actionsFailed: true,
-        rule: { select: { name: true } }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 25
     })
   ]);
 
@@ -646,7 +599,7 @@ async function buildOwnerReportSections(
       value: customers
     },
     {
-      label: "Customers represented by feedback (period)",
+      label: "Linked customer profiles represented by feedback (period)",
       value: representedCustomers.length
     },
     { label: "Total feedback (lifetime, matching filters)", value: lifetimeTotal },
@@ -1020,47 +973,6 @@ async function buildOwnerReportSections(
       rows: [["Processing records older than 15 minutes", staleAi]],
       semantic: "HEALTH"
     },
-    groupSection(
-      "Automation rule state",
-      "Rule state",
-      automationRules,
-      "status",
-      undefined,
-      "HEALTH"
-    ),
-    groupSection(
-      "Automation execution outcomes",
-      "Execution state",
-      automationStatuses,
-      "status",
-      automationCount,
-      "HEALTH"
-    ),
-    {
-      title: "Recent automation execution state",
-      headers: [
-        "Created",
-        "Business",
-        "Rule",
-        "Status",
-        "Matched",
-        "Actions completed",
-        "Actions skipped",
-        "Actions failed"
-      ],
-      rows: recentAutomation.map((item) => [
-        item.createdAt.toISOString(),
-        business.name,
-        item.rule?.name ?? "Deleted or unavailable rule",
-        item.status,
-        item.matched ? "Yes" : "No",
-        item.actionsSucceeded,
-        item.actionsSkipped,
-        item.actionsFailed
-      ]),
-      semantic: "HEALTH",
-      emptyMessage: "No automation executions matched the selected period and filters."
-    },
     buildDetailedFeedbackSection(detailedFeedback)
   ];
 
@@ -1074,63 +986,9 @@ async function buildOwnerReportSections(
       createReportComparison("High or urgent feedback", highPriority, 0),
       createReportComparison("Synchronization runs", runCount, previousRunCount),
       createReportComparison("Webhook deliveries", webhookCount, previousWebhookCount),
-      createReportComparison("AI processing records", aiCount, previousAiCount),
-      createReportComparison(
-        "Automation executions",
-        automationCount,
-        previousAutomationCount
-      )
+      createReportComparison("AI processing records", aiCount, previousAiCount)
     ];
   }
-}
-
-export function buildDetailedFeedbackSection(
-  records: ReadonlyArray<DetailedFeedbackRecord>
-): ReportSection {
-  return {
-    title: "Detailed Feedback Records",
-    description:
-      "Individual feedback matching the same Business, branch, date, channel, workflow status, and sentiment filters as the report totals. Full messages are retained in CSV; PDF uses readable wrapped excerpts where necessary.",
-    headers: ["Customer / Sender", "Feedback", "Channel", "Date", "Category", "Status"],
-    rows: records.map((record) => [
-      resolveDetailedFeedbackIdentity(record),
-      record.message,
-      formatReportDisplayValue(record.channel),
-      record.receivedAt.toISOString(),
-      record.category?.name ?? "Uncategorized",
-      formatReportDisplayValue(record.status)
-    ]),
-    emptyMessage: "No feedback matched the selected period and filters."
-  };
-}
-
-export function resolveDetailedFeedbackIdentity(
-  record: Pick<
-    DetailedFeedbackRecord,
-    "channel" | "customerName" | "customerEmail" | "customerPhone"
-  >
-): string {
-  const name = usableIdentity(record.customerName);
-  const email = usableIdentity(record.customerEmail);
-  const phone = usableIdentity(record.customerPhone);
-
-  if (record.channel === FeedbackChannel.EMAIL) {
-    const generatedLocalPart = email?.split("@")[0]?.toLocaleLowerCase();
-    const usableDisplayName =
-      name && name.toLocaleLowerCase() !== generatedLocalPart ? name : null;
-    return usableDisplayName ?? email ?? name ?? phone ?? "Unknown customer";
-  }
-
-  if (record.channel === FeedbackChannel.WHATSAPP) {
-    return name ?? phone ?? email ?? "Unknown customer";
-  }
-
-  return name ?? email ?? phone ?? "Unknown customer";
-}
-
-function usableIdentity(value: string | null): string | null {
-  const normalized = value?.replace(/\s+/g, " ").trim();
-  return normalized ? normalized : null;
 }
 
 export function buildIntegrationAdoptionRows(
@@ -1281,7 +1139,7 @@ function createOwnerReportScopeMetadata(
       label: `${business.name} / ${branch.name}`,
       notes: [
         "All feedback metrics use one canonical Business, Branch, Channel, Workflow Status, and Sentiment scope.",
-        "Integration, synchronization, webhook, AI, and automation activity respects the selected branch where a real relationship exists.",
+        "Integration, synchronization, webhook, and AI activity respects the selected branch where a real relationship exists.",
         "Customer profiles and business branch inventory remain business-wide because those records have no branch ownership relationship.",
         "No platform-level or other-tenant data is included."
       ],

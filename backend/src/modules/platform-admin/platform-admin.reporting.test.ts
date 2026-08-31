@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { inflateSync } from "node:zlib";
-import { FeedbackStatus } from "../../lib/prisma-runtime.js";
+import { FeedbackChannel, FeedbackStatus } from "../../lib/prisma-runtime.js";
 import {
   ADMIN_REPORT_CATALOG,
   buildExecutiveManagementSummary,
@@ -32,6 +32,10 @@ import {
   adminReportTypeSchema
 } from "./platform-admin.schemas.js";
 import type { AdminReportDocument } from "./platform-admin.types.js";
+import {
+  buildDetailedFeedbackSection,
+  resolveDetailedFeedbackIdentity
+} from "./feedback-report-records.js";
 
 const reportSource = readFileSync(
   new URL("./platform-admin.reports.ts", import.meta.url),
@@ -489,10 +493,142 @@ test("consolidated builders retain required Executive, feedback, and operations 
     "Integration health summary",
     "Webhook activity",
     "AI processing",
-    "Automation execution outcomes",
     "Business approval and platform workload"
   ])
     assert.ok(reportSource.includes(required), required);
+
+  assert.equal(
+    reportSource.match(/buildDetailedFeedbackSection\(detailedFeedback/g)?.length,
+    3
+  );
+  assert.match(
+    reportSource,
+    /Linked customer profiles represented by feedback \(period\)/
+  );
+  assert.doesNotMatch(reportSource, /automation|Automation/);
+});
+
+test("Platform Administrator detailed feedback uses shared sender rules and scope columns", () => {
+  assert.equal(
+    resolveDetailedFeedbackIdentity({
+      channel: FeedbackChannel.EMAIL,
+      customerName: "gmail.sender",
+      customerEmail: "gmail.sender@example.com",
+      customerPhone: null
+    }),
+    "gmail.sender@example.com"
+  );
+  assert.equal(
+    resolveDetailedFeedbackIdentity({
+      channel: FeedbackChannel.WHATSAPP,
+      customerName: "WhatsApp Customer",
+      customerEmail: null,
+      customerPhone: "+250788000001"
+    }),
+    "WhatsApp Customer"
+  );
+  assert.equal(
+    resolveDetailedFeedbackIdentity({
+      channel: FeedbackChannel.PUBLIC_FORM,
+      customerName: null,
+      customerEmail: null,
+      customerPhone: null
+    }),
+    "Unknown customer"
+  );
+
+  const section = buildDetailedFeedbackSection(
+    [
+      {
+        channel: FeedbackChannel.MANUAL,
+        message: "Original staff-entered customer feedback.",
+        receivedAt: new Date("2026-08-31T10:15:00.000Z"),
+        customerName: "Manual Customer",
+        customerEmail: null,
+        customerPhone: null,
+        category: { name: "Service Quality" },
+        status: FeedbackStatus.NEW,
+        business: { name: "Kigali Waffle Cuisine" },
+        branch: { name: "Remera" }
+      }
+    ],
+    { includeBusinessContext: true }
+  );
+  assert.deepEqual(section.headers, [
+    "Customer / Sender",
+    "Feedback",
+    "Channel",
+    "Date",
+    "Category",
+    "Status",
+    "Business",
+    "Branch"
+  ]);
+  assert.deepEqual(section.rows[0], [
+    "Manual Customer",
+    "Original staff-entered customer feedback.",
+    "Manual",
+    "2026-08-31T10:15:00.000Z",
+    "Service Quality",
+    "New",
+    "Kigali Waffle Cuisine",
+    "Remera"
+  ]);
+});
+
+test("Platform Administrator PDF and CSV export every detailed feedback row", async () => {
+  const records = Array.from({ length: 45 }, (_, index) => ({
+    channel: [
+      FeedbackChannel.EMAIL,
+      FeedbackChannel.WHATSAPP,
+      FeedbackChannel.MANUAL,
+      FeedbackChannel.PUBLIC_FORM
+    ][index % 4]!,
+    message:
+      index === 44
+        ? "Final admin detailed feedback record 45 with the full original message."
+        : `Admin original customer feedback ${index + 1}.`,
+    receivedAt: new Date(Date.UTC(2026, 7, 25, 14, index)),
+    customerName: `Sender ${index + 1}`,
+    customerEmail: `sender${index + 1}@example.com`,
+    customerPhone: null,
+    category: index % 2 ? { name: "Service Quality" } : null,
+    status: FeedbackStatus.NEW,
+    business: { name: index % 2 ? "Kigali Waffle Cuisine" : "Tenant Isolation Cafe" },
+    branch: { name: index % 2 ? "Remera" : "Kiyovu" }
+  }));
+  const section = buildDetailedFeedbackSection(records, {
+    includeBusinessContext: true
+  });
+  const report = fixtureReport(
+    "FEEDBACK_CUSTOMER_EXPERIENCE",
+    "Feedback & Customer Experience Report"
+  );
+  report.sections = [section];
+  report.highlights = [{ label: "Feedback in selected period", value: records.length }];
+
+  const table = prepareReportPdfTable(section);
+  assert.equal(table.wrapRows, true);
+  assert.equal(table.headers.length, 8);
+  assert.equal(table.columnProportions?.length, 8);
+  assert.match(String(table.rows[0]?.[3]), /25 Aug 2026, 14:00/);
+
+  const csvText = renderReportCsv(report).toString("utf8");
+  assert.match(
+    csvText,
+    /Customer \/ Sender,Feedback,Channel,Date,Category,Status,Business,Branch/
+  );
+  assert.match(csvText, /Final admin detailed feedback record 45/);
+  assert.match(csvText, /2026-08-25T14:44:00\.000Z/);
+
+  const pages = inspectPdfPages(await renderReportPdf(report));
+  const pdfText = pages.join(" ");
+  assert.ok(pages.length > 1);
+  assert.match(pdfText, /Final admin detailed feedback record 45/);
+  assert.ok(
+    pages.filter((page) => /Customer \/ Sender/.test(page)).length > 1,
+    "Admin detailed feedback headers should repeat after PDF page breaks."
+  );
 });
 
 test("operations report does not claim unsupported infrastructure monitoring", () => {

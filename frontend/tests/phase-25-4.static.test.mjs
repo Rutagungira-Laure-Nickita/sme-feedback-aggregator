@@ -70,3 +70,14 @@ test("preview refresh, management summary, comparison, and empty states remain v
   assert.match(source, /Scope: \{report\.scope\.label\}/);
   assert.match(source, /report\.scope\.notes\.map/);
 });
+
+test("Platform Administrator Preview renders responsive Detailed Feedback Records", () => {
+  assert.match(source, /Detailed Feedback Records/);
+  assert.match(source, /Customer \/ Sender\|Feedback\|Channel\|Date\|Category\|Status/);
+  assert.match(source, /DetailedFeedbackRecordsSection/);
+  assert.match(source, /hidden max-w-full overflow-x-auto md:block/);
+  assert.match(source, /space-y-3 md:hidden/);
+  assert.match(source, /label="Business"/);
+  assert.match(source, /label="Branch"/);
+  assert.doesNotMatch(source, /automation|Automation/);
+});

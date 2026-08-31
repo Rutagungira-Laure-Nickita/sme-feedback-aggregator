@@ -1,5 +1,13 @@
 # Architecture
 
+## Shared Owner/Admin Detailed Feedback Reporting
+
+`feedback-report-records.ts` is the shared safe record-to-report boundary for Business Owner and Platform Administrator reporting. It accepts only customer snapshot identity fields, original `Feedback.message`, channel, `receivedAt`, category, status, and optional Business/Branch names. It returns the standardized `Detailed Feedback Records` section and applies one sender-resolution policy to both report families. It selects no Feedback/customer/provider IDs, source metadata, external IDs, notes, attachments, credentials, tokens, payloads, or AI summaries.
+
+Every normal report builder queries detailed rows from the same canonical `FeedbackScopePlan` predicate used by its aggregates. Owner and Administrator Feedback reports include their full Branch/date/channel/status/sentiment scope; Executive includes its platform/Business/Branch/date scope; Operations includes its platform/Business/date feedback scope while the Provider filter remains integration-domain-specific. `Feedback in selected period` is derived from the resulting detail collection, preventing a second count path from drifting. Linked-customer counts remain separate data-model metrics and are explicitly named as linked profiles.
+
+The shared PDF renderer recognizes the six-column Owner and eight-column Administrator shapes. Both export every row, repeat headers after page breaks, wrap text, format dates in UTC, and cap only PDF message display at 500 characters; CSV receives the complete shared document and full stored messages. Automation models and execution architecture remain intact, but normal report builders no longer query or place automation data in their documents.
+
 ## Business Owner Detailed Feedback Reporting
 
 `buildBusinessOwnerReport` remains the single Business Owner report builder. Its canonical period `FeedbackScopePlan` now feeds both aggregate totals and an unbounded safe-projection query for `Detailed Feedback Records`; there is no parallel filter or frontend-only security path. The projection contains only submitted/imported customer snapshot fields needed for display, original `Feedback.message`, `Feedback.channel`, `Feedback.receivedAt`, category name, and workflow status. It selects no Feedback ID, source metadata, provider identifier, credential, attachment, note, or AI summary.
