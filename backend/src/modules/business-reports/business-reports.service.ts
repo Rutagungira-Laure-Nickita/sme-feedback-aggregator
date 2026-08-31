@@ -4,6 +4,7 @@ import {
   BusinessStatus,
   FeedbackAIAnalysisStatus,
   FeedbackAISentiment,
+  FeedbackChannel,
   FeedbackPriority,
   FeedbackStatus,
   IntegrationMode,
@@ -67,6 +68,17 @@ type OwnerReportContext = {
   to: Date;
   previousFrom: Date;
   previousTo: Date;
+};
+
+type DetailedFeedbackRecord = {
+  channel: FeedbackChannel;
+  message: string;
+  receivedAt: Date;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  category: { name: string } | null;
+  status: FeedbackStatus;
 };
 
 export const OWNER_REPORT_EXACTLY_ONE_CATALOG = [
@@ -308,7 +320,6 @@ async function buildOwnerReportSections(
     customers,
     representedCustomers,
     lifetimeTotal,
-    periodTotal,
     previousTotal,
     feedbackToday,
     feedbackWeek,
@@ -330,6 +341,7 @@ async function buildOwnerReportSections(
     branchStatusDistribution,
     branchesList,
     importantFeedback,
+    detailedFeedback,
     trend,
     connections,
     runStatuses,
@@ -364,7 +376,6 @@ async function buildOwnerReportSections(
       select: { customerId: true }
     }),
     prisma.feedback.count({ where: lifetimeWhere }),
-    prisma.feedback.count({ where }),
     prisma.feedback.count({ where: previousWhere }),
     prisma.feedback.count({
       where: { ...lifetimeWhere, receivedAt: { gte: today, lte: now } }
@@ -469,6 +480,20 @@ async function buildOwnerReportSections(
       orderBy: [{ priority: "desc" }, { receivedAt: "desc" }, { id: "asc" }],
       take: 25
     }),
+    prisma.feedback.findMany({
+      where,
+      select: {
+        channel: true,
+        message: true,
+        receivedAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        category: { select: { name: true } },
+        status: true
+      },
+      orderBy: [{ receivedAt: "desc" }, { id: "asc" }]
+    }),
     queryFeedbackTimeSeries(periodScope),
     prisma.integrationConnection.findMany({
       where: integrationWhere,
@@ -569,6 +594,7 @@ async function buildOwnerReportSections(
     })
   ]);
 
+  const periodTotal = detailedFeedback.length;
   const branchCounts = countMap(branchStatuses, "status");
   const totalBranches = branchStatuses.reduce((sum, item) => sum + item._count._all, 0);
   const activeBranches = branchCounts["ACTIVE"] ?? 0;
@@ -1034,7 +1060,8 @@ async function buildOwnerReportSections(
       ]),
       semantic: "HEALTH",
       emptyMessage: "No automation executions matched the selected period and filters."
-    }
+    },
+    buildDetailedFeedbackSection(detailedFeedback)
   ];
 
   if (input.comparePreviousPeriod) {
@@ -1055,6 +1082,55 @@ async function buildOwnerReportSections(
       )
     ];
   }
+}
+
+export function buildDetailedFeedbackSection(
+  records: ReadonlyArray<DetailedFeedbackRecord>
+): ReportSection {
+  return {
+    title: "Detailed Feedback Records",
+    description:
+      "Individual feedback matching the same Business, branch, date, channel, workflow status, and sentiment filters as the report totals. Full messages are retained in CSV; PDF uses readable wrapped excerpts where necessary.",
+    headers: ["Customer / Sender", "Feedback", "Channel", "Date", "Category", "Status"],
+    rows: records.map((record) => [
+      resolveDetailedFeedbackIdentity(record),
+      record.message,
+      formatReportDisplayValue(record.channel),
+      record.receivedAt.toISOString(),
+      record.category?.name ?? "Uncategorized",
+      formatReportDisplayValue(record.status)
+    ]),
+    emptyMessage: "No feedback matched the selected period and filters."
+  };
+}
+
+export function resolveDetailedFeedbackIdentity(
+  record: Pick<
+    DetailedFeedbackRecord,
+    "channel" | "customerName" | "customerEmail" | "customerPhone"
+  >
+): string {
+  const name = usableIdentity(record.customerName);
+  const email = usableIdentity(record.customerEmail);
+  const phone = usableIdentity(record.customerPhone);
+
+  if (record.channel === FeedbackChannel.EMAIL) {
+    const generatedLocalPart = email?.split("@")[0]?.toLocaleLowerCase();
+    const usableDisplayName =
+      name && name.toLocaleLowerCase() !== generatedLocalPart ? name : null;
+    return usableDisplayName ?? email ?? name ?? phone ?? "Unknown customer";
+  }
+
+  if (record.channel === FeedbackChannel.WHATSAPP) {
+    return name ?? phone ?? email ?? "Unknown customer";
+  }
+
+  return name ?? email ?? phone ?? "Unknown customer";
+}
+
+function usableIdentity(value: string | null): string | null {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+  return normalized ? normalized : null;
 }
 
 export function buildIntegrationAdoptionRows(

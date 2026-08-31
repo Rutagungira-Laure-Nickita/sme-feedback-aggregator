@@ -463,6 +463,16 @@ function ReportPreview({
       </WorkspacePanel>
       {report.sections.map((section) => {
         const sectionPreview = getReportSectionPreview(section);
+        if (isDetailedFeedbackSection(section)) {
+          return (
+            <DetailedFeedbackRecordsSection
+              key={section.title}
+              section={section}
+              rows={sectionPreview.rows}
+              previewMessage={sectionPreview.message}
+            />
+          );
+        }
         return (
           <WorkspacePanel key={section.title}>
             <h3 className="font-bold">{section.title}</h3>
@@ -530,14 +540,157 @@ function isImportantFeedbackCell(
   );
 }
 
+function isDetailedFeedbackSection(section: ReportDocument["sections"][number]) {
+  return (
+    section.title === "Detailed Feedback Records" &&
+    section.headers.join("|") ===
+      "Customer / Sender|Feedback|Channel|Date|Category|Status"
+  );
+}
+
+function DetailedFeedbackRecordsSection({
+  section,
+  rows,
+  previewMessage
+}: {
+  section: ReportDocument["sections"][number];
+  rows: Array<Array<string | number | null>>;
+  previewMessage: string | null;
+}) {
+  return (
+    <WorkspacePanel>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="font-bold">{section.title}</h3>
+          {section.description ? (
+            <p className="mt-1 max-w-4xl text-sm leading-6 text-app-text-muted">
+              {section.description}
+            </p>
+          ) : null}
+        </div>
+        <span className="w-fit rounded-full bg-app-primary-soft px-3 py-1 text-xs font-bold text-app-primary">
+          {new Intl.NumberFormat().format(section.rows.length)} records
+        </span>
+      </div>
+
+      {rows.length ? (
+        <>
+          <div className="mt-4 hidden max-w-full overflow-x-auto md:block">
+            <table className="w-full min-w-[860px] table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[17%]" />
+                <col className="w-[35%]" />
+                <col className="w-[10%]" />
+                <col className="w-[15%]" />
+                <col className="w-[13%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-app-border bg-app-surface-muted/70">
+                  {section.headers.map((header) => (
+                    <th
+                      key={header}
+                      className="px-3 py-3 text-xs font-bold uppercase tracking-wide text-app-text-muted"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => (
+                  <tr
+                    key={`${String(row[3] ?? "feedback")}-${rowIndex}`}
+                    className="border-b border-app-border align-top last:border-0"
+                  >
+                    {row.map((cell, cellIndex) => (
+                      <td
+                        key={cellIndex}
+                        className={`px-3 py-4 font-semibold ${cellIndex === 0 ? "break-all" : "break-words"} ${cellIndex === 1 ? "whitespace-pre-wrap leading-6" : ""}`}
+                      >
+                        {formatPreviewCell(section, cell, cellIndex)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 space-y-3 md:hidden">
+            {rows.map((row, rowIndex) => (
+              <article
+                key={`${String(row[3] ?? "feedback")}-${rowIndex}`}
+                className="min-w-0 rounded-lg border border-app-border bg-app-surface-muted/45 p-4"
+              >
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-app-text-muted">
+                      Customer / Sender
+                    </p>
+                    <p className="mt-1 break-all font-bold">
+                      {String(row[0] ?? "Unknown customer")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-app-primary-soft px-2.5 py-1 text-xs font-bold text-app-primary">
+                      {String(row[2] ?? "Unknown channel")}
+                    </span>
+                    <span className="rounded-full border border-app-border px-2.5 py-1 text-xs font-bold">
+                      {String(row[5] ?? "Not set")}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-4 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+                  {formatPreviewCell(section, row[1] ?? null, 1)}
+                </p>
+                <dl className="mt-4 grid min-w-0 gap-3 border-t border-app-border pt-3 sm:grid-cols-2">
+                  <SummaryValue
+                    label="Date"
+                    value={String(formatPreviewCell(section, row[3] ?? null, 3))}
+                  />
+                  <SummaryValue
+                    label="Category"
+                    value={String(row[4] ?? "Uncategorized")}
+                  />
+                </dl>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="mt-4 rounded-md bg-app-surface-muted p-4 text-sm font-semibold text-app-text-muted">
+          {section.emptyMessage ?? "No feedback matched the selected period and filters."}
+        </p>
+      )}
+
+      {previewMessage ? (
+        <p className="mt-3 text-xs font-semibold text-app-text-muted">{previewMessage}</p>
+      ) : null}
+    </WorkspacePanel>
+  );
+}
+
 function formatPreviewCell(
   section: ReportDocument["sections"][number],
   value: string | number | null,
   cellIndex: number
 ) {
-  if (isImportantFeedbackCell(section, cellIndex) && typeof value === "string") {
-    const maximum = 320;
+  if (
+    (isImportantFeedbackCell(section, cellIndex) ||
+      (isDetailedFeedbackSection(section) &&
+        section.headers[cellIndex] === "Feedback")) &&
+    typeof value === "string"
+  ) {
+    const maximum = isDetailedFeedbackSection(section) ? 480 : 320;
     return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value;
+  }
+  if (
+    isDetailedFeedbackSection(section) &&
+    section.headers[cellIndex] === "Date" &&
+    typeof value === "string"
+  ) {
+    return formatDateTime(value);
   }
   if (value === null) return "Not set";
   if (typeof value === "number") return new Intl.NumberFormat().format(value);

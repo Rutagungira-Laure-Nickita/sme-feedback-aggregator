@@ -1,5 +1,19 @@
 # Next Steps
 
+## Business Owner Detailed Feedback Records — Manual Verification Gate
+
+Implementation and focused automated verification are complete. The next task for this report improvement is the user-owned browser/download pass:
+
+1. Preview an unfiltered Business Owner report and confirm `Feedback in selected period` equals the total record count shown on `Detailed Feedback Records`; verify Customer / Sender, original Feedback, Channel, Date, Category, and Status.
+2. Verify Gmail prefers a sender display name and otherwise shows sender email; WhatsApp prefers the profile name and otherwise shows the phone; Manual Entry/Public Form prefer submitted name then email/phone; missing identity shows `Unknown customer` and no internal ID.
+3. Apply Branch, date, Channel, Workflow Status, and Sentiment filters individually and together. Confirm every detail row matches the filter and the detail count continues to equal the report total.
+4. Confirm deleted, QR, Demo, Outlook, Facebook, Instagram, X, Google Reviews, and other hidden records do not appear or contribute to totals.
+5. At desktop/tablet/mobile widths, confirm the desktop table and mobile cards wrap long sender/message/category values without page-level horizontal scrolling; Preview may show 12 rows and must state that exports contain the full dataset.
+6. Download PDF and CSV. Confirm both contain the detailed section and every matching record; CSV retains full original messages/ISO received timestamps, while PDF uses readable wrapped message excerpts, clear dates, repeated headers, and clean page breaks.
+7. Repeat with another Business Owner and a foreign Business/Branch ID attempt to confirm existing tenant and Branch authorization remains enforced.
+
+No migration, reset, db push, reseed, provider reconfiguration, or deployment-setting change belongs to this task. Do not mark it manually verified until this checklist passes.
+
 ## Focused Correction — Manual Verification Gate
 
 Implementation and automated verification are complete. After applying the already-pending Final Product Hardening migration through the normal workflow, perform this user-owned browser pass:

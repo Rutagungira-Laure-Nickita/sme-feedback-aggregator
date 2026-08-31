@@ -545,6 +545,14 @@ function isTrendSection(section: ReportSection) {
   return /trend/i.test(section.title) && section.headers[0] === "Period";
 }
 
+function isDetailedFeedbackSection(section: ReportSection) {
+  return (
+    section.title === "Detailed Feedback Records" &&
+    section.headers.join("|") ===
+      "Customer / Sender|Feedback|Channel|Date|Category|Status"
+  );
+}
+
 function tableColumnWidths(table: PreparedReportPdfTable, contentWidth: number) {
   if (table.columnProportions) {
     return table.columnProportions.map((proportion) => contentWidth * proportion);
@@ -556,6 +564,24 @@ function tableColumnWidths(table: PreparedReportPdfTable, contentWidth: number) 
 }
 
 export function prepareReportPdfTable(section: ReportSection): PreparedReportPdfTable {
+  if (isDetailedFeedbackSection(section)) {
+    return {
+      headers: section.headers,
+      rows: section.rows.map((row) =>
+        row.map((cell, index) => {
+          if (index === 1 && typeof cell === "string") {
+            return compactPdfExcerpt(cell, 500);
+          }
+          return index === 3 ? formatReportPdfTimestamp(cell) : cell;
+        })
+      ),
+      columnProportions: [0.17, 0.35, 0.1, 0.15, 0.13, 0.1],
+      fontSize: 6.7,
+      wrapRows: true,
+      semanticColumnIndex: 5
+    };
+  }
+
   if (isImportantFeedbackSection(section) && section.headers.length === 9) {
     return {
       headers: section.headers,
@@ -761,7 +787,10 @@ function drawTable(context: PdfRenderContext, section: ReportSection) {
   const { document, geometry } = context;
   const table = prepareReportPdfTable(section);
   const columnWidths = tableColumnWidths(table, geometry.contentWidth);
-  const visibleRows = isTrendSection(section) ? table.rows : table.rows.slice(0, 40);
+  const visibleRows =
+    isTrendSection(section) || isDetailedFeedbackSection(section)
+      ? table.rows
+      : table.rows.slice(0, 40);
 
   ensureSpace(context, 52);
   const initialContentPage = currentPageNumber(document);

@@ -74,3 +74,22 @@ test("owner comparison Preview appears only when comparison is enabled", () => {
   assert.deepEqual(enabled?.rows, [["Open feedback", 9, 0, "+9", "No prior baseline"]]);
   assert.equal(getReportComparisonPreview(report, false), null);
 });
+
+test("Detailed Feedback Records Preview uses normal row limiting while exports retain all rows", () => {
+  const rows = Array.from({ length: 18 }, (_, index) => [
+    `Customer ${index + 1}`,
+    `Original feedback ${index + 1}`,
+    "Gmail",
+    `2026-08-${String(index + 1).padStart(2, "0")}T14:54:00.000Z`,
+    "Service Quality",
+    "New"
+  ]);
+  const preview = getReportSectionPreview({
+    title: "Detailed Feedback Records",
+    headers: ["Customer / Sender", "Feedback", "Channel", "Date", "Category", "Status"],
+    rows
+  });
+  assert.deepEqual(preview.rows, rows.slice(0, 12));
+  assert.match(preview.message ?? "", /Previewing 12 of 18 rows/i);
+  assert.match(preview.message ?? "", /Exports contain the full dataset/i);
+});

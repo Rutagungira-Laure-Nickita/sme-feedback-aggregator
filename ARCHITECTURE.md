@@ -1,5 +1,11 @@
 # Architecture
 
+## Business Owner Detailed Feedback Reporting
+
+`buildBusinessOwnerReport` remains the single Business Owner report builder. Its canonical period `FeedbackScopePlan` now feeds both aggregate totals and an unbounded safe-projection query for `Detailed Feedback Records`; there is no parallel filter or frontend-only security path. The projection contains only submitted/imported customer snapshot fields needed for display, original `Feedback.message`, `Feedback.channel`, `Feedback.receivedAt`, category name, and workflow status. It selects no Feedback ID, source metadata, provider identifier, credential, attachment, note, or AI summary.
+
+The same `AdminReportDocument` continues to drive browser Preview, PDF, and CSV. Browser Preview uses the established 12-row sample and a dedicated responsive table/card presentation. CSV retains all detail rows and full stored message text. The shared PDF renderer treats this as a full-export wrapped table, repeats its header after page breaks, formats the received timestamp for display, and caps only the PDF message excerpt at 500 characters so a row remains page-safe. Channel/status labels are resolved before shared display formatting, while sender, message, and category strings remain verbatim.
+
 ## Focused Operational Visibility Boundary
 
 `activeOperationalFeedbackWhere()` is the canonical query root for normal feedback reads and aggregates. It composes `deletedAt: null` with the deny-by-default visible-source predicate and retains caller-provided Business, Branch, date, workflow, and sentiment filters. The visible source set is exactly Live Gmail, Live WhatsApp, Manual Entry, and Public Form. Historical/deleted rows and dormant QR/provider implementations stay relationally intact for audit, activity, provider deduplication, and direct backward-compatible routes, but normal list, dashboard, customer, category, analytics, and report consumers cannot count them.

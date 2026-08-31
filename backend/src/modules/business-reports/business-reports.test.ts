@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { inflateSync } from "node:zlib";
 import {
+  FeedbackChannel,
   FeedbackStatus,
   IntegrationProvider,
   UserRole
@@ -15,9 +16,11 @@ import {
   BUSINESS_PERFORMANCE_REPORT_TITLE,
   BUSINESS_PERFORMANCE_REPORT_TYPE,
   OWNER_REPORT_EXACTLY_ONE_CATALOG,
+  buildDetailedFeedbackSection,
   buildIntegrationAdoptionRows,
   buildBusinessOwnerManagementSummary,
   createOwnerFeedbackScopePlan,
+  resolveDetailedFeedbackIdentity,
   resolveOwnerReportAccess,
   summarizeBranchWorkload
 } from "./business-reports.service.js";
@@ -175,6 +178,124 @@ test("owner feedback scope fixes the authorized Business and applies every owner
   assert.equal(plan.where.status, "IN_REVIEW");
   assert.deepEqual(plan.where.receivedAt, { gte: from, lte: to });
   assert.deepEqual(plan.where.aiAnalysis, { is: { sentiment: "NEGATIVE" } });
+  const serializedScope = JSON.stringify(plan.where);
+  assert.match(serializedScope, /"deletedAt":null/);
+  assert.match(serializedScope, /liveMode/);
+  assert.match(serializedScope, /"GMAIL"/);
+});
+
+test("detailed feedback sender resolution follows the supported channel rules", () => {
+  const identity = (
+    channel: FeedbackChannel,
+    customerName: string | null,
+    customerEmail: string | null,
+    customerPhone: string | null
+  ) =>
+    resolveDetailedFeedbackIdentity({
+      channel,
+      customerName,
+      customerEmail,
+      customerPhone
+    });
+
+  assert.equal(
+    identity(FeedbackChannel.EMAIL, "Alice Sender", "alice@example.com", null),
+    "Alice Sender"
+  );
+  assert.equal(
+    identity(FeedbackChannel.EMAIL, "alice", "alice@example.com", null),
+    "alice@example.com"
+  );
+  assert.equal(
+    identity(FeedbackChannel.WHATSAPP, "WhatsApp Customer", null, "+250788000001"),
+    "WhatsApp Customer"
+  );
+  assert.equal(
+    identity(FeedbackChannel.WHATSAPP, null, null, "+250788000001"),
+    "+250788000001"
+  );
+  assert.equal(
+    identity(FeedbackChannel.MANUAL, "Manual Customer", "manual@example.com", null),
+    "Manual Customer"
+  );
+  assert.equal(
+    identity(FeedbackChannel.PUBLIC_FORM, null, "public@example.com", null),
+    "public@example.com"
+  );
+  assert.equal(
+    identity(FeedbackChannel.PUBLIC_FORM, "  ", null, null),
+    "Unknown customer"
+  );
+});
+
+test("detailed feedback section preserves original messages, received timestamps, and visible channel labels", () => {
+  const originalMessage = "NEW — keep this original customer wording, not an AI summary.";
+  const receivedAt = new Date("2026-08-25T14:54:00.000Z");
+  const section = buildDetailedFeedbackSection([
+    {
+      channel: FeedbackChannel.EMAIL,
+      message: originalMessage,
+      receivedAt,
+      customerName: "Gmail Sender",
+      customerEmail: "gmail@example.com",
+      customerPhone: null,
+      category: { name: "Service Quality" },
+      status: FeedbackStatus.NEW
+    },
+    {
+      channel: FeedbackChannel.WHATSAPP,
+      message: "WhatsApp original message",
+      receivedAt,
+      customerName: null,
+      customerEmail: null,
+      customerPhone: "+250788000002",
+      category: null,
+      status: FeedbackStatus.IN_REVIEW
+    },
+    {
+      channel: FeedbackChannel.MANUAL,
+      message: "Manual original message",
+      receivedAt,
+      customerName: "STAFF",
+      customerEmail: null,
+      customerPhone: null,
+      category: null,
+      status: FeedbackStatus.RESOLVED
+    },
+    {
+      channel: FeedbackChannel.PUBLIC_FORM,
+      message: "Public Form original message",
+      receivedAt,
+      customerName: "Public Customer",
+      customerEmail: null,
+      customerPhone: null,
+      category: null,
+      status: FeedbackStatus.CLOSED
+    }
+  ]);
+
+  assert.equal(section.title, "Detailed Feedback Records");
+  assert.deepEqual(section.headers, [
+    "Customer / Sender",
+    "Feedback",
+    "Channel",
+    "Date",
+    "Category",
+    "Status"
+  ]);
+  assert.equal(section.rows[0]?.[1], originalMessage);
+  assert.equal(section.rows[0]?.[3], receivedAt.toISOString());
+  assert.deepEqual(
+    section.rows.map((row) => row[2]),
+    ["Gmail", "WhatsApp", "Manual", "Public Form"]
+  );
+  assert.equal(section.rows[1]?.[4], "Uncategorized");
+  const formatted = formatReportDocument({
+    ...ownerReportFixture(),
+    sections: [section]
+  }).sections[0]!;
+  assert.equal(formatted.rows[0]?.[1], originalMessage);
+  assert.equal(formatted.rows[2]?.[0], "STAFF");
 });
 
 test("previous-period owner scope is identical to current except for the date window", () => {
@@ -343,6 +464,7 @@ test("service source always scopes tenant queries by the authorized Business", (
   assert.match(serviceSource, /connection:[\s\S]*?mode: IntegrationMode\.LIVE/);
   assert.doesNotMatch(serviceSource, /Demo connections/);
   for (const pattern of [
+    /prisma\.feedback\.findMany\(\{\s*where,\s*select: \{\s*channel: true,\s*message: true,\s*receivedAt: true,\s*customerName: true,\s*customerEmail: true,\s*customerPhone: true/,
     /prisma\.synchronizationRun\.groupBy\(\{\s*by: \["status"\],\s*where: runWhere/,
     /prisma\.integrationWebhookDelivery\.count\(\{ where: webhookWhere \}\)/,
     /prisma\.feedbackAIAnalysis\.count\(\{ where: aiWhere \}\)/,
@@ -353,6 +475,12 @@ test("service source always scopes tenant queries by the authorized Business", (
   ]) {
     assert.match(serviceSource, pattern);
   }
+  assert.match(serviceSource, /buildDetailedFeedbackSection\(detailedFeedback\)/);
+  assert.match(serviceSource, /const periodTotal = detailedFeedback\.length;/);
+  assert.match(
+    serviceSource,
+    /customerPhone: true,[\s\S]*?orderBy: \[\{ receivedAt: "desc" \}, \{ id: "asc" \}\]\s*\}\),\s*queryFeedbackTimeSeries/
+  );
 });
 
 test("branch validation never trusts a foreign branch id", () => {
@@ -380,10 +508,8 @@ test("owner report excludes platform-only and other-tenant data", () => {
   assert.match(serviceSource, /No platform-level or other-tenant data is included/);
 });
 
-test("owner report source selects no credential, token, secret, raw payload, or contact field", () => {
+test("owner report source selects only the required sender contact fallbacks and no secrets or raw payloads", () => {
   for (const forbidden of [
-    "customerEmail",
-    "customerPhone",
     "passwordHash",
     "encryptedAccessToken",
     "encryptedRefreshToken",
@@ -398,6 +524,11 @@ test("owner report source selects no credential, token, secret, raw payload, or 
     assert.equal(serviceSource.includes(`${forbidden}: true`), false, forbidden);
     assert.equal(schemasSource.includes(forbidden), false, forbidden);
   }
+  assert.match(serviceSource, /customerName: true/);
+  assert.match(serviceSource, /customerEmail: true/);
+  assert.match(serviceSource, /customerPhone: true/);
+  assert.doesNotMatch(serviceSource, /sourceMetadata: true/);
+  assert.doesNotMatch(serviceSource, /externalId: true/);
   assert.match(controllerSource, /["']Cache-Control["']:\s*"no-store"/);
   assert.match(controllerSource, /["']X-Content-Type-Options["']:\s*"nosniff"/);
 });
@@ -590,6 +721,55 @@ test("owner important feedback PDF table uses the shared wrapping excerpt projec
   assert.equal(table.headers.length, 9);
   assert.equal(table.columnProportions?.length, 9);
   assert.ok(table.fontSize < 7);
+});
+
+test("Detailed Feedback Records uses wrapped PDF columns and exports every matching row", async () => {
+  const records = Array.from({ length: 45 }, (_, index) => ({
+    channel: [
+      FeedbackChannel.EMAIL,
+      FeedbackChannel.WHATSAPP,
+      FeedbackChannel.MANUAL,
+      FeedbackChannel.PUBLIC_FORM
+    ][index % 4]!,
+    message:
+      index === 44
+        ? "Final detailed feedback record 45 with the original customer message."
+        : `Detailed original customer message ${index + 1}.`,
+    receivedAt: new Date(Date.UTC(2026, 7, 25, 14, index)),
+    customerName: `Sender ${index + 1}`,
+    customerEmail: `sender${index + 1}@example.com`,
+    customerPhone: null,
+    category: index % 2 ? { name: "Service Quality" } : null,
+    status: FeedbackStatus.NEW
+  }));
+  const section = buildDetailedFeedbackSection(records);
+  const report = ownerReportFixture();
+  report.sections = [section];
+
+  const table = prepareReportPdfTable(section);
+  assert.equal(table.wrapRows, true);
+  assert.equal(table.headers.length, 6);
+  assert.equal(table.columnProportions?.length, 6);
+  assert.match(String(table.rows[0]?.[3]), /25 Aug 2026, 14:00/);
+
+  const csvText = renderReportCsv(report).toString("utf8");
+  assert.match(csvText, /Detailed Feedback Records/);
+  assert.match(csvText, /Customer \/ Sender,Feedback,Channel,Date,Category,Status/);
+  assert.match(
+    csvText,
+    /Final detailed feedback record 45 with the original customer message\./
+  );
+  assert.match(csvText, /2026-08-25T14:44:00\.000Z/);
+
+  const pdfPages = inspectPdfPages(await renderReportPdf(report));
+  const pdfText = pdfPages.join(" ");
+  assert.ok(pdfPages.length > 1);
+  assert.match(pdfText, /Detailed Feedback Records/);
+  assert.match(pdfText, /Final detailed feedback record 45/);
+  assert.ok(
+    pdfPages.filter((page) => /Customer \/ Sender/.test(page)).length > 1,
+    "Detailed feedback table headers should repeat after PDF page breaks."
+  );
 });
 
 function ownerReportFixture(): AdminReportDocument {

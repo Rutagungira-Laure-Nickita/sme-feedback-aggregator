@@ -1,5 +1,11 @@
 # API Notes
 
+## Business Owner Detailed Feedback Report Contract
+
+The existing `POST /api/businesses/:businessId/reports/preview` and `/export` paths, request schemas, response envelope, content types, and authorization are unchanged. Business Owner report documents now include a final section titled `Detailed Feedback Records` with exactly these columns: `Customer / Sender`, `Feedback`, `Channel`, `Date`, `Category`, and `Status`.
+
+Rows come from the same canonical server-side filtered population as `Feedback in selected period`. `Feedback` is the stored original message, `Date` is `Feedback.receivedAt`, and channels are limited to Gmail, WhatsApp, Manual Entry, and Public Form. Sender fallback may expose the submitted/imported sender email or phone when no name exists, as explicitly required for this authenticated owner report; internal database/provider IDs and source metadata are not returned. Preview retains normal 12-row display sampling, while PDF/CSV export includes all matching rows.
+
 ## Focused Count and Presentation Contract
 
 - Normal feedback list, summary, customer, dashboard, analytics, and report queries accept exactly `EMAIL`, `WHATSAPP`, `MANUAL`, and `PUBLIC_FORM` as channel filters and compose the shared active-operational predicate. `EMAIL` is presented as Gmail.

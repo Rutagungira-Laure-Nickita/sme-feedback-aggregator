@@ -1,5 +1,12 @@
 # Security Notes
 
+## Business Owner Detailed Feedback Report Safety
+
+- Existing report endpoints still require an authenticated platform `BUSINESS_OWNER`, active membership in the route Business, an active Business, and a server-validated optional Branch. The detail query reuses the same authorized `businessId` and canonical feedback predicate as every report total.
+- The canonical predicate enforces `deletedAt: null` plus the deny-by-default visible-source policy, so only Live Gmail, Live WhatsApp, Manual Entry, and Public Form can appear. Hidden/Demo/provider-history rows cannot leak through client filtering.
+- The detail projection includes only identity snapshot fallbacks required by the report (name, email, phone), original message, channel, received timestamp, category name, and status. It omits internal Feedback/customer/provider IDs, source metadata, external IDs, notes, attachments, credentials, tokens, signatures, raw payloads, and AI summaries.
+- Sender/message/category strings are rendered as untrusted text and remain verbatim. Existing no-store/nosniff export headers, CSV escaping/formula neutralization, and in-memory PDF/CSV generation remain unchanged.
+
 ## Focused Operational Visibility and Role Safety
 
 - The active operational predicate is enforced server-side and always includes both `deletedAt: null` and the exact visible-source allowlist. Frontend filtering is not the security or count-integrity boundary.

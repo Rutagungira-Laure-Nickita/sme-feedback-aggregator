@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-31 - Business Owner Detailed Feedback Records
+
+- Added a final `Detailed Feedback Records` section to the existing Business Owner report with Customer / Sender, original Feedback, visible Channel, received Date, Category, and Status.
+- Reused the canonical tenant/Branch/date/channel/status/sentiment/soft-delete/supported-source report predicate so detail rows reconcile with the report total and cannot include hidden or foreign-tenant feedback.
+- Added channel-specific sender fallback resolution for Gmail, WhatsApp, Manual Entry, and Public Form without exposing internal IDs or source metadata.
+- Added a responsive desktop table/mobile card Preview, retained the established 12-row web sample notice, and added all-row PDF/CSV output with full CSV messages, wrapped PDF excerpts, clear dates, repeated PDF headers, and page-safe rows.
+- Added focused sender, channel, source-message, received-time, scope, hidden/deleted policy, responsive Preview, CSV, and multi-page PDF regression coverage. No schema, migration, dependency, integration, authentication, security-rule, or deployment-configuration change was made.
+
 ## 2026-08-25 - Operational Count Integrity and Product-Surface Correction
 
 - Added one canonical active-feedback query predicate so soft-deleted and non-visible-source rows cannot contribute to inbox summaries, customer/category aggregates, staff/owner/platform dashboards, analytics, or owner/platform reports while audit and provider deduplication records remain stored.

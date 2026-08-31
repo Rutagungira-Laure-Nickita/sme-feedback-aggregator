@@ -24,7 +24,7 @@ The SME Multi-Channel Customer Feedback Aggregator brings those sources into a u
 - AI-assisted sentiment analysis, summaries, and category suggestions
 - Business-owned feedback categories
 - Public feedback forms
-- Business Owner and Platform Administrator dashboards and PDF/CSV reporting
+- Business Owner and Platform Administrator dashboards and PDF/CSV reporting, including filtered individual feedback records in owner Preview and exports
 - Business, branch, staff, invitation, and approval workflows
 - Responsive light/dark/system UI using a fixed blue/indigo design system
 - Professional modal workflows and layouts designed to remain usable down to approximately 300px

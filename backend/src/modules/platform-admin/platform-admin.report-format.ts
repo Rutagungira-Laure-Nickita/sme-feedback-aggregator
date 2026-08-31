@@ -122,10 +122,8 @@ export function formatReportDocument(report: AdminReportDocument): AdminReportDo
       rows: section.rows.map((row) =>
         row.map((cell, index) =>
           typeof cell === "string" &&
-          !(
-            section.title === "Important customer experience feedback" &&
-            section.headers[index] === "Feedback"
-          )
+          section.headers[index] !== "Feedback" &&
+          section.title !== "Detailed Feedback Records"
             ? formatReportDisplayValue(cell)
             : cell
         )

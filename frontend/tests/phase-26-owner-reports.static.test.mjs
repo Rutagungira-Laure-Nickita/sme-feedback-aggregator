@@ -107,3 +107,16 @@ test("owner report page reuses shared report preview helpers", () => {
   assert.match(pageSource, /report\.managementSummary/);
   assert.match(pageSource, /report\.scope\.notes\.map/);
 });
+
+test("owner report renders responsive Detailed Feedback Records without page-level mobile overflow", () => {
+  assert.match(pageSource, /Detailed Feedback Records/);
+  assert.match(
+    pageSource,
+    /Customer \/ Sender\|Feedback\|Channel\|Date\|Category\|Status/
+  );
+  assert.match(pageSource, /DetailedFeedbackRecordsSection/);
+  assert.match(pageSource, /hidden max-w-full overflow-x-auto md:block/);
+  assert.match(pageSource, /space-y-3 md:hidden/);
+  assert.match(pageSource, /whitespace-pre-wrap break-words/);
+  assert.match(pageSource, /formatDateTime\(value\)/);
+});

@@ -1,5 +1,9 @@
 # Database Notes
 
+## Business Owner Detailed Feedback Report Database Impact
+
+No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. The detailed report reads existing `Feedback` customer snapshot fields, message, channel, `receivedAt`, category relation, and status through the same active operational predicate as the report aggregates. Soft-deleted and unsupported-source rows remain stored for audit/deduplication but are excluded from both totals and detail rows. Reports remain generated on demand and are not persisted.
+
 ## Focused Operational Correction
 
 No Prisma schema or migration was required and no stored row was mutated. `Feedback.deletedAt` remains the reversible visibility boundary; feedback, ingestion/provider identifiers, source metadata, workflow activity, AI analysis, automation history, and customer links remain available for audit and deduplication. QR and unsupported-provider rows also remain stored but are excluded by query policy. The internal `BusinessMemberRole.ADMIN` enum and existing memberships remain intact for compatibility; only normal creation/update choices and display labels changed. Future deterministic seeds no longer create `dev_seed_user_admin` or `dev_seed_membership_admin`, and existing seed references now use the Business Owner membership.
