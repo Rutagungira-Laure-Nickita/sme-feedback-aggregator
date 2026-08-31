@@ -1,5 +1,17 @@
 # Next Steps
 
+## Platform Administrator Reporting Consistency Correction — Manual Verification Gate
+
+Implementation and automated verification are complete. The next task for this focused correction is the user-owned report pass:
+
+1. Preview and export all three Platform Administrator reports. Confirm every visible manual channel value is `Manual Entry`, never `Manual`, while Gmail, WhatsApp, and Public Form remain unchanged and no hidden channel returns.
+2. In the Executive report, confirm Kigali Waffle Cuisine Business Adoption reports 2 connected integrations and reconciles with Integration Adoption showing Gmail 1 plus WhatsApp 1. Confirm retained Demo, Outlook, social, historical, disconnected unsupported, and dormant records do not contribute.
+3. In Operations Preview/PDF/CSV, confirm the KPI reads `Synchronization items imported (period)` and remains distinct from `Feedback in selected period`.
+4. In Operations Integration Connections, confirm the column reads `Last provider activity`. For WhatsApp, confirm it matches the newest relevant webhook/inbound/test timestamp and is not older than a newer event shown in Recent Webhook Activity.
+5. Spot-check Detailed Feedback Records, sender resolution, filters, totals, PDF/CSV completeness, automation absence, and Platform Administrator authorization. Regenerate one Business Owner report and confirm its existing tenant scope and report contents remain intact; its shared manual label should also read `Manual Entry`.
+
+No migration, reset, db push, reseed, stored-data cleanup, credential change, OAuth/webhook reconfiguration, or deployment-setting change belongs to this pass. Do not mark it manually verified until this checklist passes.
+
 ## Owner/Admin Reporting Quality Pass — Manual Verification Gate
 
 Implementation and automated verification are complete. The next task is the user-owned browser/download pass:

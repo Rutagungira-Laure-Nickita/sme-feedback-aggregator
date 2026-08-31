@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-31 - Platform Administrator Reporting Consistency Correction
+
+- Standardized the shared report display label for `MANUAL` to `Manual Entry` across Preview, PDF, and CSV without changing the stored enum.
+- Corrected Executive Business Adoption to query and count the same supported Live Gmail/WhatsApp connections as Integration Adoption, excluding hidden, Demo, unsupported, historical, and dormant provider records without deleting them.
+- Renamed `Imported items (period)` to `Synchronization items imported (period)` to match the existing sum of synchronization-run imported-item counters.
+- Replaced timestamp precedence with a maximum relevant provider-activity calculation covering webhook receipts, inbound messages, synchronization attempts/successes, and connection tests; standardized the column as `Last provider activity` in Preview/PDF/CSV.
+- Preserved Detailed Feedback Records, hidden-channel and automation exclusions, Business Owner report behavior and authorization, stored feedback/integration data, schema/migrations, credentials, OAuth/webhook processing, and deployment configuration. Focused report suites, frontend regressions, typecheck, lint, Prisma validation, formatting, and production builds pass.
+
 ## 2026-08-31 - Owner/Admin Reporting Quality and Detailed Feedback Consistency
 
 - Standardized `Detailed Feedback Records` across Business Owner and all three Platform Administrator reports; Admin rows add Business and Branch while both use original message and received date.

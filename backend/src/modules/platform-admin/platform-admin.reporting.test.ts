@@ -10,6 +10,7 @@ import {
   createExecutiveScopePlan,
   createFeedbackScope,
   createFeedbackScopePlan,
+  latestProviderActivityAt,
   selectImportantFeedbackText,
   summarizeFeedbackAssignment,
   summarizeFeedbackWorkflow,
@@ -277,6 +278,15 @@ test("Executive scope plan follows actual business, branch, membership, customer
       }
     ]
   });
+  assert.deepEqual(branch.integrationRelationWhere, {
+    defaultBranchId: "branch-1",
+    AND: [
+      {
+        mode: "LIVE",
+        OR: [{ provider: "WHATSAPP" }, { provider: "EMAIL", liveProviderType: "GMAIL" }]
+      }
+    ]
+  });
   assert.deepEqual(branch.userWhere, {
     businessMemberships: {
       some: {
@@ -370,7 +380,7 @@ test("Feedback Management Summary handles clear leaders, deterministic ties, and
   });
   assert.match(
     fourWayTie,
-    /Gmail, Manual, Public Form, and WhatsApp were tied as the leading channels with 1 feedback record each/
+    /Gmail, Manual Entry, Public Form, and WhatsApp were tied as the leading channels with 1 feedback record each/
   );
   assert.equal(
     buildFeedbackManagementSummary({
@@ -416,6 +426,7 @@ test("Important feedback prefers normalized message content and uses safe fallba
 
 test("shared report humanization preserves known initialisms and established labels", () => {
   assert.equal(formatReportDisplayValue("EMAIL"), "Gmail");
+  assert.equal(formatReportDisplayValue("MANUAL"), "Manual Entry");
   assert.equal(formatReportDisplayValue("QR_CODE"), "QR Code");
   assert.equal(formatReportDisplayValue("AI_ANALYSIS"), "AI Analysis");
   assert.equal(formatReportDisplayValue("API_ERROR"), "API Error");
@@ -460,6 +471,33 @@ test("Executive Management Summary uses Gmail consistently in Preview, PDF, and 
   assert.match(csv, /Gmail was the leading source/);
   const pdfText = inspectPdfPages(await renderReportPdf(report)).join(" ");
   assert.match(pdfText, /Gmail was the leading source/);
+});
+
+test("Manual Entry and synchronization-import wording agree in Preview, PDF, and CSV", async () => {
+  const report = fixtureReport(
+    "OPERATIONS_SYSTEM_HEALTH",
+    "Operations & System Health Report"
+  );
+  report.highlights = [{ label: "Synchronization items imported (period)", value: 23 }];
+  report.sections = [
+    {
+      title: "Feedback by channel",
+      headers: ["Channel", "Count"],
+      rows: [["MANUAL", 9]]
+    }
+  ];
+
+  const preview = formatReportDocument(report);
+  assert.equal(preview.highlights[0]?.label, "Synchronization items imported (period)");
+  assert.equal(preview.sections[0]?.rows[0]?.[0], "Manual Entry");
+
+  const csv = renderReportCsv(report).toString("utf8");
+  assert.match(csv, /Synchronization items imported \(period\),23/);
+  assert.match(csv, /Manual Entry,9/);
+
+  const pdfText = inspectPdfPages(await renderReportPdf(report)).join(" ");
+  assert.match(pdfText, /Synchronization items imported \(period\)/);
+  assert.match(pdfText, /Manual Entry/);
 });
 
 test("consolidated builders retain required Executive, feedback, and operations data", () => {
@@ -567,7 +605,7 @@ test("Platform Administrator detailed feedback uses shared sender rules and scop
   assert.deepEqual(section.rows[0], [
     "Manual Customer",
     "Original staff-entered customer feedback.",
-    "Manual",
+    "Manual Entry",
     "2026-08-31T10:15:00.000Z",
     "Service Quality",
     "New",
@@ -746,7 +784,7 @@ test("Operations PDF uses readable projections while CSV preserves full columns 
         "Status",
         "Health",
         "Imported",
-        "Last relevant activity",
+        "Last provider activity",
         "Operational note"
       ],
       rows: [
@@ -851,7 +889,7 @@ test("Operations PDF uses readable projections while CSV preserves full columns 
     "Mode",
     "State / health",
     "Imported",
-    "Last activity",
+    "Last provider activity",
     "Operational note"
   ]);
   assert.equal(connections.rows[0]?.[3], "Connected / Healthy");
@@ -892,6 +930,7 @@ test("Operations PDF uses readable projections while CSV preserves full columns 
     /Requested,Business,Provider,Mode,Status,Imported,Duplicates,Skipped,Failed,Summary/
   );
   assert.match(csv, /2026-08-16T18:32:45\.000Z/);
+  assert.match(csv, /Last provider activity/);
   assert.match(csv, /Actions completed,Actions skipped,Actions failed/);
 
   const rendered = await renderReportPdfWithDiagnostics(report);
@@ -903,6 +942,32 @@ test("Operations PDF uses readable projections while CSV preserves full columns 
     assert.ok(row.height >= 30, section.title);
   }
   assert.equal(inspectPdfPages(rendered.buffer).length, rendered.intendedPageCount);
+});
+
+test("Operations labels synchronization imports precisely and uses the latest provider activity", () => {
+  assert.match(reportSource, /Synchronization items imported \(period\)/);
+  assert.doesNotMatch(reportSource, /Imported items \(period\)/);
+
+  const latest = latestProviderActivityAt({
+    lastWebhookReceivedAt: new Date("2026-08-28T15:52:00.000Z"),
+    lastInboundMessageAt: new Date("2026-08-28T14:06:00.000Z"),
+    lastSuccessfulSyncAt: null,
+    lastAttemptedSyncAt: null,
+    lastConnectionTestAt: new Date("2026-08-28T13:00:00.000Z")
+  });
+  assert.equal(latest?.toISOString(), "2026-08-28T15:52:00.000Z");
+});
+
+test("Executive Business Adoption uses and counts the same supported Live integrations as Integration Adoption", () => {
+  assert.match(
+    reportSource,
+    /integrationRelationWhere: \{[\s\S]*?AND: \[supportedLiveIntegrationWhere\(\)\]/
+  );
+  assert.match(reportSource, /item\.integrationConnections\.length/);
+  assert.doesNotMatch(
+    reportSource,
+    /new Set\(item\.integrationConnections\.map\(\(connection\) => connection\.provider\)\)\.size/
+  );
 });
 
 test("PDF timestamp formatting is concise, UTC-stable, and leaves non-ISO values intact", () => {

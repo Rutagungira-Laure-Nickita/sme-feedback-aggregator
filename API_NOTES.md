@@ -1,5 +1,11 @@
 # API Notes
 
+## Focused Platform Administrator Reporting Consistency Contract
+
+No endpoint, request schema, response envelope, authorization guard, filter, content type, or download header changed. The existing Admin report document now uses `Manual Entry` for `MANUAL`, `Synchronization items imported (period)` for the sum of synchronization-run imported-item counters, and `Last provider activity` for the maximum relevant connection/webhook timestamp.
+
+Executive Business Adoption and Integration Adoption now share the same server-side supported Live connection policy: Live Gmail and Live WhatsApp only, with existing Business/Branch scope. Business Adoption counts filtered connection rows rather than distinct values from a broader relation. Preview, PDF, and CSV consume the same corrected document. Detailed Feedback Records and Business Owner endpoint contracts are unchanged.
+
 ## Owner/Admin Reporting Quality Contract
 
 Existing Owner and Platform Administrator preview/export endpoints, request schemas, response envelopes, content types, and authorization are unchanged. Every generated normal report document now contains a final `Detailed Feedback Records` section. Owner columns are `Customer / Sender`, `Feedback`, `Channel`, `Date`, `Category`, and `Status`; Administrator columns additionally include `Business` and `Branch`.

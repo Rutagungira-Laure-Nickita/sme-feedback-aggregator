@@ -1,5 +1,9 @@
 # Deployment
 
+## Focused Platform Administrator Reporting Consistency Deployment Notes
+
+This reporting-only correction adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook configuration, worker, queue, storage, Vercel setting, or Railway setting. Deploy the backend normally; the frontend report renderer remains contract-compatible and requires no behavior change. Do not delete or rewrite historical integration records. After rollout, regenerate Preview/PDF/CSV files and complete the focused checklist in `NEXT_STEPS.md` so cached exports are not mistaken for corrected output.
+
 ## Owner/Admin Reporting Quality Deployment Notes
 
 This reporting-only pass adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook configuration, worker, queue, storage, Vercel setting, or Railway setting. Deploy backend and frontend together so the expanded Administrator documents, shared sender policy, responsive previews, and six/eight-column PDF behavior remain aligned. Existing report concurrency/memory guidance applies because every matching detail row is materialized for export. Do not delete hidden/deleted/provider or automation history. After rollout, clear stale frontend assets and complete the focused checklist in `NEXT_STEPS.md`.

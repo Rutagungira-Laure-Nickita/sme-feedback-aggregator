@@ -1,5 +1,9 @@
 # Database Notes
 
+## Focused Platform Administrator Reporting Consistency Database Impact
+
+No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. The correction reads existing supported Live connection relations and existing `IntegrationConnection` timestamps (`lastWebhookReceivedAt`, `lastInboundMessageAt`, `lastSuccessfulSyncAt`, `lastAttemptedSyncAt`, and `lastConnectionTestAt`). Historical and unsupported integration records remain stored and unmodified. The Operations imported-item value remains the existing sum of `SynchronizationRun.itemsImported`; only its report label changed.
+
 ## Owner/Admin Reporting Quality Database Impact
 
 No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. Reports read existing feedback snapshots, original messages, received timestamps, category/status relations, and Administrator Business/Branch names through the canonical active operational predicate. Soft-deleted and unsupported-source rows remain stored for audit and provider deduplication but are excluded from totals and details. The customer representation metric counts existing non-null `Feedback.customerId` links and is labeled accordingly; no Customer rows are fabricated. Automation records remain stored and operational but are no longer queried for normal report output. Reports and generated files remain unpersisted.

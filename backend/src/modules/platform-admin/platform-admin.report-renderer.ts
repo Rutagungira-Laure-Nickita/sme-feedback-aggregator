@@ -612,7 +612,7 @@ export function prepareReportPdfTable(section: ReportSection): PreparedReportPdf
         "Mode",
         "State / health",
         "Imported",
-        "Last activity",
+        "Last provider activity",
         "Operational note"
       ],
       rows: section.rows.map((row) => [

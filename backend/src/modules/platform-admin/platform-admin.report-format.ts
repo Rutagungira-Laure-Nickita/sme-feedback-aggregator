@@ -12,6 +12,7 @@ const REPORT_DISPLAY_LABELS: Readonly<Record<string, string>> = {
   GOOGLE_REVIEW: "Google Review",
   GOOGLE_REVIEWS: "Google Reviews",
   IN_REVIEW: "In review",
+  MANUAL: "Manual Entry",
   NOT_ANALYZED: "Not analyzed",
   PLATFORM_ADMIN: "Platform Administrator",
   PUBLIC_FORM: "Public Form",

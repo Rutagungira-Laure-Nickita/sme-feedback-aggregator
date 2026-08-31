@@ -1,5 +1,13 @@
 # Architecture
 
+## Focused Platform Administrator Reporting Consistency
+
+The shared `formatReportDisplayValue` boundary explicitly maps `MANUAL` to `Manual Entry`, so the single report document used by Preview, PDF, and CSV cannot drift by renderer. Stored `FeedbackChannel` values remain unchanged.
+
+Executive `createExecutiveScopePlan` now assigns `supportedLiveIntegrationWhere()` to both the top-level Integration queries and each Business Adoption relation. Business Adoption counts the filtered connection rows directly, while Integration Adoption groups the same supported Live Gmail/WhatsApp population. Hidden, Demo, unsupported, historical, and dormant providers remain stored but are outside both aggregations.
+
+Operations continues to derive synchronization imports from `SynchronizationRun.itemsImported`. `latestProviderActivityAt` calculates the maximum relevant persisted provider timestamp across webhook receipt, inbound message, successful/attempted synchronization, and connection test. The shared Operations document and PDF projection label that value `Last provider activity`; renderers do not calculate or substitute timestamps.
+
 ## Shared Owner/Admin Detailed Feedback Reporting
 
 `feedback-report-records.ts` is the shared safe record-to-report boundary for Business Owner and Platform Administrator reporting. It accepts only customer snapshot identity fields, original `Feedback.message`, channel, `receivedAt`, category, status, and optional Business/Branch names. It returns the standardized `Detailed Feedback Records` section and applies one sender-resolution policy to both report families. It selects no Feedback/customer/provider IDs, source metadata, external IDs, notes, attachments, credentials, tokens, payloads, or AI summaries.

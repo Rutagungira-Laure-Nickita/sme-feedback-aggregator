@@ -98,7 +98,9 @@ export const integrationHealthSelect = {
   requiresReauthorization: true,
   webhookStatus: true,
   lastConnectionTestStatus: true,
+  lastConnectionTestAt: true,
   lastErrorCode: true,
+  lastWebhookReceivedAt: true,
   lastInboundMessageAt: true,
   lastAttemptedSyncAt: true,
   lastSuccessfulSyncAt: true,
@@ -309,8 +311,8 @@ export function createExecutiveScopePlan(
     membershipCountWhere: membershipBranchScope,
     feedbackRelationWhere: activeOperationalFeedbackWhere(branchId ? { branchId } : {}),
     integrationRelationWhere: {
-      status: { not: IntegrationConnectionStatus.DISCONNECTED },
-      defaultBranchId: branchId
+      defaultBranchId: branchId,
+      AND: [supportedLiveIntegrationWhere()]
     },
     labels: {
       businesses: filtered
@@ -697,7 +699,7 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
         input.branchId ? "Users with branch access" : "Users",
         input.branchId ? "Customer profiles (business-wide)" : "Customers",
         input.branchId ? "Feedback in scope" : "Feedback",
-        input.branchId ? "Providers routed to branch" : "Connected providers"
+        input.branchId ? "Integrations routed to branch" : "Connected integrations"
       ],
       rows: businessAdoption.map((item) => [
         item.name,
@@ -706,7 +708,7 @@ async function buildExecutiveReport(report: AdminReportDocument, context: Report
         item._count.memberships,
         item._count.customers,
         item._count.feedbacks,
-        new Set(item.integrationConnections.map((connection) => connection.provider)).size
+        item.integrationConnections.length
       ]),
       emptyMessage: "No businesses matched the selected scope."
     },
@@ -1215,7 +1217,10 @@ async function buildOperationsHealthReport(
     { label: "Disconnected", value: statusCounts.DISCONNECTED ?? 0 },
     { label: "Connection errors", value: statusCounts.ERROR ?? 0 },
     { label: "Integrations needing attention", value: attention },
-    { label: "Imported items (period)", value: runTotals._sum.itemsImported ?? 0 },
+    {
+      label: "Synchronization items imported (period)",
+      value: runTotals._sum.itemsImported ?? 0
+    },
     { label: "Webhook deliveries (period)", value: webhookCount },
     { label: "AI completed (period)", value: aiCounts.COMPLETED ?? 0 },
     { label: "AI failed (period)", value: aiCounts.FAILED ?? 0 },
@@ -1256,7 +1261,7 @@ async function buildOperationsHealthReport(
         "Status",
         "Health",
         "Imported",
-        "Last relevant activity",
+        "Last provider activity",
         "Operational note"
       ],
       rows: health.map(({ connection, health: connectionHealth }) => [
@@ -1266,11 +1271,7 @@ async function buildOperationsHealthReport(
         connection.status,
         connectionHealth,
         connection.totalImported,
-        (
-          connection.lastInboundMessageAt ??
-          connection.lastSuccessfulSyncAt ??
-          connection.lastAttemptedSyncAt
-        )?.toISOString() ?? "No activity recorded",
+        latestProviderActivityAt(connection)?.toISOString() ?? "No activity recorded",
         humanReadableIntegrationIssue(connection, connectionHealth)
       ]),
       semantic: "HEALTH",
@@ -1377,6 +1378,29 @@ async function buildOperationsHealthReport(
       createReportComparison("AI processing records", aiCount, previousAiCount)
     ];
   }
+}
+
+export function latestProviderActivityAt(
+  connection: Pick<
+    IntegrationHealthRecord,
+    | "lastWebhookReceivedAt"
+    | "lastInboundMessageAt"
+    | "lastSuccessfulSyncAt"
+    | "lastAttemptedSyncAt"
+    | "lastConnectionTestAt"
+  >
+): Date | null {
+  const timestamps = [
+    connection.lastWebhookReceivedAt,
+    connection.lastInboundMessageAt,
+    connection.lastSuccessfulSyncAt,
+    connection.lastAttemptedSyncAt,
+    connection.lastConnectionTestAt
+  ].filter((value): value is Date => value !== null);
+
+  return timestamps.length
+    ? new Date(Math.max(...timestamps.map((value) => value.getTime())))
+    : null;
 }
 
 export function buildExecutiveManagementSummary(metrics: {

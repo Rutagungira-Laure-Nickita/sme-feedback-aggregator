@@ -1,5 +1,13 @@
 # Implementation Status
 
+## Focused Platform Administrator Reporting Consistency Correction
+
+Implementation and automated verification are complete; user-run Preview/PDF/CSV verification remains pending. The shared report display formatter now renders `FeedbackChannel.MANUAL` as `Manual Entry` across Executive, Feedback & Customer Experience, Operations, and Business Owner report documents without changing the stored enum. Executive Business Adoption now loads and counts the same supported Live Gmail/WhatsApp connection population as Integration Adoption, so hidden, Demo, Outlook, social, historical, and dormant provider rows cannot inflate a Business row.
+
+The Operations KPI formerly labeled `Imported items (period)` is now `Synchronization items imported (period)` because its value is the sum of `SynchronizationRun.itemsImported`, not an active-feedback count. Integration Connections now labels the timestamp `Last provider activity` and calculates the maximum of the latest webhook receipt, inbound message, successful/attempted synchronization, and connection test. This makes a newer WhatsApp webhook timestamp authoritative instead of allowing an older inbound timestamp to win by null-coalescing order.
+
+No Detailed Feedback Records query/projection, supported feedback scope, automation behavior, Business Owner authorization, schema, migration, seed, stored row, credential, OAuth/webhook processing, deployment configuration, or dependency changed. Verification passes: Platform Administrator reporting 45/45, Business Owner reporting 24/24, frontend Phase 25.4 11/11, frontend Phase 26 15/15, backend/frontend typecheck and lint, Prisma validation, touched-file formatting, and backend/frontend production builds. A final sandboxed Platform Administrator rerun was blocked before discovery by Windows `spawn EPERM`; the approved rerun passed 45/45. The existing non-blocking frontend chunk-size advisory remains. Manual requirements are in `NEXT_STEPS.md`; do not mark this correction manually verified until they pass.
+
 ## Business Owner and Platform Administrator Reporting Quality Pass
 
 Implementation and automated verification are complete; user-run browser/PDF/CSV verification remains pending. Business Owner and all three normal Platform Administrator report documents now end with `Detailed Feedback Records`. Owner rows contain Customer / Sender, original Feedback, Channel, Date, Category, and Status; Administrator rows add Business and Branch. A shared backend formatter applies the same Gmail, WhatsApp, Manual Entry, Public Form, and `Unknown customer` sender fallbacks to both report families.

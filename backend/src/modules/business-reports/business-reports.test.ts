@@ -287,7 +287,7 @@ test("detailed feedback section preserves original messages, received timestamps
   assert.equal(section.rows[0]?.[3], receivedAt.toISOString());
   assert.deepEqual(
     section.rows.map((row) => row[2]),
-    ["Gmail", "WhatsApp", "Manual", "Public Form"]
+    ["Gmail", "WhatsApp", "Manual Entry", "Public Form"]
   );
   assert.equal(section.rows[1]?.[4], "Uncategorized");
   const formatted = formatReportDocument({

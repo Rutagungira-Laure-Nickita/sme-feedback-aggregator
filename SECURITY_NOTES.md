@@ -1,5 +1,12 @@
 # Security Notes
 
+## Focused Platform Administrator Reporting Consistency Safety
+
+- Existing `PLATFORM_ADMIN` report authorization, entity validation, in-memory exports, no-store/nosniff headers, CSV formula neutralization, and PDF text rendering are unchanged.
+- Executive Business Adoption now uses the deny-by-default supported Live integration predicate already used by Integration Adoption, reducing exposure to Live Gmail and Live WhatsApp within the validated platform/Business/Branch scope.
+- Latest provider activity uses only safe persisted timestamps already associated with an authorized connection. No webhook payload, signature, credential, token, provider cursor, sender identity, or raw synchronization item is selected or exposed.
+- Detailed Feedback Records, soft-delete exclusion, sender resolution, tenant/Branch scope, hidden-channel policy, and automation absence remain unchanged.
+
 ## Owner/Admin Reporting Quality Safety
 
 - Business Owner report access still requires an authenticated platform `BUSINESS_OWNER`, active membership in the route Business, an active Business, and a validated optional Branch. Administrator reports remain protected by `PLATFORM_ADMIN`; no frontend-only security filter was introduced.
