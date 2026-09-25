@@ -1,5 +1,15 @@
 # Architecture
 
+## Simplified Reporting and Category Assignment Pipeline
+
+Business Owner reporting intentionally has two consumers of the same authorized backend document. The Overview dashboard continues to consume the rich preview metrics. The Reports page filters that preview to `Detailed Feedback Records`, and the export controller applies `simplifyBusinessOwnerReportForExport` before the shared PDF/CSV renderer. This avoids duplicating report queries while guaranteeing that downloaded Owner reports contain only concise scope/filter metadata and the six requested detail columns.
+
+The normal Platform Administrator Reporting Center exposes a single Platform Overview choice. Its builder uses the existing platform scope planners and active operational feedback predicate to assemble four summary cards plus Businesses, Users, Detailed Feedback Records, and supported Live Gmail/WhatsApp connections. The shared detail boundary puts Business and Branch first for administrator output. PDF and CSV are rendered from the same document; CSV keeps full messages and ISO timestamps, while PDF applies wrapped, page-safe detail-table projections.
+
+Category assignment belongs to `FeedbackProcessingService`, after validation/deduplication and inside the feedback-create transaction. `NormalizedFeedbackInput.categoryId` is optional. A valid explicit Business category becomes `HUMAN`; otherwise the service upserts/uses the canonical Business-owned `Other` category and records `DEFAULT` in `FeedbackFieldState`. The feedback and its STATUS, PRIORITY, CATEGORY, and ASSIGNMENT provenance rows are created atomically.
+
+After persistence, the existing AI scheduler remains asynchronous. Successful high-confidence analysis may replace null/default-Other/AI-owned category state and marks CATEGORY provenance `AI`. HUMAN and AUTOMATION provenance fail closed as conflicts, so delayed analysis cannot undo an explicit selection or later manual/automation correction. AI failure never rolls back feedback ingestion because a durable fallback category already exists. Manual Entry, Public Form, Gmail, and WhatsApp remain adapters into this one pipeline.
+
 ## Focused Platform Administrator Reporting Consistency
 
 The shared `formatReportDisplayValue` boundary explicitly maps `MANUAL` to `Manual Entry`, so the single report document used by Preview, PDF, and CSV cannot drift by renderer. Stored `FeedbackChannel` values remain unchanged.

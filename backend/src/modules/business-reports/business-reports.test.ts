@@ -31,6 +31,7 @@ import {
   renderReportPdf
 } from "../platform-admin/platform-admin.report-renderer.js";
 import type { AdminReportDocument } from "../platform-admin/platform-admin.types.js";
+import { simplifyBusinessOwnerReportForExport } from "../platform-admin/feedback-report-records.js";
 
 const serviceSource = readFileSync(
   new URL("./business-reports.service.ts", import.meta.url),
@@ -773,6 +774,46 @@ test("Detailed Feedback Records uses wrapped PDF columns and exports every match
     pdfPages.filter((page) => /Customer \/ Sender/.test(page)).length > 1,
     "Detailed feedback table headers should repeat after PDF page breaks."
   );
+});
+
+test("Business Owner export projection contains only detailed records and concise metadata", async () => {
+  const source = ownerReportFixture();
+  const detailed = buildDetailedFeedbackSection([
+    {
+      channel: FeedbackChannel.EMAIL,
+      message: "The complete original customer message is retained.",
+      receivedAt: new Date("2026-08-25T14:00:00.000Z"),
+      customerName: "Customer",
+      customerEmail: "customer@example.com",
+      customerPhone: null,
+      category: { name: "Service Quality" },
+      status: FeedbackStatus.NEW
+    }
+  ]);
+  source.sections.push(detailed);
+
+  const projected = simplifyBusinessOwnerReportForExport(source);
+  assert.equal(projected.title, "Detailed Customer Feedback Report");
+  assert.equal(projected.managementSummary, "");
+  assert.deepEqual(projected.highlights, []);
+  assert.equal(projected.comparison, undefined);
+  assert.deepEqual(projected.scope.notes, []);
+  assert.deepEqual(
+    projected.sections.map((section) => section.title),
+    ["Detailed Feedback Records"]
+  );
+
+  const csv = renderReportCsv(projected).toString("utf8");
+  assert.match(csv, /The complete original customer message is retained\./);
+  assert.doesNotMatch(
+    csv,
+    /Management summary|Business at a glance|Channel distribution/
+  );
+
+  const pdfText = inspectPdfPages(await renderReportPdf(projected)).join(" ");
+  assert.match(pdfText, /Detailed Customer Feedback Report/);
+  assert.match(pdfText, /complete original customer message/);
+  assert.doesNotMatch(pdfText, /MANAGEMENT SUMMARY|Business at a glance/);
 });
 
 function ownerReportFixture(): AdminReportDocument {

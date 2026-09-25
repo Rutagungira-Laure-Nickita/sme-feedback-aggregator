@@ -1,5 +1,13 @@
 # Deployment
 
+## Simplified Reporting and Automatic Categorization Deployment Notes
+
+No dependency, Prisma schema change, migration, OAuth scope, credential, webhook secret, provider permission, queue, storage, Vercel setting, or Railway setting was added. Deploy backend and frontend together so the simplified report documents, responsive previews, and automatic category provenance rules stay aligned. The separately pending `20260821120000_final_product_hardening` migration remains required by its own release instructions and was not modified here.
+
+`AI_AUTO_APPLY_CATEGORY` is retained as a compatibility environment key, but category application is now the normal workflow and is no longer gated by that flag. `AI_ANALYSIS_ENABLED`, provider configuration, confidence threshold, daily limits, and worker availability still control whether AI can improve the persisted `Other` fallback. If AI is unavailable, ingestion remains successful and categorized as `Other`.
+
+Before any legacy-data mutation, run `npm run categories:backfill` and review the per-Business dry-run counts. Apply only when intended with `npm run categories:backfill -- --apply`; production also requires `--allow-production`. The command is idempotent and deliberately excludes soft-deleted/hidden records. Do not reset, db-push, reseed, or clean up historical provider data. Complete the focused verification gate in `NEXT_STEPS.md` after rollout.
+
 ## Focused Platform Administrator Reporting Consistency Deployment Notes
 
 This reporting-only correction adds no dependency, schema change, migration, environment variable, credential, OAuth scope, webhook configuration, worker, queue, storage, Vercel setting, or Railway setting. Deploy the backend normally; the frontend report renderer remains contract-compatible and requires no behavior change. Do not delete or rewrite historical integration records. After rollout, regenerate Preview/PDF/CSV files and complete the focused checklist in `NEXT_STEPS.md` so cached exports are not mistaken for corrected output.

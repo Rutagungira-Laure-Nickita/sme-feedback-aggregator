@@ -9,13 +9,15 @@ import {
   BusinessMemberRole,
   BusinessMembershipStatus,
   BusinessStatus,
-  FeedbackAIAnalysisStatus
+  FeedbackAIAnalysisStatus,
+  FeedbackFieldStateField,
+  FeedbackFieldStateSource
 } from "../../lib/prisma-runtime.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/app-error.js";
 import { logger } from "../../lib/logger.js";
 import { prisma } from "../../lib/prisma.js";
-import { markFeedbackFieldAI, scheduleAutomationEvent } from "../automation/index.js";
+import { scheduleAutomationEvent } from "../automation/index.js";
 import { GeminiAIProvider } from "./gemini.provider.js";
 import type {
   AIAnalysisSummary,
@@ -498,7 +500,7 @@ export async function getBusinessAIStatus(
     model: env.AI_MODEL,
     enabled: env.AI_ANALYSIS_ENABLED,
     configured: operationalState === "READY",
-    autoApplyCategory: env.AI_AUTO_APPLY_CATEGORY,
+    autoApplyCategory: true,
     categoryConfidenceThreshold: env.AI_CATEGORY_CONFIDENCE_THRESHOLD,
     dailyBusinessLimit: env.AI_DAILY_BUSINESS_LIMIT,
     maxRetries: env.AI_MAX_RETRIES,
@@ -828,8 +830,6 @@ async function maybeAutoApplyCategory(
   businessId: string,
   analysisId: string
 ): Promise<void> {
-  if (!env.AI_AUTO_APPLY_CATEGORY) return;
-
   const analysis = await prisma.feedbackAIAnalysis.findUnique({
     where: { id: analysisId },
     include: { suggestedCategory: true }
@@ -854,31 +854,83 @@ async function maybeAutoApplyCategory(
     return;
   }
 
-  const updatedFeedback = await prisma.feedback.updateMany({
-    where: {
-      id: feedbackId,
-      businessId,
-      categoryId: null
-    },
-    data: { categoryId: analysis.suggestedCategoryId }
-  });
+  await prisma.$transaction(async (tx) => {
+    const feedback = await tx.feedback.findFirst({
+      where: { id: feedbackId, businessId, deletedAt: null },
+      select: {
+        categoryId: true,
+        category: { select: { name: true } },
+        fieldStates: {
+          where: { field: FeedbackFieldStateField.CATEGORY },
+          select: { source: true },
+          take: 1
+        }
+      }
+    });
 
-  await prisma.feedbackAIAnalysis.update({
-    where: { id: analysisId },
-    data:
-      updatedFeedback.count === 1
-        ? {
-            categoryAutoAppliedAt: new Date(),
-            categoryApplicationResult: CATEGORY_APPLICATION_RESULT.AUTO_APPLIED
-          }
-        : {
-            categoryApplicationResult: CATEGORY_APPLICATION_RESULT.CONFLICTED
-          }
-  });
+    const categorySource = feedback?.fieldStates[0]?.source;
+    const canReplaceCurrentCategory =
+      Boolean(feedback) &&
+      categorySource !== FeedbackFieldStateSource.HUMAN &&
+      categorySource !== FeedbackFieldStateSource.AUTOMATION &&
+      (feedback?.categoryId === null ||
+        categorySource === FeedbackFieldStateSource.AI ||
+        (categorySource === FeedbackFieldStateSource.DEFAULT &&
+          feedback?.category?.name === "Other"));
 
-  if (updatedFeedback.count === 1) {
-    await markFeedbackFieldAI(businessId, feedbackId, "CATEGORY");
-  }
+    if (!canReplaceCurrentCategory) {
+      await tx.feedbackAIAnalysis.update({
+        where: { id: analysisId },
+        data: { categoryApplicationResult: CATEGORY_APPLICATION_RESULT.CONFLICTED }
+      });
+      return;
+    }
+
+    const updatedFeedback = await tx.feedback.updateMany({
+      where: {
+        id: feedbackId,
+        businessId,
+        deletedAt: null,
+        categoryId: feedback?.categoryId ?? null
+      },
+      data: { categoryId: analysis.suggestedCategoryId }
+    });
+
+    await tx.feedbackAIAnalysis.update({
+      where: { id: analysisId },
+      data:
+        updatedFeedback.count === 1
+          ? {
+              categoryAutoAppliedAt: new Date(),
+              categoryApplicationResult: CATEGORY_APPLICATION_RESULT.AUTO_APPLIED
+            }
+          : {
+              categoryApplicationResult: CATEGORY_APPLICATION_RESULT.CONFLICTED
+            }
+    });
+
+    if (updatedFeedback.count === 1) {
+      await tx.feedbackFieldState.upsert({
+        where: {
+          feedbackId_field: {
+            feedbackId,
+            field: FeedbackFieldStateField.CATEGORY
+          }
+        },
+        create: {
+          businessId,
+          feedbackId,
+          field: FeedbackFieldStateField.CATEGORY,
+          source: FeedbackFieldStateSource.AI
+        },
+        update: {
+          source: FeedbackFieldStateSource.AI,
+          sourceRuleId: null,
+          updatedByMembershipId: null
+        }
+      });
+    }
+  });
 }
 
 async function markAnalysisFailed(

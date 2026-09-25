@@ -185,7 +185,7 @@ function validateReportAwareFilters(
 ) {
   const unsupported =
     value.reportType === "EXECUTIVE_PLATFORM"
-      ? (["channel", "status", "sentiment", "provider"] as const)
+      ? (["provider"] as const)
       : value.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE"
         ? (["provider"] as const)
         : (["branchId", "channel", "status", "sentiment"] as const);

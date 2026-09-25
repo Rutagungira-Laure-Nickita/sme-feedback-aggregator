@@ -1,5 +1,15 @@
 # API Notes
 
+## Simplified Reports and Intake Category Contract
+
+- `POST /api/businesses/:businessId/reports/preview` remains compatible with the owner Overview dashboard. The Reports UI displays only its `Detailed Feedback Records` section.
+- `POST /api/businesses/:businessId/reports/export` now exports `Detailed Customer Feedback Report` with only Customer / Sender, Feedback, Channel, Date, Category, and Status plus concise scope/filter metadata. PDF and CSV contain all matching rows.
+- Normal Platform Administrator report requests use `reportType: EXECUTIVE_PLATFORM`, displayed as `Platform Overview Report`. They accept Business, Branch, date, Channel, Workflow Status, and Sentiment filters. Provider is not accepted for this report.
+- The Platform Overview response contains four highlights and the sections Businesses, Users, Detailed Feedback Records, and Supported Integrations. Supported integrations are Live Gmail and WhatsApp only. Legacy report types remain accepted internally for backward compatibility but are not exposed as normal choices.
+- Manual feedback creation accepts optional `categoryId`. The backend requires it to be an active category belonging to the route Business; a missing/foreign/inactive ID cannot broaden tenant scope. Omitting it selects automatic categorization.
+- Public Form, Gmail, and WhatsApp request contracts are unchanged. Their adapters omit `categoryId`, causing the shared processing service to persist the canonical `Other` fallback before asynchronous AI analysis.
+- Existing AI Apply/Dismiss endpoints remain compatibility-only; normal automatic categorization requires no client Apply action. Retry remains available under existing authorization.
+
 ## Focused Platform Administrator Reporting Consistency Contract
 
 No endpoint, request schema, response envelope, authorization guard, filter, content type, or download header changed. The existing Admin report document now uses `Manual Entry` for `MANUAL`, `Synchronization items imported (period)` for the sum of synchronization-run imported-item counters, and `Last provider activity` for the maximum relevant connection/webhook timestamp.

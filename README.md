@@ -21,10 +21,10 @@ The SME Multi-Channel Customer Feedback Aggregator brings those sources into a u
 - Selection of visible feedback or all feedback matching the active filters
 - Customer profiles and feedback history
 - Dedicated customer workspace at /customer for customer-owned feedback and account workflows
-- AI-assisted sentiment analysis, summaries, and category suggestions
-- Business-owned feedback categories
+- AI-assisted sentiment analysis, summaries, and automatic category assignment with a safe `Other` fallback
+- Business-owned feedback categories with protected manual and automation overrides
 - Public feedback forms
-- Business Owner and Platform Administrator dashboards and PDF/CSV reporting, including filtered `Detailed Feedback Records` in both Preview and full exports
+- A concise Business Owner detailed-feedback report and a single Platform Administrator Overview report, with filtered full-row PDF/CSV exports
 - Business, branch, staff, invitation, and approval workflows
 - Responsive light/dark/system UI using a fixed blue/indigo design system
 - Professional modal workflows and layouts designed to remain usable down to approximately 300px
@@ -105,6 +105,8 @@ Webhook processing remains the ingestion path; Sync Now does not fetch or manufa
                          React role-specific workspaces
 
 All supported intake paths converge on the shared feedback-processing service. Provider connectors do not bypass the ingestion, validation, tenant, or deduplication pipeline.
+
+The same service persists a category for every new supported feedback item. An explicit active Business category is preserved as a human choice; otherwise the canonical `Other` category is stored immediately and the existing asynchronous AI flow may refine it without overwriting later manual or automation changes.
 
 ## Tech Stack
 

@@ -1,6 +1,7 @@
 import { FeedbackChannel, FeedbackStatus } from "../../lib/prisma-runtime.js";
 import { formatReportDisplayValue } from "./platform-admin.report-format.js";
 import type { ReportSection } from "./platform-admin.types.js";
+import type { AdminReportDocument } from "./platform-admin.types.js";
 
 export type DetailedFeedbackRecord = {
   channel: FeedbackChannel;
@@ -26,29 +27,47 @@ export function buildDetailedFeedbackSection(
       ? "Individual feedback matching the same platform, Business, branch, date, channel, workflow status, and sentiment scope as the report totals. Full messages are retained in CSV; PDF uses readable wrapped excerpts where necessary."
       : "Individual feedback matching the same Business, branch, date, channel, workflow status, and sentiment filters as the report totals. Full messages are retained in CSV; PDF uses readable wrapped excerpts where necessary.",
     headers: [
+      ...(includeBusinessContext ? ["Business", "Branch"] : []),
       "Customer / Sender",
       "Feedback",
       "Channel",
       "Date",
       "Category",
-      "Status",
-      ...(includeBusinessContext ? ["Business", "Branch"] : [])
+      "Status"
     ],
     rows: records.map((record) => [
-      resolveDetailedFeedbackIdentity(record),
-      record.message,
-      formatReportDisplayValue(record.channel),
-      record.receivedAt.toISOString(),
-      record.category?.name ?? "Uncategorized",
-      formatReportDisplayValue(record.status),
       ...(includeBusinessContext
         ? [
             record.business?.name ?? "Unknown business",
             record.branch?.name ?? "Unknown branch"
           ]
-        : [])
+        : []),
+      resolveDetailedFeedbackIdentity(record),
+      record.message,
+      formatReportDisplayValue(record.channel),
+      record.receivedAt.toISOString(),
+      record.category?.name ?? "Uncategorized",
+      formatReportDisplayValue(record.status)
     ]),
     emptyMessage: "No feedback matched the selected period and filters."
+  };
+}
+
+export function simplifyBusinessOwnerReportForExport(
+  report: AdminReportDocument
+): AdminReportDocument {
+  const detailedFeedback = report.sections.find(
+    (section) => section.title === "Detailed Feedback Records"
+  );
+
+  return {
+    ...report,
+    title: "Detailed Customer Feedback Report",
+    scope: { ...report.scope, notes: [] },
+    managementSummary: "",
+    highlights: [],
+    sections: detailedFeedback ? [detailedFeedback] : [],
+    comparison: undefined
   };
 }
 

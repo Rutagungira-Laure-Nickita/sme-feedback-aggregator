@@ -16,15 +16,12 @@ const catalogSource = source.slice(
   source.indexOf("export function AdminReportsPage")
 );
 
-test("Reporting Center presents exactly three supervisor-focused reports", () => {
+test("Reporting Center presents one simple Platform Overview report", () => {
   const values = [...catalogSource.matchAll(/value: "([A-Z_]+)"/g)].map(
     (match) => match[1]
   );
-  assert.deepEqual(values, [
-    "EXECUTIVE_PLATFORM",
-    "FEEDBACK_CUSTOMER_EXPERIENCE",
-    "OPERATIONS_SYSTEM_HEALTH"
-  ]);
+  assert.deepEqual(values, ["EXECUTIVE_PLATFORM"]);
+  assert.match(catalogSource, /Platform Overview Report/);
 });
 
 test("Executive is the default and old report choices are absent", () => {
@@ -42,38 +39,36 @@ test("Executive is the default and old report choices are absent", () => {
     assert.equal(catalogSource.includes(legacy), false);
 });
 
-test("report-aware filters and natural All labels are wired", () => {
-  assert.match(source, /isFeedbackReport/);
-  assert.match(source, /isOperationsReport/);
+test("simple platform filters and natural All labels are wired", () => {
   for (const label of [
     "All Businesses",
     "All Branches",
     "All Channels",
     "All Statuses",
-    "All Sentiments",
-    "All Providers"
+    "All Sentiments"
   ])
     assert.ok(source.includes(label), label);
+  assert.equal(source.includes("All Providers"), false);
   assert.equal(source.includes("All / not restricted"), false);
 });
 
-test("preview refresh, management summary, comparison, and empty states remain visible", () => {
+test("preview refresh, simple overview, and empty states remain visible", () => {
   assert.match(source, /preview\.reset\(\)/);
   assert.match(source, /report\.managementSummary/);
-  assert.match(previewSource, /item\.absoluteChange/);
-  assert.match(previewSource, /item\.percentageLabel/);
-  for (const header of ["Metric", "Current", "Previous", "Change", "Comparison"])
-    assert.ok(previewSource.includes(`"${header}"`), header);
-  assert.match(source, /getReportComparisonPreview/);
+  assert.match(source, /report\.highlights/);
   assert.match(source, /section\.emptyMessage/);
-  assert.match(source, /semanticTextClass/);
   assert.match(source, /Scope: \{report\.scope\.label\}/);
   assert.match(source, /report\.scope\.notes\.map/);
+  assert.doesNotMatch(source, /Compare previous period/);
+  assert.ok(previewSource.includes("getReportSectionPreview"));
 });
 
 test("Platform Administrator Preview renders responsive Detailed Feedback Records", () => {
   assert.match(source, /Detailed Feedback Records/);
-  assert.match(source, /Customer \/ Sender\|Feedback\|Channel\|Date\|Category\|Status/);
+  assert.match(
+    source,
+    /Business\|Branch\|Customer \/ Sender\|Feedback\|Channel\|Date\|Category\|Status/
+  );
   assert.match(source, /DetailedFeedbackRecordsSection/);
   assert.match(source, /hidden max-w-full overflow-x-auto md:block/);
   assert.match(source, /space-y-3 md:hidden/);

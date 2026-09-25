@@ -28,6 +28,7 @@ export function normalizeFeedbackInput(
     occurredAt: input.occurredAt ?? null,
     sourceUrl: normalizeSingleLine(input.sourceUrl),
     languageCode: normalizeLanguageCode(input.languageCode),
+    categoryId: normalizeIdentifier(input.categoryId),
     customerName: normalizeSingleLine(input.customer?.name),
     customerEmail: normalizeEmail(input.customer?.email),
     customerPhone: normalizeSingleLine(input.customer?.phone),

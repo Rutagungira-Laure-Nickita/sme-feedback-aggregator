@@ -11,10 +11,7 @@ import { Navigate, useParams } from "react-router-dom";
 import { normalizeApiError } from "../../api/axios.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { usePlatformSettings } from "../platform-settings/PlatformSettingsContext.js";
-import {
-  getReportComparisonPreview,
-  getReportSectionPreview
-} from "../admin/report-preview.js";
+import { getReportSectionPreview } from "../admin/report-preview.js";
 import type { ReportDocument } from "../admin/types.js";
 import { fetchBranches, fetchBusiness, fetchMyBusinesses } from "./api/businessApi.js";
 import { EmptyState, WorkspacePanel, WorkspaceShell } from "./components.js";
@@ -33,7 +30,7 @@ const STATUSES = ["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"] as const;
 const SENTIMENTS = ["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"] as const;
 
 const REPORT_DESCRIPTION =
-  "A complete view of your business performance, customer feedback, sentiment, workflow, branches, channels, integrations, and operational health.";
+  "Review the original customer feedback that matches your selected filters.";
 
 export function BusinessReportsPage(): JSX.Element {
   const { businessId = "" } = useParams();
@@ -48,7 +45,7 @@ export function BusinessReportsPage(): JSX.Element {
   const [request, setRequest] = useState<BusinessReportRequest>({
     dateFrom: initialDates.from,
     dateTo: initialDates.to,
-    comparePreviousPeriod: true
+    comparePreviousPeriod: false
   });
   const [format, setFormat] = useState<"PDF" | "CSV">("PDF");
 
@@ -150,7 +147,7 @@ export function BusinessReportsPage(): JSX.Element {
   return (
     <WorkspaceShell
       title="Reports"
-      subtitle="Business Performance & Customer Experience"
+      subtitle="Detailed customer feedback"
       businesses={mineQuery.data?.businesses ?? []}
       activeBusiness={activeBusiness}
     >
@@ -159,10 +156,10 @@ export function BusinessReportsPage(): JSX.Element {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-app-primary">
-                Business Performance & Customer Experience
+                Customer Feedback Report
               </p>
               <h2 className="mt-2 text-xl font-bold">
-                Business Performance &amp; Customer Experience Report
+                Detailed Customer Feedback Report
               </h2>
               <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-app-text-muted">
                 {REPORT_DESCRIPTION}
@@ -226,22 +223,6 @@ export function BusinessReportsPage(): JSX.Element {
               }))}
               allLabel="All Sentiments"
             />
-            <label className="flex items-start gap-3 rounded-md border border-app-border p-3">
-              <input
-                type="checkbox"
-                checked={request.comparePreviousPeriod}
-                onChange={(event) =>
-                  update("comparePreviousPeriod", event.target.checked)
-                }
-                className="mt-0.5 h-4 w-4 shrink-0 accent-app-primary"
-              />
-              <span>
-                <span className="block text-sm font-bold">Compare previous period</span>
-                <span className="mt-1 block text-xs font-medium text-app-text-muted">
-                  Identical filters compared against the prior window.
-                </span>
-              </span>
-            </label>
             <div>
               <p className="mb-2 text-xs font-bold text-app-text-muted">Output format</p>
               <div className="grid grid-cols-2 gap-2">
@@ -338,9 +319,7 @@ function ReportPreview({
                 <FileText className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="text-lg font-bold">
-                  Business Performance &amp; Customer Experience Report
-                </h2>
+                <h2 className="text-lg font-bold">Detailed Customer Feedback Report</h2>
                 <p className="mt-1 text-sm font-medium leading-6 text-app-text-muted">
                   {REPORT_DESCRIPTION}
                 </p>
@@ -370,10 +349,6 @@ function ReportPreview({
         </div>
       </WorkspacePanel>
     );
-  const comparisonPreview = getReportComparisonPreview(
-    report,
-    request.comparePreviousPeriod
-  );
   return (
     <div className="space-y-5">
       <WorkspacePanel>
@@ -382,7 +357,7 @@ function ReportPreview({
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-app-primary">
               {report.branding.platformName} · Business Reporting
             </p>
-            <h2 className="mt-2 text-2xl font-bold">{report.title}</h2>
+            <h2 className="mt-2 text-2xl font-bold">Detailed Customer Feedback Report</h2>
             <p className="mt-2 text-sm font-medium text-app-text-muted">
               {formatDate(report.period.from)} – {formatDate(report.period.to)} ·
               generated {formatDateTime(report.generatedAt)}
@@ -393,137 +368,16 @@ function ReportPreview({
           </div>
           <FileText className="h-7 w-7 shrink-0 text-app-primary" aria-hidden="true" />
         </div>
-        <div className="mt-4 rounded-md border border-app-border bg-app-surface-muted p-3 text-sm text-app-text-muted">
-          {report.scope.notes.map((note) => (
-            <p key={note}>{note}</p>
-          ))}
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-          {report.highlights.map((item) => (
-            <div key={item.label} className="rounded-md bg-app-surface-muted p-4">
-              <p className="text-xs font-bold leading-5 text-app-text-muted">
-                {item.label}
-              </p>
-              <p className="mt-2 text-2xl font-bold">
-                {typeof item.value === "number"
-                  ? new Intl.NumberFormat().format(item.value)
-                  : item.value}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-5 rounded-md border border-app-primary-border bg-app-primary-soft/60 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-app-primary">
-            Management Summary
-          </p>
-          <p className="mt-2 text-sm font-semibold leading-6">
-            {report.managementSummary}
-          </p>
-        </div>
-        {comparisonPreview ? (
-          <div className="mt-5 rounded-md border border-app-border p-4">
-            <p className="text-xs font-bold uppercase text-app-text-muted">
-              Previous-period comparison
-            </p>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-app-border">
-                    {comparisonPreview.headers.map((header, index) => (
-                      <th
-                        key={header}
-                        className={`pb-3 pr-4 text-xs font-bold uppercase text-app-text-muted ${index > 0 && index < 4 ? "text-right" : ""}`}
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonPreview.rows.map((row) => (
-                    <tr
-                      key={String(row[0])}
-                      className="border-b border-app-border last:border-0"
-                    >
-                      {row.map((cell, index) => (
-                        <td
-                          key={`${String(row[0])}-${index}`}
-                          className={`py-3 pr-4 font-semibold ${index > 0 && index < 4 ? "text-right tabular-nums" : ""}`}
-                        >
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : null}
       </WorkspacePanel>
-      {report.sections.map((section) => {
+      {report.sections.filter(isDetailedFeedbackSection).map((section) => {
         const sectionPreview = getReportSectionPreview(section);
-        if (isDetailedFeedbackSection(section)) {
-          return (
-            <DetailedFeedbackRecordsSection
-              key={section.title}
-              section={section}
-              rows={sectionPreview.rows}
-              previewMessage={sectionPreview.message}
-            />
-          );
-        }
         return (
-          <WorkspacePanel key={section.title}>
-            <h3 className="font-bold">{section.title}</h3>
-            {section.description ? (
-              <p className="mt-1 text-sm text-app-text-muted">{section.description}</p>
-            ) : null}
-            <div className="mt-4 overflow-x-auto">
-              {section.rows.length ? (
-                <table className="w-full min-w-[480px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-app-border">
-                      {section.headers.map((header) => (
-                        <th
-                          key={header}
-                          className="pb-3 pr-4 text-xs font-bold uppercase text-app-text-muted"
-                        >
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sectionPreview.rows.map((row, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-app-border last:border-0"
-                      >
-                        {row.map((cell, cellIndex) => (
-                          <td
-                            key={cellIndex}
-                            className={`py-3 pr-4 font-semibold ${cellIndex === 0 ? semanticTextClass(String(cell ?? ""), section.semantic) : ""} ${isImportantFeedbackCell(section, cellIndex) ? "min-w-72 max-w-lg whitespace-pre-wrap break-words align-top" : ""}`}
-                          >
-                            {formatPreviewCell(section, cell, cellIndex)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="rounded-md bg-app-surface-muted p-4 text-sm font-semibold text-app-text-muted">
-                  {section.emptyMessage ?? "No persisted data matched this section."}
-                </p>
-              )}
-            </div>
-            {sectionPreview.message ? (
-              <p className="mt-3 text-xs font-semibold text-app-text-muted">
-                {sectionPreview.message}
-              </p>
-            ) : null}
-          </WorkspacePanel>
+          <DetailedFeedbackRecordsSection
+            key={section.title}
+            section={section}
+            rows={sectionPreview.rows}
+            previewMessage={sectionPreview.message}
+          />
         );
       })}
     </div>
@@ -720,44 +574,6 @@ function sentimentLabel(value: string) {
     MIXED: "Mixed"
   };
   return labels[value] ?? value;
-}
-
-function semanticTextClass(value: string, semantic?: "SENTIMENT" | "HEALTH") {
-  const normalized = value.toUpperCase().replaceAll(" ", "_");
-  if (semantic === "SENTIMENT") {
-    if (normalized === "POSITIVE") return "text-emerald-700 dark:text-emerald-300";
-    if (normalized === "NEGATIVE") return "text-red-700 dark:text-red-300";
-    if (normalized === "MIXED") return "text-amber-700 dark:text-amber-300";
-    return "text-app-text-muted";
-  }
-  if (semantic === "HEALTH") {
-    if (
-      [
-        "HEALTHY",
-        "OPERATIONAL",
-        "COMPLETED",
-        "SUCCESS",
-        "IMPORTED",
-        "ACTIVE",
-        "CONNECTED"
-      ].includes(normalized)
-    )
-      return "text-emerald-700 dark:text-emerald-300";
-    if (
-      [
-        "FAILED",
-        "ERROR",
-        "DEGRADED",
-        "NEEDS_ATTENTION",
-        "SUSPENDED",
-        "REJECTED"
-      ].includes(normalized)
-    )
-      return "text-red-700 dark:text-red-300";
-    if (["PENDING", "PAUSED", "PROCESSING", "COMPLETED_WITH_ERRORS"].includes(normalized))
-      return "text-amber-700 dark:text-amber-300";
-  }
-  return "";
 }
 
 function ReportSelect({

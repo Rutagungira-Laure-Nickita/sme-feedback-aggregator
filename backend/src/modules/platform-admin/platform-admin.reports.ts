@@ -116,15 +116,7 @@ export type IntegrationHealthRecord = Prisma.IntegrationConnectionGetPayload<{
 export const ADMIN_REPORT_CATALOG = [
   {
     type: "EXECUTIVE_PLATFORM",
-    title: "Executive Platform Report"
-  },
-  {
-    type: "FEEDBACK_CUSTOMER_EXPERIENCE",
-    title: "Feedback & Customer Experience Report"
-  },
-  {
-    type: "OPERATIONS_SYSTEM_HEALTH",
-    title: "Operations & System Health Report"
+    title: "Platform Overview Report"
   }
 ] as const satisfies ReadonlyArray<{ type: AdminReportType; title: string }>;
 
@@ -149,7 +141,7 @@ export async function buildAdminReport(input: ReportInput): Promise<AdminReportD
   };
 
   if (input.reportType === "EXECUTIVE_PLATFORM") {
-    await buildExecutiveReport(report, context);
+    await buildSimplePlatformReport(report, context);
   } else if (input.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE") {
     await buildFeedbackExperienceReport(report, context);
   } else {
@@ -157,6 +149,165 @@ export async function buildAdminReport(input: ReportInput): Promise<AdminReportD
   }
 
   return formatReportDocument(report);
+}
+
+async function buildSimplePlatformReport(
+  report: AdminReportDocument,
+  context: ReportContext
+) {
+  const { input, from, to, scopeBusinessId } = context;
+  const scope = createExecutiveScopePlan(input, scopeBusinessId);
+  const feedbackScope = createFeedbackScopePlan(
+    { ...input, businessId: scopeBusinessId },
+    from,
+    to
+  );
+  const membershipWhere: Prisma.BusinessMembershipWhereInput = {
+    ...(scopeBusinessId ? { businessId: scopeBusinessId } : {}),
+    ...(scope.membershipCountWhere ?? {}),
+    status: "ACTIVE"
+  };
+
+  const [businesses, users, detailedFeedback, connections] = await Promise.all([
+    prisma.business.findMany({
+      where: scope.businessWhere,
+      select: {
+        name: true,
+        status: true,
+        _count: {
+          select: {
+            branches: input.branchId ? { where: { id: input.branchId } } : true,
+            memberships: { where: membershipWhere },
+            feedbacks: { where: feedbackScope.where }
+          }
+        }
+      },
+      orderBy: { name: "asc" }
+    }),
+    prisma.user.findMany({
+      where: scope.userWhere,
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        status: true,
+        businessMemberships: {
+          where: membershipWhere,
+          select: {
+            role: true,
+            allBranchesAccess: true,
+            business: { select: { name: true } },
+            branchAccess: {
+              where: input.branchId ? { branchId: input.branchId } : undefined,
+              select: { branch: { select: { name: true } } }
+            }
+          }
+        }
+      },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }, { email: "asc" }]
+    }),
+    prisma.feedback.findMany({
+      where: feedbackScope.where,
+      select: {
+        channel: true,
+        message: true,
+        receivedAt: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        category: { select: { name: true } },
+        status: true,
+        business: { select: { name: true } },
+        branch: { select: { name: true } }
+      },
+      orderBy: [{ receivedAt: "desc" }, { id: "asc" }]
+    }),
+    prisma.integrationConnection.findMany({
+      where: scope.integrationWhere,
+      select: integrationHealthSelect,
+      orderBy: [{ business: { name: "asc" } }, { provider: "asc" }]
+    })
+  ]);
+
+  const connectedIntegrations = connections.filter(
+    (connection) => connection.status === IntegrationConnectionStatus.CONNECTED
+  ).length;
+
+  report.title = "Platform Overview Report";
+  report.scope = {
+    ...report.scope,
+    notes: [
+      context.branch
+        ? `Platform records routed to ${context.branch.name}.`
+        : context.business
+          ? `Platform records for ${context.business.name}.`
+          : "Platform-wide records across all businesses."
+    ]
+  };
+  report.managementSummary = "";
+  report.highlights = [
+    { label: "Total Businesses", value: businesses.length },
+    { label: "Total Users", value: users.length },
+    { label: "Feedback in selected period", value: detailedFeedback.length },
+    { label: "Connected Integrations", value: connectedIntegrations }
+  ];
+  report.comparison = undefined;
+  report.sections = [
+    {
+      title: "Businesses",
+      description:
+        "Businesses in the selected scope with simple branch, active-user, and matching-feedback counts.",
+      headers: ["Business", "Status", "Branches", "Users", "Feedback"],
+      rows: businesses.map((business) => [
+        business.name,
+        business.status,
+        business._count.branches,
+        business._count.memberships,
+        business._count.feedbacks
+      ]),
+      emptyMessage: "No businesses matched the selected scope."
+    },
+    {
+      title: "Users",
+      description: "Basic non-sensitive user and business access information.",
+      headers: ["Name", "Email", "Role", "Business", "Branch", "Status"],
+      rows: users.map((user) => {
+        const memberships = user.businessMemberships;
+        const businessNames = [...new Set(memberships.map((item) => item.business.name))];
+        const branchNames = [
+          ...new Set(
+            memberships.flatMap((membership) =>
+              membership.allBranchesAccess
+                ? ["All branches"]
+                : membership.branchAccess.map((access) => access.branch.name)
+            )
+          )
+        ];
+        return [
+          `${user.firstName} ${user.lastName}`.trim(),
+          user.email,
+          user.role,
+          businessNames.join(", ") || "Platform-wide",
+          branchNames.join(", ") || "Not applicable",
+          user.status
+        ];
+      }),
+      emptyMessage: "No users matched the selected scope."
+    },
+    buildDetailedFeedbackSection(detailedFeedback, { includeBusinessContext: true }),
+    {
+      title: "Supported Integrations",
+      description: "Current Live Gmail and WhatsApp connections only.",
+      headers: ["Business", "Integration", "Connection status"],
+      rows: connections.map((connection) => [
+        connection.business.name,
+        providerLabel(connection),
+        connection.status
+      ]),
+      emptyMessage: "No supported Live integrations matched the selected scope."
+    }
+  ];
 }
 
 async function createReportContext(input: ReportInput): Promise<ReportContext> {
@@ -227,7 +378,7 @@ export function createFeedbackScopePlan(
   from?: Date,
   to?: Date
 ): FeedbackScopePlan {
-  const feedbackFilters = input.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE";
+  const feedbackFilters = input.reportType !== "OPERATIONS_SYSTEM_HEALTH";
   const filters = {
     businessId: input.businessId,
     branchId: input.branchId,
@@ -347,7 +498,10 @@ export function createExecutiveScopePlan(
   };
 }
 
-async function buildExecutiveReport(report: AdminReportDocument, context: ReportContext) {
+export async function buildLegacyExecutiveReport(
+  report: AdminReportDocument,
+  context: ReportContext
+) {
   const { input, from, to, previousFrom, previousTo, scopeBusinessId } = context;
   const scope = createExecutiveScopePlan(input, scopeBusinessId);
   const { businessWhere, branchWhere, userWhere, customerWhere, integrationWhere } =
@@ -1464,7 +1618,7 @@ function reportFilters(context: ReportContext) {
   if (input.reportType !== "OPERATIONS_SYSTEM_HEALTH") {
     filters.push(branch ? `Branch: ${branch.name}` : "All Branches");
   }
-  if (input.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE") {
+  if (input.reportType !== "OPERATIONS_SYSTEM_HEALTH") {
     filters.push(
       input.channel
         ? `Channel: ${formatReportDisplayValue(input.channel)}`

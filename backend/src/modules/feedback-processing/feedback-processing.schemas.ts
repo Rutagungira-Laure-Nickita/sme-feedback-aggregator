@@ -116,6 +116,7 @@ export const normalizedFeedbackInputSchema = z
         value === undefined || /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(value),
       "Enter a valid language code."
     ),
+    categoryId: optionalStringSchema(191),
     customer: feedbackCustomerInputSchema,
     attachments: z
       .array(feedbackAttachmentInputSchema)

@@ -1,5 +1,13 @@
 # Database Notes
 
+## Automatic Category Persistence and Backfill
+
+No Prisma schema change or migration is required. Existing nullable `Feedback.categoryId`, Business-owned `FeedbackCategory`, `FeedbackFieldState`, and AI-analysis columns already represent the required behavior.
+
+New feedback is persisted with either a validated explicit active tenant category or the canonical Business-owned `Other` fallback in the same transaction. The CATEGORY field-state source is `HUMAN` for an explicit selection and `DEFAULT` for the fallback. Later qualifying AI assignment changes the source to `AI`; ordinary category management and automation retain their existing `HUMAN`/`AUTOMATION` provenance.
+
+`npm run categories:backfill` is dry-run-only by default. `--apply` targets only active operational rows where `categoryId IS NULL` and no CATEGORY field state records a deliberate HUMAN or AUTOMATION choice, rechecks each row in its transaction, assigns canonical `Other`, upserts DEFAULT category provenance, then queues existing AI analysis. It excludes soft-deleted and unsupported/hidden historical provider feedback and is safe to rerun. Production apply additionally requires `--allow-production`. No reset, db push, reseed, bulk historical rewrite, or deletion belongs to this work.
+
 ## Focused Platform Administrator Reporting Consistency Database Impact
 
 No Prisma schema, migration, model, enum, column, index, seed, or stored row changed. The correction reads existing supported Live connection relations and existing `IntegrationConnection` timestamps (`lastWebhookReceivedAt`, `lastInboundMessageAt`, `lastSuccessfulSyncAt`, `lastAttemptedSyncAt`, and `lastConnectionTestAt`). Historical and unsupported integration records remain stored and unmodified. The Operations imported-item value remains the existing sum of `SynchronizationRun.itemsImported`; only its report label changed.

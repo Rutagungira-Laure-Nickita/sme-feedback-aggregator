@@ -33,6 +33,7 @@ import {
   WorkspaceShell
 } from "./components.js";
 import { manualFeedbackSchema, type ManualFeedbackValues } from "./schemas.js";
+import { fetchCategories } from "./feedbackInboxApi.js";
 import type {
   BranchSummary,
   BusinessDetail,
@@ -56,6 +57,11 @@ export function ManualFeedbackPage(): JSX.Element {
   const { businessId } = useParams();
   const [submission, setSubmission] = useState<ManualFeedbackResult | null>(null);
   const contextQuery = useManualFeedbackContext(businessId);
+  const categoriesQuery = useQuery({
+    queryKey: ["businesses", businessId, "feedback-categories", "manual-entry"],
+    queryFn: () => fetchCategories(businessId ?? ""),
+    enabled: Boolean(businessId)
+  });
 
   const form = useForm<ManualFeedbackValues>({
     resolver: zodResolver(manualFeedbackSchema),
@@ -175,6 +181,27 @@ export function ManualFeedbackPage(): JSX.Element {
                       name={field.name}
                       error={form.formState.errors.sourceType?.message}
                       options={sourceOptions}
+                      triggerClassName="h-11"
+                    />
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <AppSelectField
+                      label="Category (optional)"
+                      id="manual-category"
+                      value={field.value ?? ""}
+                      onValueChange={(value) => field.onChange(value || undefined)}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      error={form.formState.errors.categoryId?.message}
+                      placeholder="Assign automatically"
+                      options={(categoriesQuery.data ?? []).map((category) => ({
+                        value: category.id,
+                        label: category.name
+                      }))}
                       triggerClassName="h-11"
                     />
                   )}
@@ -852,6 +879,7 @@ function StandaloneState({
 function createDefaultValues(branchId = ""): ManualFeedbackValues {
   return {
     branchId,
+    categoryId: undefined,
     sourceType: "PHONE_CALL",
     title: undefined,
     message: "",

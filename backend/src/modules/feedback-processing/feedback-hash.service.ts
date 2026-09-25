@@ -19,6 +19,7 @@ function toHashablePayload(input: ResolvedFeedbackInput): JsonValue {
     occurredAt: input.occurredAt ? input.occurredAt.toISOString() : null,
     sourceUrl: input.sourceUrl,
     languageCode: input.languageCode,
+    categoryId: input.categoryId,
     customerName: input.customerName,
     customerEmail: input.customerEmail,
     customerPhone: input.customerPhone,

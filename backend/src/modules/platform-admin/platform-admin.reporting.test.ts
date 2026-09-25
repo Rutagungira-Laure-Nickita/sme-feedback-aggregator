@@ -50,14 +50,15 @@ const uiSource = readFileSync(
   "utf8"
 );
 
-test("Phase 25.4 catalog exposes exactly three supervisor reports with Executive first", () => {
+test("report catalog exposes one Platform Overview while legacy request types remain compatible", () => {
   assert.deepEqual(adminReportTypeSchema.options, [
     "EXECUTIVE_PLATFORM",
     "FEEDBACK_CUSTOMER_EXPERIENCE",
     "OPERATIONS_SYSTEM_HEALTH"
   ]);
-  assert.equal(ADMIN_REPORT_CATALOG.length, 3);
+  assert.equal(ADMIN_REPORT_CATALOG.length, 1);
   assert.equal(ADMIN_REPORT_CATALOG[0]?.type, "EXECUTIVE_PLATFORM");
+  assert.equal(ADMIN_REPORT_CATALOG[0]?.title, "Platform Overview Report");
   for (const legacy of [
     "BUSINESS_ADOPTION",
     "FEEDBACK_INTELLIGENCE",
@@ -74,7 +75,7 @@ test("Phase 25.4 catalog exposes exactly three supervisor reports with Executive
   assert.match(uiSource, /reportType: "EXECUTIVE_PLATFORM"/);
 });
 
-test("report-aware validation accepts only relevant filters", () => {
+test("report validation accepts Platform Overview feedback filters", () => {
   const base = { dateFrom: "2026-08-01", dateTo: "2026-08-31" };
   assert.equal(
     adminReportPreviewSchema.safeParse({
@@ -91,7 +92,7 @@ test("report-aware validation accepts only relevant filters", () => {
       reportType: "EXECUTIVE_PLATFORM",
       sentiment: "NEGATIVE"
     }).success,
-    false
+    true
   );
   assert.equal(
     adminReportPreviewSchema.safeParse({
@@ -500,7 +501,18 @@ test("Manual Entry and synchronization-import wording agree in Preview, PDF, and
   assert.match(pdfText, /Manual Entry/);
 });
 
-test("consolidated builders retain required Executive, feedback, and operations data", () => {
+test("simple Platform Overview and compatible legacy builders retain required data", () => {
+  for (const required of [
+    "Total Businesses",
+    "Total Users",
+    "Feedback in selected period",
+    "Connected Integrations",
+    'title: "Businesses"',
+    'title: "Users"',
+    'title: "Supported Integrations"'
+  ])
+    assert.ok(reportSource.includes(required), required);
+
   for (const required of [
     "Total businesses (lifetime)",
     "Active businesses",
@@ -537,7 +549,7 @@ test("consolidated builders retain required Executive, feedback, and operations 
 
   assert.equal(
     reportSource.match(/buildDetailedFeedbackSection\(detailedFeedback/g)?.length,
-    3
+    4
   );
   assert.match(
     reportSource,
@@ -593,24 +605,24 @@ test("Platform Administrator detailed feedback uses shared sender rules and scop
     { includeBusinessContext: true }
   );
   assert.deepEqual(section.headers, [
+    "Business",
+    "Branch",
     "Customer / Sender",
     "Feedback",
     "Channel",
     "Date",
     "Category",
-    "Status",
-    "Business",
-    "Branch"
+    "Status"
   ]);
   assert.deepEqual(section.rows[0], [
+    "Kigali Waffle Cuisine",
+    "Remera",
     "Manual Customer",
     "Original staff-entered customer feedback.",
     "Manual Entry",
     "2026-08-31T10:15:00.000Z",
     "Service Quality",
-    "New",
-    "Kigali Waffle Cuisine",
-    "Remera"
+    "New"
   ]);
 });
 
@@ -649,12 +661,12 @@ test("Platform Administrator PDF and CSV export every detailed feedback row", as
   assert.equal(table.wrapRows, true);
   assert.equal(table.headers.length, 8);
   assert.equal(table.columnProportions?.length, 8);
-  assert.match(String(table.rows[0]?.[3]), /25 Aug 2026, 14:00/);
+  assert.match(String(table.rows[0]?.[5]), /25 Aug 2026, 14:00/);
 
   const csvText = renderReportCsv(report).toString("utf8");
   assert.match(
     csvText,
-    /Customer \/ Sender,Feedback,Channel,Date,Category,Status,Business,Branch/
+    /Business,Branch,Customer \/ Sender,Feedback,Channel,Date,Category,Status/
   );
   assert.match(csvText, /Final admin detailed feedback record 45/);
   assert.match(csvText, /2026-08-25T14:44:00\.000Z/);

@@ -178,6 +178,7 @@ export const manualAttachmentReferenceSchema = z.object({
 
 export const manualFeedbackSchema = z.object({
   branchId: z.string().trim().min(1, "Select a branch."),
+  categoryId: manualOptionalString(191),
   sourceType: manualSourceTypeSchema,
   title: manualOptionalString(250),
   message: z

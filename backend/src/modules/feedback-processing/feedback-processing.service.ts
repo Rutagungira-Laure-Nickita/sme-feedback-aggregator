@@ -12,6 +12,10 @@ import { scheduleAnalysisForFeedback } from "../ai-analysis/ai-analysis.service.
 import { scheduleAutomationEvent } from "../automation/index.js";
 import { tryAutoLinkCustomerForFeedback } from "../customers/index.js";
 import { createFeedbackPayloadHash } from "./feedback-hash.service.js";
+import {
+  initialFeedbackFieldStates,
+  resolveInitialFeedbackCategory
+} from "./feedback-category-assignment.js";
 import { normalizeFeedbackInput, withResolvedBranch } from "./feedback-normalizer.js";
 import {
   FEEDBACK_ERROR_CODES,
@@ -137,6 +141,12 @@ async function processFeedbackInput(
         );
       }
 
+      const initialCategory = await resolveInitialFeedbackCategory(
+        tx,
+        resolved.businessId,
+        resolved.categoryId
+      );
+
       const feedback = await tx.feedback.create({
         data: {
           businessId: resolved.businessId,
@@ -150,12 +160,21 @@ async function processFeedbackInput(
           customerName: resolved.customerName,
           customerEmail: resolved.customerEmail,
           customerPhone: resolved.customerPhone,
+          categoryId: initialCategory.categoryId,
           sourceUrl: resolved.sourceUrl,
           languageCode: resolved.languageCode,
           occurredAt: resolved.occurredAt,
           receivedAt: new Date(),
           sourceMetadata: toPrismaJson(resolved.metadata)
         }
+      });
+
+      await tx.feedbackFieldState.createMany({
+        data: initialFeedbackFieldStates({
+          businessId: resolved.businessId,
+          feedbackId: feedback.id,
+          categorySource: initialCategory.source
+        })
       });
 
       if (resolved.attachments.length > 0) {

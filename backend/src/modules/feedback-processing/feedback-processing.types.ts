@@ -33,6 +33,7 @@ export type NormalizedFeedbackInput = {
   occurredAt?: Date | string;
   sourceUrl?: string;
   languageCode?: string;
+  categoryId?: string;
   customer?: FeedbackCustomerInput;
   attachments?: FeedbackAttachmentInput[];
   metadata?: JsonObject;
@@ -59,6 +60,7 @@ export type PreparedFeedbackInput = {
   occurredAt: Date | null;
   sourceUrl: string | null;
   languageCode: string | null;
+  categoryId: string | null;
   customerName: string | null;
   customerEmail: string | null;
   customerPhone: string | null;

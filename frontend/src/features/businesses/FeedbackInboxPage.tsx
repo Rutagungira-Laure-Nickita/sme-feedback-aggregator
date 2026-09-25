@@ -77,8 +77,6 @@ import {
   fetchCategories,
   updateFeedbackPriority,
   retryFeedbackAIAnalysis,
-  applyAICategorySuggestion,
-  dismissAICategorySuggestion,
   editFeedback,
   deleteFeedback,
   bulkUpdateFeedbackStatus,
@@ -2870,24 +2868,13 @@ function AIAnalysisPanel({
     mutationFn: () => retryFeedbackAIAnalysis(businessId, feedbackId),
     onSuccess: invalidate
   });
-  const applyMutation = useMutation({
-    mutationFn: () => applyAICategorySuggestion(businessId, feedbackId),
-    onSuccess: invalidate
-  });
-  const dismissMutation = useMutation({
-    mutationFn: () => dismissAICategorySuggestion(businessId, feedbackId),
-    onSuccess: invalidate
-  });
-  const mutationError =
-    retryMutation.error ?? applyMutation.error ?? dismissMutation.error ?? null;
-  const isBusy =
-    retryMutation.isPending || applyMutation.isPending || dismissMutation.isPending;
+  const mutationError = retryMutation.error;
   const isAnalysisInFlight =
     analysis?.status === "PENDING" || analysis?.status === "PROCESSING";
   const hasGeneratedResult = Boolean(
     analysis?.summary || analysis?.sentiment || analysis?.detectedLanguage
   );
-  const retryDisabled = isBusy || isAnalysisInFlight;
+  const retryDisabled = retryMutation.isPending || isAnalysisInFlight;
 
   return (
     <section className="rounded-lg border border-violet-200 bg-violet-50/40 p-4 dark:border-violet-900/60 dark:bg-violet-950/20">
@@ -3024,28 +3011,12 @@ function AIAnalysisPanel({
 
           {currentCategory ? (
             <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-              Human category choices always win. AI will not replace the current category.
+              The assigned category is already active. Use the category control above if a
+              human correction is needed; human choices are never overwritten by AI.
             </p>
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            {analysis.permissions.canApplySuggestion ? (
-              <WorkspaceButton
-                onClick={() => applyMutation.mutate()}
-                disabled={isBusy || Boolean(currentCategory)}
-              >
-                Apply suggestion
-              </WorkspaceButton>
-            ) : null}
-            {analysis.permissions.canDismissSuggestion ? (
-              <WorkspaceButton
-                tone="secondary"
-                onClick={() => dismissMutation.mutate()}
-                disabled={isBusy}
-              >
-                Dismiss
-              </WorkspaceButton>
-            ) : null}
             {analysis.permissions.canRetry ? (
               <WorkspaceButton
                 tone="secondary"

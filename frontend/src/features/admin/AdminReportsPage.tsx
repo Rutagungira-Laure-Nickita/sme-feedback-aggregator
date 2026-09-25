@@ -10,10 +10,7 @@ import { useMemo, useState } from "react";
 import { normalizeApiError } from "../../api/axios.js";
 import { AdminShell, WorkspacePanel } from "../businesses/components.js";
 import { formatRole } from "../businesses/format.js";
-import {
-  OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS,
-  SUPPORTED_LIVE_INTEGRATION_OPTIONS
-} from "../businesses/supportedSources.js";
+import { OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS } from "../businesses/supportedSources.js";
 import { exportAdminReport, fetchAdminFilterOptions, previewAdminReport } from "./api.js";
 import { getReportComparisonPreview, getReportSectionPreview } from "./report-preview.js";
 import type { AdminReportType, ReportDocument, ReportRequest } from "./types.js";
@@ -26,21 +23,9 @@ const ADMIN_REPORTS: Array<{
 }> = [
   {
     value: "EXECUTIVE_PLATFORM",
-    label: "Executive Platform Report",
+    label: "Platform Overview Report",
     description:
-      "Platform-wide businesses, users, customers, feedback, sentiment, integrations, workload, and key management indicators."
-  },
-  {
-    value: "FEEDBACK_CUSTOMER_EXPERIENCE",
-    label: "Feedback & Customer Experience Report",
-    description:
-      "Detailed customer feedback, channels, sentiment, priorities, categories, workflow, and response workload."
-  },
-  {
-    value: "OPERATIONS_SYSTEM_HEALTH",
-    label: "Operations & System Health Report",
-    description:
-      "Core services, integrations, webhooks, AI processing, and administrative operational health."
+      "A simple view of businesses, users, customer feedback, and supported integrations across the platform."
   }
 ];
 
@@ -56,7 +41,7 @@ export function AdminReportsPage(): JSX.Element {
     reportType: "EXECUTIVE_PLATFORM",
     dateFrom: initialDates.from,
     dateTo: initialDates.to,
-    comparePreviousPeriod: true
+    comparePreviousPeriod: false
   });
   const [format, setFormat] = useState<"PDF" | "CSV">("PDF");
   const options = useQuery({
@@ -71,9 +56,7 @@ export function AdminReportsPage(): JSX.Element {
   const branches = (options.data?.branches ?? []).filter(
     (item) => !request.businessId || item.businessId === request.businessId
   );
-  const selected = ADMIN_REPORTS.find((item) => item.value === request.reportType)!;
-  const isFeedbackReport = request.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE";
-  const isOperationsReport = request.reportType === "OPERATIONS_SYSTEM_HEALTH";
+  const selected = ADMIN_REPORTS[0]!;
   const validationMessage = reportValidationMessage(request);
   const update = <K extends keyof ReportRequest>(key: K, value: ReportRequest[K]) => {
     preview.reset();
@@ -83,28 +66,10 @@ export function AdminReportsPage(): JSX.Element {
       ...(key === "businessId" ? { branchId: undefined } : {})
     }));
   };
-  const changeReportType = (reportType: AdminReportType) => {
-    preview.reset();
-    setRequest((current) => ({
-      reportType,
-      dateFrom: current.dateFrom,
-      dateTo: current.dateTo,
-      businessId: current.businessId,
-      branchId: reportType === "OPERATIONS_SYSTEM_HEALTH" ? undefined : current.branchId,
-      channel:
-        reportType === "FEEDBACK_CUSTOMER_EXPERIENCE" ? current.channel : undefined,
-      status: reportType === "FEEDBACK_CUSTOMER_EXPERIENCE" ? current.status : undefined,
-      sentiment:
-        reportType === "FEEDBACK_CUSTOMER_EXPERIENCE" ? current.sentiment : undefined,
-      provider: reportType === "OPERATIONS_SYSTEM_HEALTH" ? current.provider : undefined,
-      comparePreviousPeriod: current.comparePreviousPeriod
-    }));
-  };
-
   return (
     <AdminShell
       title="Reporting center"
-      subtitle="Generate database-backed stakeholder reports as professional PDF or tabular CSV exports."
+      subtitle="Review businesses, users, customer feedback, and supported integrations."
     >
       <div className="space-y-6">
         <WorkspacePanel className="h-fit">
@@ -113,16 +78,6 @@ export function AdminReportsPage(): JSX.Element {
             Reports are generated on demand. Files and report history are not persisted.
           </p>
           <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <ReportSelect
-              label="Report type"
-              value={request.reportType}
-              onChange={(value) => changeReportType(value as AdminReportType)}
-              options={ADMIN_REPORTS.map((item) => ({
-                value: item.value,
-                label: item.label
-              }))}
-              className="md:col-span-2 xl:col-span-4"
-            />
             <p className="rounded-md bg-app-primary-soft p-3 text-xs font-semibold leading-5 text-app-primary md:col-span-2 xl:col-span-4">
               {selected.description}
             </p>
@@ -146,77 +101,42 @@ export function AdminReportsPage(): JSX.Element {
               }))}
               allLabel="All Businesses"
             />
-            {!isOperationsReport ? (
-              <ReportSelect
-                label="Branch"
-                value={request.branchId ?? ""}
-                onChange={(value) => update("branchId", value || undefined)}
-                options={branches.map((item) => ({ value: item.id, label: item.name }))}
-                allLabel="All Branches"
-              />
-            ) : null}
-            {isFeedbackReport ? (
-              <ReportSelect
-                label="Channel"
-                value={request.channel ?? ""}
-                onChange={(value) => update("channel", value || undefined)}
-                options={OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => ({
-                  ...option
-                }))}
-                allLabel="All Channels"
-              />
-            ) : null}
-            {isFeedbackReport ? (
-              <ReportSelect
-                label="Workflow status"
-                value={request.status ?? ""}
-                onChange={(value) => update("status", value || undefined)}
-                options={["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"].map((value) => ({
-                  value,
-                  label: formatRole(value)
-                }))}
-                allLabel="All Statuses"
-              />
-            ) : null}
-            {isFeedbackReport ? (
-              <ReportSelect
-                label="Sentiment"
-                value={request.sentiment ?? ""}
-                onChange={(value) => update("sentiment", value || undefined)}
-                options={["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"].map((value) => ({
-                  value,
-                  label: formatRole(value)
-                }))}
-                allLabel="All Sentiments"
-              />
-            ) : null}
-            {isOperationsReport ? (
-              <ReportSelect
-                label="Provider"
-                value={request.provider ?? ""}
-                onChange={(value) => update("provider", value || undefined)}
-                options={SUPPORTED_LIVE_INTEGRATION_OPTIONS.map((option) => ({
-                  ...option
-                }))}
-                allLabel="All Providers"
-              />
-            ) : null}
-            <label className="flex items-start gap-3 rounded-md border border-app-border p-3 xl:col-span-1">
-              <input
-                type="checkbox"
-                checked={request.comparePreviousPeriod}
-                onChange={(event) =>
-                  update("comparePreviousPeriod", event.target.checked)
-                }
-                className="mt-0.5 h-4 w-4 accent-app-primary"
-              />
-              <span>
-                <span className="block text-sm font-bold">Compare previous period</span>
-                <span className="mt-1 block text-xs font-medium text-app-text-muted">
-                  Included only when the same filter window can be compared correctly.
-                </span>
-              </span>
-            </label>
+            <ReportSelect
+              label="Branch"
+              value={request.branchId ?? ""}
+              onChange={(value) => update("branchId", value || undefined)}
+              options={branches.map((item) => ({ value: item.id, label: item.name }))}
+              allLabel="All Branches"
+            />
+            <ReportSelect
+              label="Channel"
+              value={request.channel ?? ""}
+              onChange={(value) => update("channel", value || undefined)}
+              options={OPERATIONAL_FEEDBACK_CHANNEL_OPTIONS.map((option) => ({
+                ...option
+              }))}
+              allLabel="All Channels"
+            />
+            <ReportSelect
+              label="Workflow status"
+              value={request.status ?? ""}
+              onChange={(value) => update("status", value || undefined)}
+              options={["NEW", "IN_REVIEW", "RESOLVED", "CLOSED"].map((value) => ({
+                value,
+                label: formatRole(value)
+              }))}
+              allLabel="All Statuses"
+            />
+            <ReportSelect
+              label="Sentiment"
+              value={request.sentiment ?? ""}
+              onChange={(value) => update("sentiment", value || undefined)}
+              options={["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"].map((value) => ({
+                value,
+                label: formatRole(value)
+              }))}
+              allLabel="All Sentiments"
+            />
             <div className="md:col-span-1">
               <p className="mb-2 text-xs font-bold text-app-text-muted">Output format</p>
               <div className="grid grid-cols-2 gap-2">
@@ -394,14 +314,16 @@ function ReportPreview({
             </div>
           ))}
         </div>
-        <div className="mt-5 rounded-md border border-app-primary-border bg-app-primary-soft/60 p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-app-primary">
-            Management Summary
-          </p>
-          <p className="mt-2 text-sm font-semibold leading-6">
-            {report.managementSummary}
-          </p>
-        </div>
+        {report.managementSummary ? (
+          <div className="mt-5 rounded-md border border-app-primary-border bg-app-primary-soft/60 p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-app-primary">
+              Summary
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-6">
+              {report.managementSummary}
+            </p>
+          </div>
+        ) : null}
         {comparisonPreview ? (
           <div className="mt-5 rounded-md border border-app-border p-4">
             <p className="text-xs font-bold uppercase text-app-text-muted">
@@ -515,8 +437,8 @@ function ReportPreview({
 function isDetailedFeedbackSection(section: ReportDocument["sections"][number]) {
   return (
     section.title === "Detailed Feedback Records" &&
-    section.headers.slice(0, 6).join("|") ===
-      "Customer / Sender|Feedback|Channel|Date|Category|Status"
+    section.headers.join("|") ===
+      "Business|Branch|Customer / Sender|Feedback|Channel|Date|Category|Status"
   );
 }
 
@@ -550,14 +472,14 @@ function DetailedFeedbackRecordsSection({
           <div className="mt-4 hidden max-w-full overflow-x-auto md:block">
             <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
               <colgroup>
+                <col className="w-[11%]" />
+                <col className="w-[10%]" />
                 <col className="w-[13%]" />
                 <col className="w-[27%]" />
                 <col className="w-[8%]" />
                 <col className="w-[13%]" />
                 <col className="w-[10%]" />
                 <col className="w-[8%]" />
-                <col className="w-[11%]" />
-                <col className="w-[10%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-app-border bg-app-surface-muted/70">
@@ -574,13 +496,13 @@ function DetailedFeedbackRecordsSection({
               <tbody>
                 {rows.map((row, rowIndex) => (
                   <tr
-                    key={`${String(row[3] ?? "feedback")}-${rowIndex}`}
+                    key={`${String(row[5] ?? "feedback")}-${rowIndex}`}
                     className="border-b border-app-border align-top last:border-0"
                   >
                     {row.map((cell, cellIndex) => (
                       <td
                         key={cellIndex}
-                        className={`px-3 py-4 font-semibold ${cellIndex === 0 ? "break-all" : "break-words"} ${cellIndex === 1 ? "whitespace-pre-wrap leading-6" : ""}`}
+                        className={`px-3 py-4 font-semibold ${cellIndex === 2 ? "break-all" : "break-words"} ${cellIndex === 3 ? "whitespace-pre-wrap leading-6" : ""}`}
                       >
                         {formatPreviewReportCell(section, cell, cellIndex)}
                       </td>
@@ -594,7 +516,7 @@ function DetailedFeedbackRecordsSection({
           <div className="mt-4 space-y-3 md:hidden">
             {rows.map((row, rowIndex) => (
               <article
-                key={`${String(row[3] ?? "feedback")}-${rowIndex}`}
+                key={`${String(row[5] ?? "feedback")}-${rowIndex}`}
                 className="min-w-0 rounded-lg border border-app-border bg-app-surface-muted/45 p-4"
               >
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -603,37 +525,37 @@ function DetailedFeedbackRecordsSection({
                       Customer / Sender
                     </p>
                     <p className="mt-1 break-all font-bold">
-                      {String(row[0] ?? "Unknown customer")}
+                      {String(row[2] ?? "Unknown customer")}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-app-primary-soft px-2.5 py-1 text-xs font-bold text-app-primary">
-                      {String(row[2] ?? "Unknown channel")}
+                      {String(row[4] ?? "Unknown channel")}
                     </span>
                     <span className="rounded-full border border-app-border px-2.5 py-1 text-xs font-bold">
-                      {String(row[5] ?? "Not set")}
+                      {String(row[7] ?? "Not set")}
                     </span>
                   </div>
                 </div>
                 <p className="mt-4 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
-                  {formatPreviewReportCell(section, row[1] ?? null, 1)}
+                  {formatPreviewReportCell(section, row[3] ?? null, 3)}
                 </p>
                 <dl className="mt-4 grid min-w-0 gap-3 border-t border-app-border pt-3 sm:grid-cols-2">
                   <SummaryValue
                     label="Date"
-                    value={String(formatPreviewReportCell(section, row[3] ?? null, 3))}
+                    value={String(formatPreviewReportCell(section, row[5] ?? null, 5))}
                   />
                   <SummaryValue
                     label="Category"
-                    value={String(row[4] ?? "Uncategorized")}
+                    value={String(row[6] ?? "Uncategorized")}
                   />
                   <SummaryValue
                     label="Business"
-                    value={String(row[6] ?? "Unknown business")}
+                    value={String(row[0] ?? "Unknown business")}
                   />
                   <SummaryValue
                     label="Branch"
-                    value={String(row[7] ?? "Unknown branch")}
+                    value={String(row[1] ?? "Unknown branch")}
                   />
                 </dl>
               </article>
@@ -731,13 +653,7 @@ function reportValidationMessage(request: ReportRequest) {
 }
 
 function reportScopeLabel(request: ReportRequest) {
-  if (request.reportType === "OPERATIONS_SYSTEM_HEALTH")
-    return request.provider ? formatRole(request.provider) : "All Providers";
-  if (request.reportType === "FEEDBACK_CUSTOMER_EXPERIENCE")
-    return `${request.channel ? formatRole(request.channel) : "All Channels"} · ${request.status ? formatRole(request.status) : "All Statuses"} · ${request.sentiment ? formatRole(request.sentiment) : "All Sentiments"}`;
-  return request.comparePreviousPeriod
-    ? "Management scope · comparison enabled"
-    : "Management scope";
+  return `${request.channel ? formatRole(request.channel) : "All Channels"} · ${request.status ? formatRole(request.status) : "All Statuses"} · ${request.sentiment ? formatRole(request.sentiment) : "All Sentiments"}`;
 }
 
 function formatPreviewReportCell(

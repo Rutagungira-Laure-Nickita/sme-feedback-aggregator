@@ -33,6 +33,7 @@ export class ManualFeedbackSourceAdapter implements FeedbackSourceAdapter<Manual
       occurredAt: input.occurredAt,
       sourceUrl: input.source.sourceUrl,
       languageCode: input.languageCode,
+      categoryId: input.categoryId,
       customer: input.customer,
       attachments: input.attachments,
       metadata: this.getSafeMetadata(payload) ?? undefined

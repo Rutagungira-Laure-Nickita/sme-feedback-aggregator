@@ -1,5 +1,20 @@
 # Next Steps
 
+## Simplified Reporting and Automatic Categorization — Manual Verification Gate
+
+Implementation and automated verification are complete. The next task is the user-owned browser/download/provider pass:
+
+1. As a Business Owner, confirm Reports shows only the existing filters and Detailed Feedback Records. Apply Branch/date/Channel/Workflow Status/Sentiment combinations and confirm Customer / Sender, full original Feedback, Channel, Date, Category, and Status are correct. Download PDF and CSV; verify every matching row is present, long PDF messages wrap/read cleanly, and CSV keeps the complete original text.
+2. Confirm the Business Owner Overview dashboard still loads its existing real metrics even though the Reports page is simplified.
+3. As a Platform Administrator, confirm Reporting Center offers one Platform Overview Report with four cards (Businesses, Users, Feedback, Connected Integrations), then Businesses, Users, Detailed Feedback Records, and only supported Live Gmail/WhatsApp Integrations. Repeat with Business, Branch, date, Channel, Workflow Status, and Sentiment filters and inspect PDF/CSV completeness.
+4. Create Manual Entry feedback with and without a selected category. Confirm a selected category is preserved and the automatic path produces an active Business category without an Apply action.
+5. Submit Public Form feedback, synchronize a genuinely eligible labeled Gmail message, and receive a signed WhatsApp test message. Confirm each appears through the normal inbox with a category; where AI is unavailable, low-confidence, or fails, confirm `Other` remains and ingestion still succeeds.
+6. Manually change a category after automatic assignment, retry/reprocess AI, and confirm the human choice is not overwritten. Repeat with a category changed by an automation rule and confirm automation ownership is preserved.
+7. Review `npm run categories:backfill` output before any apply. If legacy active uncategorized rows remain, run `npm run categories:backfill -- --apply` in a controlled environment, rerun the dry run, and confirm zero remaining matches plus no change to soft-deleted/hidden historical rows.
+8. Repeat Owner and Platform Administrator cross-Business/foreign-Branch authorization checks and confirm no credentials, raw payloads, internal notes, or provider metadata appear in reports.
+
+No schema migration, reset, db push, reseed, historical-provider cleanup, OAuth scope change, credential change, or webhook reconfiguration belongs to this pass. The separately pending Final Product Hardening migration remains unchanged.
+
 ## Platform Administrator Reporting Consistency Correction — Manual Verification Gate
 
 Implementation and automated verification are complete. The next task for this focused correction is the user-owned report pass:

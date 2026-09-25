@@ -25,7 +25,7 @@ const adminReportsSource = readFileSync(
 );
 
 test("Business Owner has exactly one report and no report-type selector", () => {
-  assert.match(pageSource, /Business Performance &(amp;)? Customer Experience Report/);
+  assert.match(pageSource, /Detailed Customer Feedback Report/);
   assert.match(pageSource, /REPORT_DESCRIPTION/);
   assert.equal(pageSource.includes("reportType"), false);
   assert.equal(pageSource.includes("Report type"), false);
@@ -38,10 +38,10 @@ test("Business Owner report page has no Business selector", () => {
   assert.equal(apiSource.includes("businessId?: string"), false);
 });
 
-test("owner filters use natural All labels and compare-previous-period control", () => {
+test("owner filters use natural All labels without comparison controls", () => {
   for (const label of ["All Branches", "All Channels", "All Statuses", "All Sentiments"])
     assert.ok(pageSource.includes(label), label);
-  assert.match(pageSource, /Compare previous period/);
+  assert.doesNotMatch(pageSource, /Compare previous period/);
   assert.match(pageSource, /comparePreviousPeriod/);
   assert.match(pageSource, /dateFrom/);
   assert.match(pageSource, /dateTo/);
@@ -52,7 +52,6 @@ test("Preview, PDF, and CSV controls exist and stay usable on small screens", ()
   assert.match(pageSource, /Download \$\{format\}/);
   assert.match(pageSource, /\["PDF", "CSV"\]/);
   assert.match(pageSource, /min-h-11/);
-  assert.match(pageSource, /grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4/);
   assert.match(pageSource, /overflow-x-auto/);
   assert.match(pageSource, /sm:grid-cols-2 xl:grid-cols-4/);
 });
@@ -84,7 +83,7 @@ test("owner report API targets the tenant route and never accepts a businessId",
   assert.equal(apiSource.includes("reportType"), false);
 });
 
-test("Platform Admin Reporting Center remains unchanged with exactly three report types", () => {
+test("Platform Admin Reporting Center exposes one Platform Overview report", () => {
   const values = [
     ...adminReportsSource
       .slice(
@@ -93,19 +92,23 @@ test("Platform Admin Reporting Center remains unchanged with exactly three repor
       )
       .matchAll(/value: "([A-Z_]+)"/g)
   ].map((match) => match[1]);
-  assert.deepEqual(values, [
-    "EXECUTIVE_PLATFORM",
-    "FEEDBACK_CUSTOMER_EXPERIENCE",
-    "OPERATIONS_SYSTEM_HEALTH"
-  ]);
+  assert.deepEqual(values, ["EXECUTIVE_PLATFORM"]);
+  assert.match(adminReportsSource, /Platform Overview Report/);
   assert.match(adminReportsSource, /reportType: "EXECUTIVE_PLATFORM"/);
 });
 
-test("owner report page reuses shared report preview helpers", () => {
+test("owner report page shows only the shared detailed-record preview", () => {
   assert.match(pageSource, /getReportSectionPreview/);
-  assert.match(pageSource, /getReportComparisonPreview/);
-  assert.match(pageSource, /report\.managementSummary/);
-  assert.match(pageSource, /report\.scope\.notes\.map/);
+  assert.doesNotMatch(pageSource, /getReportComparisonPreview/);
+  assert.doesNotMatch(pageSource, /report\.managementSummary/);
+  assert.doesNotMatch(pageSource, /report\.scope\.notes\.map/);
+  for (const aggregate of [
+    "Management Summary",
+    "Previous-period comparison",
+    "Sentiment distribution",
+    "Integration health"
+  ])
+    assert.equal(pageSource.includes(aggregate), false, aggregate);
 });
 
 test("owner report renders responsive Detailed Feedback Records without page-level mobile overflow", () => {

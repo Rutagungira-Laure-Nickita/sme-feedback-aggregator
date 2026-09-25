@@ -11,6 +11,7 @@ import {
   renderReportCsv,
   renderReportPdf
 } from "../platform-admin/platform-admin.report-renderer.js";
+import { simplifyBusinessOwnerReportForExport } from "../platform-admin/feedback-report-records.js";
 
 function getOwnerActor(request: Request): { userId: string; role: UserRole } {
   if (!request.auth?.id) {
@@ -62,9 +63,11 @@ export async function businessReportExportController(
     const actor = getOwnerActor(request);
     const businessId = request.params.businessId ?? "";
     const input = parse(businessReportRequestSchema.safeParse(request.body));
-    const report = await buildBusinessOwnerReport(actor, businessId, input);
+    const report = simplifyBusinessOwnerReportForExport(
+      await buildBusinessOwnerReport(actor, businessId, input)
+    );
     const extension = input.outputFormat.toLowerCase();
-    const filename = `business-performance-${new Date().toISOString().slice(0, 10)}.${extension}`;
+    const filename = `customer-feedback-${new Date().toISOString().slice(0, 10)}.${extension}`;
     const body =
       input.outputFormat === "PDF"
         ? await renderReportPdf(report)

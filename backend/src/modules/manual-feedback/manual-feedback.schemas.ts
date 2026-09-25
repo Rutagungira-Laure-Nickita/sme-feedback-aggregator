@@ -114,6 +114,7 @@ export const manualFeedbackIdempotencyKeySchema = z
 export const manualFeedbackRequestSchema = z
   .object({
     branchId: idSchema,
+    categoryId: idSchema.optional(),
     title: optionalTextSchema(250),
     message: messageSchema,
     rating: z.number().int().min(1).max(5).optional(),

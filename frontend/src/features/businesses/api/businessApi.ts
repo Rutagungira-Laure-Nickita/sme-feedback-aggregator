@@ -571,6 +571,7 @@ export async function submitManualFeedbackForBusiness(
 ): Promise<ManualFeedbackResult> {
   const payload = {
     branchId: values.branchId,
+    categoryId: values.categoryId,
     title: values.title,
     message: values.message,
     rating: values.rating,

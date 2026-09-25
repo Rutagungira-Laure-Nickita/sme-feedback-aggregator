@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-25 - Simplified Reports and Automatic Category Assignment
+
+- Simplified the Business Owner Reports page and PDF/CSV export to filtered Detailed Feedback Records only, while preserving the rich internal preview used by the real-data Owner Overview dashboard.
+- Replaced normal Platform Administrator report choices with one Platform Overview Report containing four summary cards, Businesses, Users, full Detailed Feedback Records, and supported Live Gmail/WhatsApp integrations.
+- Preserved all matching rows in PDF/CSV, full original CSV messages, wrapped/page-safe PDF feedback, shared sender resolution, supported-source rules, tenant authorization, and server-side report filters.
+- Added optional Manual Entry category selection and transactionally assigned every new supported feedback item either that validated human category or the canonical Business-owned `Other` fallback.
+- Made existing AI category analysis automatically replace only default/AI-owned state, preserving manual and automation overrides and keeping ingestion successful when AI is disabled, unavailable, low-confidence, or failed.
+- Added a dry-run-by-default, production-gated, idempotent active-uncategorized backfill command and focused reporting/category regressions. No schema, migration, reset, reseed, credential, provider configuration, or destructive historical-data change was made.
+- Passed owner/admin report suites, category and AI suites, integration and hardening regressions, backend/frontend typecheck and lint, Prisma validation, changed-file formatting, and production builds. The local backfill audit remains pending because the local MariaDB service did not provide a usable Prisma connection; no database data was changed.
+
 ## 2026-08-31 - Platform Administrator Reporting Consistency Correction
 
 - Standardized the shared report display label for `MANUAL` to `Manual Entry` across Preview, PDF, and CSV without changing the stored enum.

@@ -1,5 +1,14 @@
 # Security Notes
 
+## Reporting and Automatic Category Safety
+
+- Business Owner report access remains derived from the authenticated active membership and route Business; client input cannot select another Business. Branch/category filters are validated against that tenant.
+- Platform Overview remains restricted to `PLATFORM_ADMIN`. Business/Branch filters narrow server-side database scopes and cannot grant tenant access to ordinary users.
+- Report projections contain only safe display fields. They omit credentials, tokens, signatures, raw provider payloads, internal notes, external provider IDs, attachment URLs, and other sensitive integration data. Shared CSV formula neutralization, escaping, no-store/nosniff headers, and in-memory generation remain active.
+- An explicit Manual Entry category must be active and belong to the authenticated Business. Automatic fallback uses the Business-scoped unique category key and cannot reuse another tenant's category.
+- CATEGORY provenance is the overwrite guard: AI may replace only null/default-Other/AI-owned state. HUMAN and AUTOMATION state is protected against delayed or retried analysis. Atomic conditional updates convert concurrent changes into a conflict instead of overwriting them.
+- Backfill is dry-run-by-default, production-gated, operational-source-only, soft-delete-aware, transactionally rechecked, and idempotent. It does not inspect or rewrite credentials/provider payloads and does not resurrect hidden feedback.
+
 ## Focused Platform Administrator Reporting Consistency Safety
 
 - Existing `PLATFORM_ADMIN` report authorization, entity validation, in-memory exports, no-store/nosniff headers, CSV formula neutralization, and PDF text rendering are unchanged.

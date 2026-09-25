@@ -76,13 +76,21 @@ export function renderReportCsv(report: AdminReportDocument): Buffer {
     ["Generated at", report.generatedAt],
     ["Filters", report.filters.join(" | ")],
     ["Scope", report.scope.label],
-    ["Scope notes", report.scope.notes.join(" | ")],
-    ["Management summary", report.managementSummary],
-    [],
-    ["Highlights"],
-    ["Metric", "Value"],
-    ...report.highlights.map((item) => [item.label, item.value])
+    ["Scope notes", report.scope.notes.join(" | ")]
   ];
+
+  if (report.managementSummary) {
+    rows.push(["Management summary", report.managementSummary]);
+  }
+
+  if (report.highlights.length) {
+    rows.push(
+      [],
+      ["Overview"],
+      ["Metric", "Value"],
+      ...report.highlights.map((item) => [item.label, item.value])
+    );
+  }
 
   if (report.comparison) {
     rows.push(
@@ -162,8 +170,8 @@ export async function renderReportPdfWithDiagnostics(
   document.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   drawHeader(context, report, brand);
-  drawManagementSummary(context, report.managementSummary);
-  drawHighlights(context, report);
+  if (report.managementSummary) drawManagementSummary(context, report.managementSummary);
+  if (report.highlights.length) drawHighlights(context, report);
 
   if (report.comparison?.length) {
     drawComparison(context, report.comparison);
@@ -551,7 +559,7 @@ function isDetailedFeedbackSection(section: ReportSection) {
     (section.headers.join("|") ===
       "Customer / Sender|Feedback|Channel|Date|Category|Status" ||
       section.headers.join("|") ===
-        "Customer / Sender|Feedback|Channel|Date|Category|Status|Business|Branch")
+        "Business|Branch|Customer / Sender|Feedback|Channel|Date|Category|Status")
   );
 }
 
@@ -568,22 +576,24 @@ function tableColumnWidths(table: PreparedReportPdfTable, contentWidth: number) 
 export function prepareReportPdfTable(section: ReportSection): PreparedReportPdfTable {
   if (isDetailedFeedbackSection(section)) {
     const includeBusinessContext = section.headers.length === 8;
+    const feedbackColumnIndex = includeBusinessContext ? 3 : 1;
+    const dateColumnIndex = includeBusinessContext ? 5 : 3;
     return {
       headers: section.headers,
       rows: section.rows.map((row) =>
         row.map((cell, index) => {
-          if (index === 1 && typeof cell === "string") {
+          if (index === feedbackColumnIndex && typeof cell === "string") {
             return compactPdfExcerpt(cell, 500);
           }
-          return index === 3 ? formatReportPdfTimestamp(cell) : cell;
+          return index === dateColumnIndex ? formatReportPdfTimestamp(cell) : cell;
         })
       ),
       columnProportions: includeBusinessContext
-        ? [0.13, 0.27, 0.08, 0.13, 0.1, 0.08, 0.11, 0.1]
+        ? [0.11, 0.1, 0.13, 0.27, 0.08, 0.13, 0.1, 0.08]
         : [0.17, 0.35, 0.1, 0.15, 0.13, 0.1],
       fontSize: includeBusinessContext ? 6.2 : 6.7,
       wrapRows: true,
-      semanticColumnIndex: 5
+      semanticColumnIndex: includeBusinessContext ? 7 : 5
     };
   }
 
