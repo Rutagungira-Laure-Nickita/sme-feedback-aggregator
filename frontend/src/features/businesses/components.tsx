@@ -78,8 +78,8 @@ const navItems: WorkspaceNavItem[] = [
   },
   { label: "Customers", path: "customers", icon: UserRound },
   { label: "Integrations", path: "integrations", icon: PlugZap, ownerAdminOnly: true },
-  { label: "Reports", path: "reports", icon: FileText, ownerOnly: true },
   { label: "Branches", path: "branches", icon: MapPin },
+  { label: "Reports", path: "reports", icon: FileText, ownerOnly: true },
   { label: "Staff", path: "staff", icon: Users, ownerAdminOnly: true },
   {
     label: "Invitations",

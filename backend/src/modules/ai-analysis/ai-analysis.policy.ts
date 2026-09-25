@@ -88,6 +88,11 @@ export function classifyAIProviderError(error: unknown): string {
   if (error instanceof SyntaxError) return "AI_INVALID_RESPONSE";
   if (error && typeof error === "object") {
     const candidate = error as { status?: unknown; code?: unknown; message?: unknown };
+    if (candidate.status === 401 || candidate.status === 403) {
+      return "AI_PROVIDER_AUTH_FAILED";
+    }
+    if (candidate.status === 404) return "AI_PROVIDER_MODEL_UNAVAILABLE";
+    if (candidate.status === 400) return "AI_PROVIDER_REQUEST_REJECTED";
     if (candidate.status === 429) return "AI_PROVIDER_RATE_LIMITED";
     if (
       candidate.status === 500 ||

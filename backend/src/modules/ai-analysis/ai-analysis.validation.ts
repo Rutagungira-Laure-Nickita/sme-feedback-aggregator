@@ -129,6 +129,14 @@ export function safeErrorMessage(code: string): string {
       return "No analyzable feedback text was available.";
     case "AI_PROVIDER_NOT_CONFIGURED":
       return "AI provider is not configured.";
+    case "AI_PROVIDER_AUTH_FAILED":
+      return "AI provider credentials or permissions were rejected.";
+    case "AI_PROVIDER_MODEL_UNAVAILABLE":
+      return "The configured AI model is unavailable.";
+    case "AI_PROVIDER_REQUEST_REJECTED":
+      return "AI provider rejected the request configuration.";
+    case "AI_PERSISTENCE_FAILED":
+      return "AI analysis could not be saved. Retry later.";
     case "AI_PROVIDER_RATE_LIMITED":
       return "AI provider rate limit reached. Retry later.";
     case "AI_PROVIDER_UNAVAILABLE":

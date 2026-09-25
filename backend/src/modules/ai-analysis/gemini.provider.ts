@@ -22,6 +22,7 @@ export class GeminiAIProvider implements AIProvider {
         contents: buildPrompt(input),
         config: {
           responseMimeType: "application/json",
+          responseJsonSchema: buildResponseSchema(input),
           temperature: 0.2
         }
       }),
@@ -32,6 +33,27 @@ export class GeminiAIProvider implements AIProvider {
     const parsed = JSON.parse(text) as unknown;
     return parseProviderResult(parsed);
   }
+}
+
+export function buildResponseSchema(input: AIProviderInput) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["sentiment", "sentimentConfidence", "sentimentExplanation", "summary",
+      "detectedLanguage", "suggestedCategoryId", "categoryConfidence"],
+    properties: {
+      sentiment: { type: "string", enum: ["POSITIVE", "NEUTRAL", "NEGATIVE", "MIXED"] },
+      sentimentConfidence: { type: "number", minimum: 0, maximum: 1 },
+      sentimentExplanation: { type: ["string", "null"], maxLength: 240 },
+      summary: { type: "string", minLength: 1, maxLength: 240 },
+      detectedLanguage: { type: "string", minLength: 1, maxLength: 40 },
+      suggestedCategoryId: {
+        type: ["string", "null"],
+        enum: [...input.categories.map(category => category.id), null]
+      },
+      categoryConfidence: { type: ["number", "null"], minimum: 0, maximum: 1 }
+    }
+  };
 }
 
 export function buildPrompt(input: AIProviderInput): string {
@@ -48,6 +70,7 @@ export function buildPrompt(input: AIProviderInput): string {
     "Confidence values must be numbers from 0 to 1.",
     "Summary must be one or two concise sentences, max 240 characters, in the original/detected language, without customer identity, email, phone, internal notes, actions, replies, or invented facts.",
     "suggestedCategoryId must be one active category id from the supplied list or null. Do not invent categories. categoryConfidence must be null when suggestedCategoryId is null.",
+    "Choose the most specific category matching the feedback's subject, whether positive or negative. Use Other only when no specific supplied category fits; use null only when no supplied category is suitable. A short but clear message can still have a confident category.",
     "",
     "Approved categories JSON:",
     JSON.stringify(categories),

@@ -8,9 +8,10 @@ let running = false;
 export function startAIAnalysisWorker(): void {
   const state = getAIOperationalState();
   if (state !== "READY") {
-    if (env.AI_ANALYSIS_ENABLED) {
-      logger.warn({ operationalState: state }, "AI analysis worker not started");
-    }
+    logger.warn(
+      { event: "AI_WORKER_UNAVAILABLE", operationalState: state },
+      "AI analysis worker not started; automatic categories retain their fallback"
+    );
     return;
   }
 
