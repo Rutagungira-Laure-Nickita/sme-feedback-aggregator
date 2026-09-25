@@ -64,7 +64,8 @@ export async function businessReportExportController(
     const businessId = request.params.businessId ?? "";
     const input = parse(businessReportRequestSchema.safeParse(request.body));
     const report = simplifyBusinessOwnerReportForExport(
-      await buildBusinessOwnerReport(actor, businessId, input)
+      await buildBusinessOwnerReport(actor, businessId, input),
+      input.outputFormat === "PDF"
     );
     const extension = input.outputFormat.toLowerCase();
     const filename = `customer-feedback-${new Date().toISOString().slice(0, 10)}.${extension}`;

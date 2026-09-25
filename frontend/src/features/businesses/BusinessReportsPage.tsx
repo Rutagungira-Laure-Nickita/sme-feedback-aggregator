@@ -413,6 +413,21 @@ function DetailedFeedbackRecordsSection({
 }) {
   return (
     <WorkspacePanel>
+      <section className="mb-6 border-b border-app-border pb-5">
+        <h3 className="font-bold">Feedback by Channel</h3>
+        <dl className="mt-3 space-y-2 text-sm">
+          {["Gmail", "WhatsApp", "Manual Entry", "Public Form"].map((channel) => (
+            <div key={channel} className="flex gap-2">
+              <dt className="font-semibold">{channel}:</dt>
+              <dd>
+                {new Intl.NumberFormat().format(
+                  section.rows.filter((row) => row[2] === channel).length
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="font-bold">{section.title}</h3>

@@ -1,5 +1,11 @@
 # Implementation Status
 
+## Business Owner Channel Count Summary
+
+The Reports page and Owner PDF now show `Feedback by Channel` immediately above `Detailed Feedback Records`, listing Gmail, WhatsApp, Manual Entry, and Public Form including zero counts. Counts use all existing detailed rows before preview truncation, inheriting their date, Branch, channel, status, sentiment, tenant, soft-delete, and hidden-source scope. CSV, Platform Administrator reports, filters, queries, and database are unchanged.
+
+Quick verification passes: Owner reporting tests (25 backend, 15 frontend), backend/frontend typechecks, changed-code formatting, and an in-memory check of full-population counts, zero counts, section order, unchanged CSV projection, and no source mutation. The in-memory check initially encountered sandbox `spawn EPERM`; the approved rerun passed. No new known issue; user-run page/PDF verification remains pending and no browser was opened.
+
 ## Simplified Reporting and Automatic Feedback Categorization
 
 Implementation and automated verification are complete; user-run browser/download/provider verification remains pending. The Business Owner Reports page now presents only date/Branch/Channel/Workflow Status/Sentiment filters plus `Detailed Feedback Records`. Its PDF/CSV export is projected to the same concise report and contains Customer / Sender, original Feedback, Channel, Date, Category, and Status for every matching row. The richer owner preview document remains available internally to the real-data Overview dashboard, so this simplification does not remove dashboard metrics.

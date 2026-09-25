@@ -54,7 +54,8 @@ export function buildDetailedFeedbackSection(
 }
 
 export function simplifyBusinessOwnerReportForExport(
-  report: AdminReportDocument
+  report: AdminReportDocument,
+  includeChannelSummary = false
 ): AdminReportDocument {
   const detailedFeedback = report.sections.find(
     (section) => section.title === "Detailed Feedback Records"
@@ -66,7 +67,25 @@ export function simplifyBusinessOwnerReportForExport(
     scope: { ...report.scope, notes: [] },
     managementSummary: "",
     highlights: [],
-    sections: detailedFeedback ? [detailedFeedback] : [],
+    sections: detailedFeedback
+      ? [
+          ...(includeChannelSummary
+            ? [
+                {
+                  title: "Feedback by Channel",
+                  headers: ["Channel", "Count"],
+                  rows: ["Gmail", "WhatsApp", "Manual Entry", "Public Form"].map(
+                    (channel) => [
+                      channel,
+                      detailedFeedback.rows.filter((row) => row[2] === channel).length
+                    ]
+                  )
+                }
+              ]
+            : []),
+          detailedFeedback
+        ]
+      : [],
     comparison: undefined
   };
 }

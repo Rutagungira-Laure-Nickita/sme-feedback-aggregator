@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-25 - Business Owner Channel Feedback Counts
+
+- Added a simple four-channel count summary above Detailed Feedback Records on the Owner Reports page and PDF, including zero counts and using the complete already-filtered detail population.
+- Preserved CSV, Platform Administrator reports, filters, queries, and database. No migration or browser work was performed.
+- Owner reporting tests (25 backend, 15 frontend), backend/frontend typechecks, focused in-memory count/projection assertions, and changed-code formatting pass. Manual page/PDF verification remains with the user.
+
 ## 2026-09-25 - Simplified Reports and Automatic Category Assignment
 
 - Simplified the Business Owner Reports page and PDF/CSV export to filtered Detailed Feedback Records only, while preserving the rich internal preview used by the real-data Owner Overview dashboard.

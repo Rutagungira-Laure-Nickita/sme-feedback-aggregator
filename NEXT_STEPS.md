@@ -1,5 +1,9 @@
 # Next Steps
 
+## Business Owner Channel Count Summary — Manual Verification
+
+Confirm `Feedback by Channel` appears above Detailed Feedback Records on the Owner Reports page and PDF, with Gmail, WhatsApp, Manual Entry, and Public Form including zeros. Compare counts against all matching records (including more than 12), then try date/Branch/channel/status/sentiment filters and an empty result. Confirm CSV remains unchanged. This focused enhancement is implemented; user-run visual verification remains pending.
+
 ## Simplified Reporting and Automatic Categorization — Manual Verification Gate
 
 Implementation and automated verification are complete. The next task is the user-owned browser/download/provider pass:

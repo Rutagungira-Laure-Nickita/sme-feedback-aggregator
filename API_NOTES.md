@@ -2,8 +2,8 @@
 
 ## Simplified Reports and Intake Category Contract
 
-- `POST /api/businesses/:businessId/reports/preview` remains compatible with the owner Overview dashboard. The Reports UI displays only its `Detailed Feedback Records` section.
-- `POST /api/businesses/:businessId/reports/export` now exports `Detailed Customer Feedback Report` with only Customer / Sender, Feedback, Channel, Date, Category, and Status plus concise scope/filter metadata. PDF and CSV contain all matching rows.
+- `POST /api/businesses/:businessId/reports/preview` remains compatible with the owner Overview dashboard. The Reports UI displays its `Detailed Feedback Records` section with a four-channel count summary derived from all those rows.
+- `POST /api/businesses/:businessId/reports/export` exports `Detailed Customer Feedback Report` with Customer / Sender, Feedback, Channel, Date, Category, and Status plus concise scope/filter metadata. PDF adds `Feedback by Channel` above the detail section (Gmail, WhatsApp, Manual Entry, Public Form including zeros); CSV is unchanged. Both formats contain all matching rows. Requests, authorization, and filters are unchanged.
 - Normal Platform Administrator report requests use `reportType: EXECUTIVE_PLATFORM`, displayed as `Platform Overview Report`. They accept Business, Branch, date, Channel, Workflow Status, and Sentiment filters. Provider is not accepted for this report.
 - The Platform Overview response contains four highlights and the sections Businesses, Users, Detailed Feedback Records, and Supported Integrations. Supported integrations are Live Gmail and WhatsApp only. Legacy report types remain accepted internally for backward compatibility but are not exposed as normal choices.
 - Manual feedback creation accepts optional `categoryId`. The backend requires it to be an active category belonging to the route Business; a missing/foreign/inactive ID cannot broaden tenant scope. Omitting it selects automatic categorization.
